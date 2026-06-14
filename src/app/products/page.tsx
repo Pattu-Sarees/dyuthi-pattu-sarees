@@ -3,7 +3,7 @@ import ProductFilters from '@/components/products/ProductFilters'
 import ProductsGrid from '@/components/products/ProductsGrid'
 import { SlidersHorizontal } from 'lucide-react'
 
-export const metadata = { title: 'All Sarees | Vibha Handloom' }
+export const metadata = { title: 'All Sarees | Dyuthi Pattu Sarees' }
 
 export default function ProductsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[]>> }) {
   return (

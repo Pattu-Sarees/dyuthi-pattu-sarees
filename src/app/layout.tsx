@@ -9,7 +9,7 @@ import { Toaster } from 'sonner'
 const geist = Geist({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Vibha Handloom Sarees | Authentic Indian Sarees',
+  title: 'Dyuthi Pattu Sarees | Authentic Indian Sarees',
   description: 'Shop authentic handloom sarees — silk, cotton, Banarasi, Kanjivaram, and more. Free shipping above ₹999.',
 }
 

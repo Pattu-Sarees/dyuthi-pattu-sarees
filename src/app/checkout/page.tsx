@@ -64,7 +64,7 @@ export default function CheckoutPage() {
           key,
           amount: total * 100,
           currency: 'INR',
-          name: 'Vibha Handloom Sarees',
+          name: 'Dyuthi Pattu Sarees',
           description: 'Saree Purchase',
           order_id: orderId,
           handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string }) => {

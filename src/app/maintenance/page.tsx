@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Under Maintenance | Vibha Handloom Sarees',
+  title: 'Under Maintenance | Dyuthi Pattu Sarees',
   robots: { index: false, follow: false },
 }
 
@@ -9,7 +9,7 @@ export default function MaintenancePage() {
       <div className="max-w-lg text-center">
         <div className="text-7xl mb-6">🥻</div>
         <p className="text-amber-300 text-sm font-semibold tracking-widest uppercase mb-3">
-          Vibha Handloom Sarees
+          Dyuthi Pattu Sarees
         </p>
         <h1 className="text-3xl md:text-4xl font-bold mb-4">
           We&apos;ll be back soon
@@ -29,8 +29,8 @@ export default function MaintenancePage() {
 
         <div className="mt-10 text-rose-200 text-sm">
           <p>Need help? Reach us at</p>
-          <a href="mailto:support@vibhasarees.com" className="text-amber-300 hover:underline font-medium">
-            support@vibhasarees.com
+          <a href="mailto:support@dyuthipattusarees.com" className="text-amber-300 hover:underline font-medium">
+            support@dyuthipattusarees.com
           </a>
         </div>
       </div>

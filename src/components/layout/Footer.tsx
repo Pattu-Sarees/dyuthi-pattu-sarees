@@ -8,8 +8,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className="mb-4">
-              <span className="text-2xl font-bold text-white">Vibha</span>
-              <p className="text-xs text-gray-400 tracking-widest uppercase mt-0.5">Handloom Sarees</p>
+              <span className="text-2xl font-bold text-white">Dyuthi</span>
+              <p className="text-xs text-gray-400 tracking-widest uppercase mt-0.5">Pattu Sarees</p>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               Celebrating India's rich textile heritage. Every saree tells a story of craftsmanship, tradition, and artistry.
@@ -49,7 +49,7 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2">
                 <Mail className="h-4 w-4 mt-0.5 text-rose-400 flex-shrink-0" />
-                <span>support@vibhasarees.com</span>
+                <span>support@dyuthipattusarees.com</span>
               </li>
               <li className="flex items-start gap-2">
                 <Phone className="h-4 w-4 mt-0.5 text-rose-400 flex-shrink-0" />
@@ -73,7 +73,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500">
-          <p>© 2024 Vibha Handloom Sarees. All rights reserved.</p>
+          <p>© 2024 Dyuthi Pattu Sarees. All rights reserved.</p>
           <div className="flex gap-4">
             <a href="#" className="hover:text-rose-400">Privacy Policy</a>
             <a href="#" className="hover:text-rose-400">Terms of Service</a>

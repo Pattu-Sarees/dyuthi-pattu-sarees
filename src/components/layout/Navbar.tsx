@@ -61,8 +61,8 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
             <div className="flex flex-col leading-tight">
-              <span className="text-xl font-bold text-rose-700 tracking-tight">Vibha</span>
-              <span className="text-[10px] text-gray-500 tracking-widest uppercase">Handloom Sarees</span>
+              <span className="text-xl font-bold text-rose-700 tracking-tight">Dyuthi</span>
+              <span className="text-[10px] text-gray-500 tracking-widest uppercase">Pattu Sarees</span>
             </div>
           </Link>
 

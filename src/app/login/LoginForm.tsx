@@ -63,8 +63,8 @@ export default function LoginForm() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/" className="inline-block mb-6">
-            <span className="text-3xl font-bold text-rose-700">Vibha</span>
-            <p className="text-xs text-gray-500 tracking-widest uppercase">Handloom Sarees</p>
+            <span className="text-3xl font-bold text-rose-700">Dyuthi</span>
+            <p className="text-xs text-gray-500 tracking-widest uppercase">Pattu Sarees</p>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">
             {step === 'email' ? 'Sign in to your account' : 'Enter verification code'}
