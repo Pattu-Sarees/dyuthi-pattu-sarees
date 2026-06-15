@@ -6,8 +6,6 @@ import { ShoppingCart, Star, Heart } from 'lucide-react'
 import { Product } from '@/types'
 import { formatPrice, getDiscountPercent } from '@/lib/utils'
 import { useCartStore } from '@/store/cart'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
 export default function ProductCard({ product }: { product: Product }) {
@@ -25,7 +23,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
   return (
     <Link href={`/products/${product.id}`}>
-      <div className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer">
+      <div className="group bg-white rounded-lg overflow-hidden border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-300 cursor-pointer">
         {/* Image */}
         <div className="relative aspect-[3/4] bg-gray-100 overflow-hidden">
           {product.images?.[0] ? (
@@ -42,57 +40,56 @@ export default function ProductCard({ product }: { product: Product }) {
             </div>
           )}
           {/* Badges */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+          <div className="absolute top-0 left-0 flex flex-col">
             {discount > 0 && (
-              <Badge className="bg-green-500 text-white border-0 text-xs">{discount}% OFF</Badge>
+              <span className="bg-[#C2185B] text-white text-[11px] font-bold px-2.5 py-1 tracking-wide">SALE</span>
             )}
-            {product.is_new_arrival && (
-              <Badge className="bg-blue-500 text-white border-0 text-xs">New</Badge>
-            )}
-            {!product.in_stock && (
-              <Badge className="bg-gray-500 text-white border-0 text-xs">Out of Stock</Badge>
+            {product.is_new_arrival && discount === 0 && (
+              <span className="bg-[#1f8a5b] text-white text-[11px] font-bold px-2.5 py-1 tracking-wide">NEW</span>
             )}
           </div>
-          <button className="absolute top-3 right-3 p-1.5 bg-white/80 backdrop-blur rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-50">
-            <Heart className="h-4 w-4 text-gray-500 hover:text-rose-600" />
+          {!product.in_stock && (
+            <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+              <span className="bg-gray-800 text-white text-xs font-semibold px-3 py-1.5 rounded">Out of Stock</span>
+            </div>
+          )}
+          <button className="absolute top-2.5 right-2.5 p-1.5 bg-white/85 backdrop-blur rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-50">
+            <Heart className="h-4 w-4 text-gray-500 hover:text-[#C2185B]" />
           </button>
         </div>
 
         {/* Info */}
-        <div className="p-4">
-          <p className="text-xs text-rose-600 font-medium mb-1 capitalize">{product.fabric} • {product.region}</p>
-          <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2 mb-2">{product.name}</h3>
+        <div className="p-3">
+          <h3 className="text-gray-800 text-sm leading-tight line-clamp-2 mb-1.5 min-h-[2.5rem]">{product.name}</h3>
 
           {/* Rating */}
           {product.rating > 0 && (
-            <div className="flex items-center gap-1 mb-2">
+            <div className="flex items-center gap-1 mb-1.5">
               <div className="flex">
                 {[1,2,3,4,5].map((s) => (
                   <Star key={s} className={`h-3 w-3 ${s <= Math.round(product.rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}`} />
                 ))}
               </div>
-              <span className="text-xs text-gray-500">({product.review_count})</span>
+              <span className="text-xs text-gray-400">({product.review_count})</span>
             </div>
           )}
 
           {/* Price */}
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-base font-bold text-gray-900">{formatPrice(product.price)}</span>
+          <div className="flex items-baseline gap-2 mb-3">
+            <span className="text-base font-bold text-[#C2185B]">{formatPrice(product.price)}</span>
             {product.original_price && (
               <span className="text-xs text-gray-400 line-through">{formatPrice(product.original_price)}</span>
             )}
           </div>
 
-          <Button
+          <button
             onClick={handleAddToCart}
             disabled={!product.in_stock}
-            size="sm"
-            className="w-full"
-            variant={product.in_stock ? 'default' : 'outline'}
+            className="w-full flex items-center justify-center gap-1.5 border border-[#C2185B] text-[#C2185B] hover:bg-[#C2185B] hover:text-white font-semibold text-sm py-2 rounded-md transition-colors disabled:opacity-40 disabled:pointer-events-none uppercase tracking-wide"
           >
             <ShoppingCart className="h-4 w-4" />
-            {product.in_stock ? 'Add to Cart' : 'Out of Stock'}
-          </Button>
+            {product.in_stock ? 'Add' : 'Sold Out'}
+          </button>
         </div>
       </div>
     </Link>

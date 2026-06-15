@@ -52,7 +52,7 @@ export default function Navbar() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+    <header className="sticky top-0 z-50 bg-[#FFFDF7] border-b border-gray-100 shadow-sm">
       {/* Top bar — free shipping */}
       <div className="bg-[#C2185B] text-white text-xs md:text-sm py-2 px-4">
         <div className="flex items-center justify-center gap-2 font-medium tracking-wide">
@@ -145,7 +145,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-3">
+        <div className="md:hidden bg-[#FFFDF7] border-t border-gray-100 px-4 py-4 space-y-3">
           <form onSubmit={handleSearch} className="flex gap-2">
             <Input
               value={search}
