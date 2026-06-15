@@ -43,11 +43,12 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/products', label: 'All Sarees' },
+    { href: '/products?is_new_arrival=true', label: 'New Arrivals' },
+    { href: '/products?sort=popular', label: 'Best Sellers' },
+    { href: '/products?category=kanjivaram', label: 'Kanjivaram' },
+    { href: '/products?category=banarasi', label: 'Banarasi' },
     { href: '/products?category=silk', label: 'Silk' },
     { href: '/products?category=cotton', label: 'Cotton' },
-    { href: '/products?category=banarasi', label: 'Banarasi' },
-    { href: '/products?is_new_arrival=true', label: 'New Arrivals' },
-    { href: '/products?is_featured=true', label: 'Featured' },
   ]
 
   return (
