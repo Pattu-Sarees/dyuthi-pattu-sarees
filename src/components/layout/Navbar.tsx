@@ -51,7 +51,7 @@ export default function Navbar() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 bg-[#FBF3E4] border-b border-amber-100 shadow-sm">
+    <header className="sticky top-0 z-50 bg-[#F7BE33] border-b border-amber-500/40 shadow-sm">
       {/* Top bar — scrolling marquee */}
       <div className="bg-rose-700 text-white text-xs py-1.5 overflow-hidden">
         <div className="marquee whitespace-nowrap">
@@ -70,11 +70,11 @@ export default function Navbar() {
           <Link href="/" className="flex-shrink-0">
             <Image
               src="/logo.png"
-              alt="Dyuthi Pattu Sarees"
-              width={120}
-              height={120}
+              alt="Dyuthi Pattu Sarees — Direct From Weavers"
+              width={300}
+              height={121}
               priority
-              className="h-12 w-auto md:h-14"
+              className="h-12 w-auto md:h-16"
             />
           </Link>
 
@@ -136,8 +136,8 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               className={cn(
-                'text-sm font-medium transition-colors hover:text-rose-700',
-                pathname === link.href ? 'text-rose-700' : 'text-gray-600'
+                'text-sm font-medium transition-colors hover:text-[#7A2148]',
+                pathname === link.href ? 'text-[#7A2148]' : 'text-[#4A2C17]'
               )}
             >
               {link.label}
@@ -148,7 +148,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-[#FBF3E4] border-t border-amber-100 px-4 py-4 space-y-3">
+        <div className="md:hidden bg-[#F7BE33] border-t border-amber-500/40 px-4 py-4 space-y-3">
           <form onSubmit={handleSearch} className="flex gap-2">
             <Input
               value={search}
@@ -163,7 +163,7 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               onClick={() => setMenuOpen(false)}
-              className="block py-2 text-sm font-medium text-gray-700 hover:text-rose-700"
+              className="block py-2 text-sm font-medium text-[#4A2C17] hover:text-[#7A2148]"
             >
               {link.label}
             </Link>
