@@ -27,3 +27,20 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Scrolling marquee for the top announcement bar */
+.marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 22s linear infinite;
+}
+.marquee:hover {
+  animation-play-state: paused;
+}
+.marquee-content {
+  flex-shrink: 0;
+}
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}

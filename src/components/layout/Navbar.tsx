@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { ShoppingCart, User, Search, Menu, X, Heart } from 'lucide-react'
 import { useState, useEffect } from 'react'
@@ -50,20 +51,31 @@ export default function Navbar() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-      {/* Top bar */}
-      <div className="bg-rose-700 text-white text-xs text-center py-1.5">
-        Free shipping on orders above ₹999 | Handloom certified products
+    <header className="sticky top-0 z-50 bg-[#FBF3E4] border-b border-amber-100 shadow-sm">
+      {/* Top bar — scrolling marquee */}
+      <div className="bg-rose-700 text-white text-xs py-1.5 overflow-hidden">
+        <div className="marquee whitespace-nowrap">
+          <span className="marquee-content">
+            🚚 Enjoy free shipping on orders above ₹999&nbsp;&nbsp;•&nbsp;&nbsp;🧵 Handloom certified products&nbsp;&nbsp;•&nbsp;&nbsp;🪡 Direct from weavers&nbsp;&nbsp;•&nbsp;&nbsp;
+          </span>
+          <span className="marquee-content" aria-hidden="true">
+            🚚 Enjoy free shipping on orders above ₹999&nbsp;&nbsp;•&nbsp;&nbsp;🧵 Handloom certified products&nbsp;&nbsp;•&nbsp;&nbsp;🪡 Direct from weavers&nbsp;&nbsp;•&nbsp;&nbsp;
+          </span>
+        </div>
       </div>
 
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <div className="flex flex-col leading-tight">
-              <span className="text-xl font-bold text-rose-700 tracking-tight">Dyuthi</span>
-              <span className="text-[10px] text-gray-500 tracking-widest uppercase">Pattu Sarees</span>
-            </div>
+            <Image
+              src="/logo.png"
+              alt="Dyuthi Pattu Sarees"
+              width={120}
+              height={120}
+              priority
+              className="h-12 w-auto md:h-14"
+            />
           </Link>
 
           {/* Search */}
@@ -136,7 +148,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-3">
+        <div className="md:hidden bg-[#FBF3E4] border-t border-amber-100 px-4 py-4 space-y-3">
           <form onSubmit={handleSearch} className="flex gap-2">
             <Input
               value={search}

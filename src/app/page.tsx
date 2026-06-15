@@ -23,36 +23,36 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-rose-950 via-rose-800 to-amber-800 text-white">
-        <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(255,255,255,.05) 40px, rgba(255,255,255,.05) 80px)'}}>
+      <section className="relative overflow-hidden bg-[#FBF3E4]">
+        <div className="absolute inset-0 opacity-[0.04]" style={{backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(120,53,15,.6) 40px, rgba(120,53,15,.6) 80px)'}}>
         </div>
-        <div className="container mx-auto px-4 py-24 md:py-32 relative">
+        <div className="container mx-auto px-4 py-20 md:py-28 relative">
           <div className="max-w-2xl">
             <Badge className="mb-4 bg-amber-400 text-amber-900 border-0">New Collection 2024</Badge>
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+            <h1 className="text-4xl md:text-6xl font-bold mb-5 leading-tight text-rose-950">
               Drape Yourself in
-              <span className="block text-amber-300">India's Heritage</span>
+              <span className="block text-amber-600">India&apos;s Heritage</span>
             </h1>
-            <p className="text-lg md:text-xl text-rose-100 mb-8 leading-relaxed">
-              Handpicked handloom sarees from master weavers across India. Every thread tells a story of centuries-old craftsmanship.
+            <p className="text-lg md:text-xl text-rose-900/70 mb-8 leading-relaxed">
+              Handpicked handloom sarees direct from master weavers across India. Every thread tells a story of centuries-old craftsmanship.
             </p>
             <div className="flex flex-wrap gap-4">
               <Link href="/products">
-                <Button size="lg" className="bg-amber-400 hover:bg-amber-300 text-amber-900 font-semibold">
+                <Button size="lg" className="bg-rose-700 hover:bg-rose-800 text-white font-semibold">
                   Shop Collection <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
               <Link href="/products?is_new_arrival=true">
-                <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 bg-transparent">
+                <Button size="lg" variant="outline" className="border-rose-300 text-rose-800 hover:bg-rose-50 bg-transparent">
                   New Arrivals
                 </Button>
               </Link>
             </div>
-            <div className="mt-10 flex items-center gap-6 text-sm text-rose-200">
-              <div className="flex items-center gap-1"><Star className="h-4 w-4 text-amber-400 fill-amber-400" /> <span>4.9/5 from 2,400+ reviews</span></div>
-              <div>•</div>
+            <div className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-rose-900/70">
+              <div className="flex items-center gap-1"><Star className="h-4 w-4 text-amber-500 fill-amber-500" /> <span>4.9/5 from 2,400+ reviews</span></div>
+              <div className="hidden sm:block">•</div>
               <div>500+ unique designs</div>
-              <div>•</div>
+              <div className="hidden sm:block">•</div>
               <div>Free shipping ₹999+</div>
             </div>
           </div>
