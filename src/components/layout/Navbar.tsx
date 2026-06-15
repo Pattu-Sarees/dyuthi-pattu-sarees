@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { ShoppingCart, User, Search, Menu, X, Heart } from 'lucide-react'
+import { ShoppingCart, User, Search, Menu, X, Heart, Truck } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useCartStore } from '@/store/cart'
 import { createClient } from '@/lib/supabase/client'
@@ -51,16 +51,12 @@ export default function Navbar() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 bg-[#F7BE33] border-b border-amber-500/40 shadow-sm">
-      {/* Top bar — scrolling marquee */}
-      <div className="bg-rose-700 text-white text-xs py-1.5 overflow-hidden">
-        <div className="marquee whitespace-nowrap">
-          <span className="marquee-content">
-            🚚 Enjoy free shipping on orders above ₹999&nbsp;&nbsp;•&nbsp;&nbsp;🧵 Handloom certified products&nbsp;&nbsp;•&nbsp;&nbsp;🪡 Direct from weavers&nbsp;&nbsp;•&nbsp;&nbsp;
-          </span>
-          <span className="marquee-content" aria-hidden="true">
-            🚚 Enjoy free shipping on orders above ₹999&nbsp;&nbsp;•&nbsp;&nbsp;🧵 Handloom certified products&nbsp;&nbsp;•&nbsp;&nbsp;🪡 Direct from weavers&nbsp;&nbsp;•&nbsp;&nbsp;
-          </span>
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+      {/* Top bar — free shipping */}
+      <div className="bg-[#C2185B] text-white text-xs md:text-sm py-2 px-4">
+        <div className="flex items-center justify-center gap-2 font-medium tracking-wide">
+          <Truck className="h-4 w-4 md:h-5 md:w-5" />
+          <span>Enjoy Free Shipping All Over India</span>
         </div>
       </div>
 
@@ -71,10 +67,10 @@ export default function Navbar() {
             <Image
               src="/logo.png"
               alt="Dyuthi Pattu Sarees — Direct From Weavers"
-              width={300}
-              height={121}
+              width={396}
+              height={100}
               priority
-              className="h-12 w-auto md:h-16"
+              className="h-9 w-auto md:h-12"
             />
           </Link>
 
@@ -136,8 +132,8 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               className={cn(
-                'text-sm font-medium transition-colors hover:text-[#7A2148]',
-                pathname === link.href ? 'text-[#7A2148]' : 'text-[#4A2C17]'
+                'text-sm font-medium transition-colors hover:text-[#C2185B]',
+                pathname === link.href ? 'text-[#C2185B]' : 'text-gray-600'
               )}
             >
               {link.label}
@@ -148,7 +144,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-[#F7BE33] border-t border-amber-500/40 px-4 py-4 space-y-3">
+        <div className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-3">
           <form onSubmit={handleSearch} className="flex gap-2">
             <Input
               value={search}
@@ -163,7 +159,7 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               onClick={() => setMenuOpen(false)}
-              className="block py-2 text-sm font-medium text-[#4A2C17] hover:text-[#7A2148]"
+              className="block py-2 text-sm font-medium text-gray-700 hover:text-[#C2185B]"
             >
               {link.label}
             </Link>
