@@ -47,6 +47,7 @@ async function getProducts(searchParams: Record<string, string | string[]>) {
   if (searchParams.in_stock === 'true') query = query.eq('in_stock', true)
   if (searchParams.is_featured === 'true') query = query.eq('is_featured', true)
   if (searchParams.is_new_arrival === 'true') query = query.eq('is_new_arrival', true)
+  if (searchParams.on_sale === 'true') query = query.not('original_price', 'is', null)
 
   const sort = searchParams.sort as string
   switch (sort) {

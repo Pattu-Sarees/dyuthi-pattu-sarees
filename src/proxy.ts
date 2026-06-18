@@ -64,7 +64,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // ---------- Protected routes ----------
-  const protectedPaths = ['/account', '/orders', '/checkout']
+  const protectedPaths = ['/account', '/orders', '/checkout', '/admin']
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p))
   if (isProtected && !user) {
     const redirectUrl = request.nextUrl.clone()
