@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ShoppingCart, Star, ChevronRight, Minus, Plus, Shield, Truck, RefreshCw, Share2 } from 'lucide-react'
+import { ShoppingCart, Star, ChevronRight, ChevronLeft, Minus, Plus, Shield, Truck, RefreshCw, Share2 } from 'lucide-react'
 import { Product, Review } from '@/types'
-import { formatPrice, formatDate, getDiscountPercent } from '@/lib/utils'
+import { formatPrice, formatDate, getDiscountPercent, getStockStatus } from '@/lib/utils'
 import { useCartStore } from '@/store/cart'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,8 +20,11 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
     ? getDiscountPercent(product.original_price, product.price)
     : 0
 
+  const stock = getStockStatus(product.stock_quantity)
+  const available = stock.level !== 'out'
+
   const handleAddToCart = () => {
-    addItem(product, quantity)
+    addItem(product, quantity, product.images[selectedImage])
     toast.success('Added to cart!', { description: `${quantity}x ${product.name}` })
   }
 
@@ -39,7 +42,7 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         {/* Images */}
         <div className="space-y-3">
-          <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100">
+          <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100 group">
             {product.images?.[selectedImage] ? (
               <Image
                 src={product.images[selectedImage]}
@@ -54,6 +57,30 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
             )}
             {discount > 0 && (
               <Badge className="absolute top-4 left-4 bg-green-500 text-white border-0">{discount}% OFF</Badge>
+            )}
+
+            {product.images?.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSelectedImage((selectedImage - 1 + product.images.length) % product.images.length)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 shadow flex items-center justify-center text-gray-700 hover:bg-white hover:text-[#C2185B] transition-colors"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedImage((selectedImage + 1) % product.images.length)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 shadow flex items-center justify-center text-gray-700 hover:bg-white hover:text-[#C2185B] transition-colors"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+                <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                  {selectedImage + 1} / {product.images.length}
+                </div>
+              </>
             )}
           </div>
           {product.images?.length > 1 && (
@@ -106,19 +133,22 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
             {product.occasion?.map((occ) => (
               <Badge key={occ} variant="secondary" className="capitalize">{occ}</Badge>
             ))}
-            {product.color?.map((c) => (
-              <Badge key={c} variant="outline" className="capitalize">{c}</Badge>
-            ))}
           </div>
 
           {/* Stock */}
-          <div className={`flex items-center gap-2 text-sm font-medium ${product.in_stock ? 'text-green-600' : 'text-red-500'}`}>
-            <div className={`h-2 w-2 rounded-full ${product.in_stock ? 'bg-green-500' : 'bg-red-500'}`} />
-            {product.in_stock ? `In Stock (${product.stock_quantity} left)` : 'Out of Stock'}
+          <div className={`flex items-center gap-2 text-sm font-medium ${
+            stock.level === 'in' ? 'text-green-600' : stock.level === 'low' ? 'text-amber-600' : 'text-red-500'
+          }`}>
+            <div className={`h-2 w-2 rounded-full ${
+              stock.level === 'in' ? 'bg-green-500' : stock.level === 'low' ? 'bg-amber-500' : 'bg-red-500'
+            }`} />
+            {stock.level === 'out'
+              ? 'Sold Out'
+              : `${stock.label} (${product.stock_quantity} left)`}
           </div>
 
           {/* Quantity + Cart */}
-          {product.in_stock && (
+          {available && (
             <div className="flex items-center gap-3">
               <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                 <button
@@ -141,8 +171,8 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
             </div>
           )}
 
-          <Link href={product.in_stock ? '/checkout' : '#'} onClick={() => product.in_stock && addItem(product, quantity)}>
-            <Button size="lg" variant="outline" className="w-full mt-0" disabled={!product.in_stock}>
+          <Link href={available ? '/checkout' : '#'} onClick={() => available && addItem(product, quantity, product.images[selectedImage])}>
+            <Button size="lg" variant="outline" className="w-full mt-0" disabled={!available}>
               Buy Now
             </Button>
           </Link>

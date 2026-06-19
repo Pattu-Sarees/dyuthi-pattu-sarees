@@ -26,6 +26,16 @@ export function getDiscountPercent(original: number, current: number): number {
   return Math.round(((original - current) / original) * 100)
 }
 
+export type StockLevel = 'out' | 'low' | 'in'
+
+// Inventory automation: 0 → Sold Out, 1-2 → Low Stock, 3+ → In Stock
+export function getStockStatus(quantity: number): { level: StockLevel; label: string } {
+  const qty = Number(quantity) || 0
+  if (qty <= 0) return { level: 'out', label: 'Sold Out' }
+  if (qty <= 2) return { level: 'low', label: 'Low Stock' }
+  return { level: 'in', label: 'In Stock' }
+}
+
 export const ORDER_STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
   confirmed: 'Order Confirmed',

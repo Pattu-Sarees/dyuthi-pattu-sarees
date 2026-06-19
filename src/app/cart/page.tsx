@@ -6,9 +6,12 @@ import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react'
+import { toast } from 'sonner'
+import { useState } from 'react'
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCartStore()
+  const [confirmRemove, setConfirmRemove] = useState<{ key: string; name: string } | null>(null)
 
   const subtotal = totalPrice()
   const shipping = subtotal >= 999 ? 0 : 99
@@ -35,10 +38,10 @@ export default function CartPage() {
         {/* Cart items */}
         <div className="lg:col-span-2 space-y-4">
           {items.map((item) => (
-            <div key={item.product_id} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-4">
+            <div key={item.key} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-4">
               <div className="relative w-20 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
-                {item.product.images?.[0] ? (
-                  <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" sizes="80px" />
+                {item.image ? (
+                  <Image src={item.image} alt={item.product.name} fill className="object-cover" sizes="80px" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-2xl">🥻</div>
                 )}
@@ -51,17 +54,36 @@ export default function CartPage() {
                 <p className="text-xs text-gray-500 capitalize mt-1">{item.product.fabric} • {item.product.region}</p>
                 <div className="flex items-center justify-between mt-3">
                   <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                    <button onClick={() => updateQuantity(item.product_id, item.quantity - 1)} className="px-2 py-1 hover:bg-gray-50">
+                    <button
+                      onClick={() => {
+                        if (item.quantity <= 1) {
+                          setConfirmRemove({ key: item.key, name: item.product.name })
+                          return
+                        }
+                        updateQuantity(item.key, item.quantity - 1)
+                      }}
+                      className="px-2 py-1 hover:bg-gray-50"
+                    >
                       <Minus className="h-3.5 w-3.5" />
                     </button>
                     <span className="px-3 text-sm font-semibold">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.product_id, item.quantity + 1)} className="px-2 py-1 hover:bg-gray-50">
+                    <button
+                      onClick={() => {
+                        if (item.quantity >= item.maxQty) {
+                          toast.error(`Only ${item.maxQty} in stock`)
+                          return
+                        }
+                        updateQuantity(item.key, item.quantity + 1)
+                      }}
+                      disabled={item.quantity >= item.maxQty}
+                      className="px-2 py-1 hover:bg-gray-50 disabled:opacity-40"
+                    >
                       <Plus className="h-3.5 w-3.5" />
                     </button>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-bold text-gray-900">{formatPrice(item.product.price * item.quantity)}</span>
-                    <button onClick={() => removeItem(item.product_id)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                    <button onClick={() => setConfirmRemove({ key: item.key, name: item.product.name })} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -111,6 +133,32 @@ export default function CartPage() {
           </div>
         </div>
       </div>
+
+      {/* Remove confirmation dialog */}
+      {confirmRemove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setConfirmRemove(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Remove product?</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Do you want to remove <span className="font-medium">{confirmRemove.name}</span> from your cart?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmRemove(null)}
+                className="flex-1 h-11 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { removeItem(confirmRemove.key); setConfirmRemove(null); toast.success('Removed from cart') }}
+                className="flex-1 h-11 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

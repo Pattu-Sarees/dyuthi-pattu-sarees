@@ -19,9 +19,11 @@ export default function Navbar() {
   const [user, setUser] = useState<{ email: string } | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const [mounted, setMounted] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
+    setMounted(true)
     supabase.auth.getUser().then(({ data }) => setUser(data.user as { email: string } | null))
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user as { email: string } | null ?? null)
@@ -148,7 +150,7 @@ export default function Navbar() {
             {/* Cart bag */}
             <Link href="/cart" className="relative p-2 hover:bg-rose-50 rounded-full transition-colors">
               <ShoppingBag className="h-5 w-5 text-gray-700" />
-              {totalItems() > 0 && (
+              {mounted && totalItems() > 0 && (
                 <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
                   {totalItems()}
                 </span>

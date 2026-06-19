@@ -27,7 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Navbar />
             <main className="flex-1">{children}</main>
             <Footer />
-            <Toaster richColors position="top-right" />
+            <Toaster richColors position="top-right" duration={1500} />
           </>
         )}
       </body>

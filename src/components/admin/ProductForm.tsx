@@ -3,12 +3,22 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Product } from '@/types'
+import { Product, InventoryItem } from '@/types'
 import { toast } from 'sonner'
-import { Loader2, Upload, X, ImagePlus } from 'lucide-react'
+import { Loader2, Upload, Trash2, ImagePlus } from 'lucide-react'
 
-const CATEGORIES = ['kanjivaram', 'banarasi', 'patola', 'chanderi', 'silk', 'cotton', 'linen', 'georgette', 'kalamkari', 'gadwal', 'mysore']
+const CATEGORIES = ['kanjivaram', 'banarasi', 'patola', 'chanderi', 'silk', 'cotton', 'linen', 'georgette', 'kalamkari', 'gadwal', 'mangalgiri', 'mysore']
 const FABRICS = ['pure silk', 'blended silk', 'pure cotton', 'handloom cotton', 'linen', 'georgette']
+
+// Handle old data shapes gracefully
+function normalise(variants?: Array<Partial<InventoryItem> & { image?: string; images?: string[] }>): InventoryItem[] {
+  if (!variants?.length) return []
+  return variants.flatMap((v) => {
+    if (v.image) return [{ image: v.image, quantity: Number(v.quantity) || 1 }]
+    if (v.images?.length) return v.images.map((img) => ({ image: img, quantity: Number(v.quantity) || 1 }))
+    return []
+  })
+}
 
 export default function ProductForm({ product }: { product?: Product }) {
   const router = useRouter()
@@ -24,53 +34,59 @@ export default function ProductForm({ product }: { product?: Product }) {
     category: product?.category || 'kanjivaram',
     fabric: product?.fabric || 'pure silk',
     region: product?.region || '',
-    color: product?.color?.join(', ') || '',
     occasion: product?.occasion?.join(', ') || '',
-    stock_quantity: product?.stock_quantity?.toString() || '10',
-    in_stock: product?.in_stock ?? true,
     is_featured: product?.is_featured ?? false,
     is_new_arrival: product?.is_new_arrival ?? false,
   })
-  const [images, setImages] = useState<string[]>(product?.images || [])
+  const [items, setItems] = useState<InventoryItem[]>(normalise(product?.color_variants))
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }))
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const totalStock = items.reduce((s, it) => s + (Number(it.quantity) || 0), 0)
+
+  const handleAddPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
     setUploading(true)
+    const newRows: InventoryItem[] = []
     for (const file of files) {
       const fd = new FormData()
       fd.append('file', file)
       try {
         const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
         const json = await res.json()
-        if (json.url) setImages((prev) => [...prev, json.url])
+        if (json.url) newRows.push({ image: json.url, quantity: 1 })
         else toast.error(json.error || 'Upload failed')
       } catch {
         toast.error('Upload failed')
       }
     }
+    if (newRows.length) setItems((prev) => [...prev, ...newRows])
     setUploading(false)
     e.target.value = ''
   }
 
-  const removeImage = (url: string) => setImages((prev) => prev.filter((u) => u !== url))
+  const setQty = (i: number, qty: number) =>
+    setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, quantity: qty } : it)))
+
+  const removeRow = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name || !form.price) { toast.error('Name and price are required'); return }
-    if (images.length === 0) { toast.error('Please upload at least one image'); return }
-    setSaving(true)
+    const clean = items.filter((it) => it.image).map((it) => ({ image: it.image, quantity: Number(it.quantity) || 0 }))
+    if (clean.length === 0) { toast.error('Add at least one photo'); return }
 
+    setSaving(true)
     const payload = {
       ...form,
       price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
-      stock_quantity: Number(form.stock_quantity),
-      color: form.color.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
+      stock_quantity: clean.reduce((s, it) => s + it.quantity, 0),
+      color: [],
+      color_variants: clean,
       occasion: form.occasion.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
-      images,
+      images: clean.map((it) => it.image),
     }
 
     const url = isEdit ? `/api/admin/products/${product!.id}` : '/api/admin/products'
@@ -96,33 +112,53 @@ export default function ProductForm({ product }: { product?: Product }) {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6 pb-10">
-      {/* Images */}
+      {/* Inventory */}
       <div className="bg-white rounded-xl border border-gray-100 p-5">
-        <h2 className="font-semibold text-gray-900 mb-3">Saree Images</h2>
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-          {images.map((url) => (
-            <div key={url} className="relative aspect-[3/4] rounded-lg overflow-hidden border border-gray-200 group">
-              <Image src={url} alt="" fill className="object-cover" sizes="120px" />
-              <button type="button" onClick={() => removeImage(url)} className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ))}
-          <label className="aspect-[3/4] rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#C2185B] hover:bg-rose-50 transition-colors text-gray-400 hover:text-[#C2185B]">
-            {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <ImagePlus className="h-6 w-6" />}
-            <span className="text-[10px] mt-1 text-center px-1">{uploading ? 'Uploading' : 'Add Photo'}</span>
-            <input type="file" accept="image/*" multiple capture="environment" onChange={handleUpload} className="hidden" disabled={uploading} />
-          </label>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="font-semibold text-gray-900">Inventory</h2>
+          <span className="text-sm font-semibold text-[#C2185B]">Total stock: {totalStock}</span>
         </div>
-        <p className="text-xs text-gray-400 mt-2">Tap to upload from gallery or camera. First image is the main photo.</p>
+        <p className="text-xs text-gray-400 mb-4">Click &ldquo;Add photos&rdquo; — each photo becomes a numbered row. Set how many pieces you have of each (e.g. 4 of one, 3 of another).</p>
+
+        {items.length > 0 && (
+          <div className="space-y-2 mb-4">
+            {items.map((it, i) => (
+              <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-lg p-2.5">
+                <span className="w-6 text-center text-sm font-bold text-gray-500 flex-shrink-0">{i + 1}</span>
+                <div className="relative w-14 h-16 rounded-md overflow-hidden border border-gray-200 flex-shrink-0">
+                  <Image src={it.image} alt={`Item ${i + 1}`} fill className="object-cover" sizes="56px" />
+                </div>
+                <div className="flex-1 flex items-center gap-2">
+                  <label className="text-xs text-gray-500">Pieces</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={it.quantity}
+                    onChange={(e) => setQty(i, Number(e.target.value))}
+                    className="w-20 h-9 px-2 text-center rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]"
+                  />
+                </div>
+                <button type="button" onClick={() => removeRow(i)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg flex-shrink-0">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <label className="inline-flex items-center gap-2 cursor-pointer bg-[#C2185B] hover:bg-[#a01049] text-white font-medium text-sm px-4 py-2.5 rounded-lg transition-colors">
+          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+          {uploading ? 'Uploading…' : 'Add photos'}
+          <input type="file" accept="image/*" multiple capture="environment" onChange={handleAddPhotos} className="hidden" disabled={uploading} />
+        </label>
       </div>
 
-      {/* Basic details */}
+      {/* Details */}
       <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
         <h2 className="font-semibold text-gray-900">Product Details</h2>
         <div>
           <label className={label}>Saree Name *</label>
-          <input value={form.name} onChange={(e) => set('name', e.target.value)} className={input} placeholder="e.g. Kanjivaram Pure Silk Saree - Ruby Red" required />
+          <input value={form.name} onChange={(e) => set('name', e.target.value)} className={input} placeholder="e.g. Mangalgiri Cotton Saree" required />
         </div>
         <div>
           <label className={label}>Description</label>
@@ -155,20 +191,12 @@ export default function ProductForm({ product }: { product?: Product }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={label}>Region</label>
-            <input value={form.region} onChange={(e) => set('region', e.target.value)} className={input} placeholder="e.g. kanchipuram" />
+            <input value={form.region} onChange={(e) => set('region', e.target.value)} className={input} placeholder="e.g. mangalagiri" />
           </div>
           <div>
-            <label className={label}>Stock Quantity</label>
-            <input type="number" value={form.stock_quantity} onChange={(e) => set('stock_quantity', e.target.value)} className={input} placeholder="10" />
+            <label className={label}>Occasions <span className="text-gray-400 font-normal">(comma separated)</span></label>
+            <input value={form.occasion} onChange={(e) => set('occasion', e.target.value)} className={input} placeholder="wedding, festival" />
           </div>
-        </div>
-        <div>
-          <label className={label}>Colors <span className="text-gray-400 font-normal">(comma separated)</span></label>
-          <input value={form.color} onChange={(e) => set('color', e.target.value)} className={input} placeholder="red, gold" />
-        </div>
-        <div>
-          <label className={label}>Occasions <span className="text-gray-400 font-normal">(comma separated)</span></label>
-          <input value={form.occasion} onChange={(e) => set('occasion', e.target.value)} className={input} placeholder="wedding, festival" />
         </div>
       </div>
 
@@ -176,7 +204,6 @@ export default function ProductForm({ product }: { product?: Product }) {
       <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
         <h2 className="font-semibold text-gray-900">Visibility</h2>
         {[
-          { key: 'in_stock', label: 'In Stock' },
           { key: 'is_new_arrival', label: 'Mark as New Arrival' },
           { key: 'is_featured', label: 'Mark as Featured' },
         ].map((f) => (

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail } from '@/lib/admin'
-import { LayoutDashboard, PlusCircle, Store } from 'lucide-react'
+import { LayoutDashboard, PlusCircle, Store, ImagePlus } from 'lucide-react'
 
 export const metadata = { title: 'Admin | Dyuthi Pattu Sarees' }
 
@@ -25,7 +25,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 <LayoutDashboard className="h-4 w-4" /> <span className="hidden sm:inline">Dashboard</span>
               </Link>
               <Link href="/admin/products/new" className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors">
-                <PlusCircle className="h-4 w-4" /> <span className="hidden sm:inline">Add Product</span>
+                <PlusCircle className="h-4 w-4" /> <span className="hidden sm:inline">Add</span>
+              </Link>
+              <Link href="/admin/products/bulk" className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors">
+                <ImagePlus className="h-4 w-4" /> <span className="hidden sm:inline">Bulk Upload</span>
               </Link>
               <Link href="/" className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors">
                 <Store className="h-4 w-4" /> <span className="hidden sm:inline">View Store</span>

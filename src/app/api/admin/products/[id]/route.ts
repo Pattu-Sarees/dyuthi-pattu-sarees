@@ -18,6 +18,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const body = await req.json()
   const admin = createAdminClient()
 
+  const variants = Array.isArray(body.color_variants) ? body.color_variants : []
+  const stockFromVariants = variants.reduce((s: number, v: { quantity: number }) => s + (Number(v.quantity) || 0), 0)
   const payload = {
     name: body.name,
     description: body.description || '',
@@ -27,10 +29,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     category: body.category,
     fabric: body.fabric || '',
     color: body.color || [],
+    color_variants: variants,
     occasion: body.occasion || [],
     region: body.region || '',
-    in_stock: body.in_stock ?? true,
-    stock_quantity: Number(body.stock_quantity) || 0,
+    in_stock: (variants.length ? stockFromVariants : Number(body.stock_quantity) || 0) > 0,
+    stock_quantity: variants.length ? stockFromVariants : Number(body.stock_quantity) || 1,
     is_featured: body.is_featured ?? false,
     is_new_arrival: body.is_new_arrival ?? false,
     updated_at: new Date().toISOString(),

@@ -94,7 +94,7 @@ export default function CheckoutPage() {
         items: items.map((i) => ({
           product_id: i.product_id,
           product_name: i.product.name,
-          product_image: i.product.images?.[0] || '',
+          product_image: i.image || i.product.images?.[0] || '',
           quantity: i.quantity,
           price: i.product.price,
         })),
@@ -206,10 +206,10 @@ export default function CheckoutPage() {
 
             <div className="space-y-3 max-h-48 overflow-y-auto mb-4">
               {items.map((item) => (
-                <div key={item.product_id} className="flex gap-3 text-sm">
+                <div key={item.key} className="flex gap-3 text-sm">
                   <div className="w-10 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative">
-                    {item.product.images?.[0] ? (
-                      <Image src={item.product.images[0]} alt="" fill className="object-cover" sizes="40px" />
+                    {item.image ? (
+                      <Image src={item.image} alt="" fill className="object-cover" sizes="40px" />
                     ) : <span className="w-full h-full flex items-center justify-center text-lg">🥻</span>}
                   </div>
                   <div className="flex-1 min-w-0">

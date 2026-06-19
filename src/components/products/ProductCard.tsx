@@ -4,15 +4,24 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ShoppingCart, Star, Heart } from 'lucide-react'
 import { Product } from '@/types'
-import { formatPrice, getDiscountPercent } from '@/lib/utils'
+import { formatPrice, getDiscountPercent, getStockStatus } from '@/lib/utils'
 import { useCartStore } from '@/store/cart'
 import { toast } from 'sonner'
 
 export default function ProductCard({ product }: { product: Product }) {
   const addItem = useCartStore((s) => s.addItem)
+  const items = useCartStore((s) => s.items)
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
+    const mainImage = product.images?.[0] || ''
+    const key = `${product.id}::${mainImage}`
+    const inCart = items.find((i) => i.key === key)?.quantity || 0
+    const max = product.color_variants?.find((v) => v.image === mainImage)?.quantity ?? product.stock_quantity
+    if (inCart >= max) {
+      toast.error(`Only ${max} in stock`, { description: product.name })
+      return
+    }
     addItem(product)
     toast.success('Added to cart', { description: product.name })
   }
@@ -20,6 +29,8 @@ export default function ProductCard({ product }: { product: Product }) {
   const discount = product.original_price
     ? getDiscountPercent(product.original_price, product.price)
     : 0
+
+  const stock = getStockStatus(product.stock_quantity)
 
   return (
     <Link href={`/products/${product.id}`}>
@@ -48,9 +59,12 @@ export default function ProductCard({ product }: { product: Product }) {
               <span className="bg-[#1f8a5b] text-white text-[11px] font-bold px-2.5 py-1 tracking-wide">NEW</span>
             )}
           </div>
-          {!product.in_stock && (
+          {stock.level === 'low' && (
+            <span className="absolute bottom-2 left-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded">LOW STOCK</span>
+          )}
+          {stock.level === 'out' && (
             <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-              <span className="bg-gray-800 text-white text-xs font-semibold px-3 py-1.5 rounded">Out of Stock</span>
+              <span className="bg-gray-800 text-white text-xs font-semibold px-3 py-1.5 rounded">Sold Out</span>
             </div>
           )}
           <button className="absolute top-2.5 right-2.5 p-1.5 bg-white/85 backdrop-blur rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-50">
@@ -84,11 +98,11 @@ export default function ProductCard({ product }: { product: Product }) {
 
           <button
             onClick={handleAddToCart}
-            disabled={!product.in_stock}
+            disabled={stock.level === 'out'}
             className="w-full flex items-center justify-center gap-1.5 border border-[#C2185B] text-[#C2185B] hover:bg-[#C2185B] hover:text-white font-semibold text-sm py-2 rounded-md transition-colors disabled:opacity-40 disabled:pointer-events-none uppercase tracking-wide"
           >
             <ShoppingCart className="h-4 w-4" />
-            {product.in_stock ? 'Add' : 'Sold Out'}
+            {stock.level === 'out' ? 'Sold Out' : 'Add'}
           </button>
         </div>
       </div>

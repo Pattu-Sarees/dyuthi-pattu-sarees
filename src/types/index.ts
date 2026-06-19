@@ -1,3 +1,10 @@
+// One inventory row: a photo and how many pieces of it are in stock.
+// (Stored in the products.color_variants jsonb column.)
+export interface InventoryItem {
+  image: string
+  quantity: number
+}
+
 export interface Product {
   id: string
   name: string
@@ -8,6 +15,7 @@ export interface Product {
   category: string
   fabric: string
   color: string[]
+  color_variants: InventoryItem[]
   occasion: string[]
   region: string
   in_stock: boolean
@@ -21,9 +29,11 @@ export interface Product {
 }
 
 export interface CartItem {
-  id: string
+  key: string // unique per product + selected image
   product_id: string
+  image: string
   quantity: number
+  maxQty: number
   product: Product
 }
 
