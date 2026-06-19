@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { ShoppingCart, User, Search, Menu, X, Heart, Truck, Sparkles } from 'lucide-react'
+import { ShoppingBag, User, Search, Menu, X, Heart, Truck, Sparkles } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useCartStore } from '@/store/cart'
 import { createClient } from '@/lib/supabase/client'
@@ -116,20 +116,18 @@ export default function Navbar() {
               </div>
             </form>
 
-            <Link href="/cart" className="relative p-2 hover:bg-rose-50 rounded-full transition-colors">
-              <ShoppingCart className="h-5 w-5 text-gray-700" />
-              {totalItems() > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
-                  {totalItems()}
-                </span>
-              )}
+            {/* Wishlist */}
+            <Link href="/account" className="relative p-2 hover:bg-rose-50 rounded-full transition-colors" aria-label="Wishlist">
+              <Heart className="h-5 w-5 text-gray-700" />
+              <span className="absolute -top-1 -right-1 bg-gray-800 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">0</span>
             </Link>
 
+            {/* Account */}
             {user ? (
               <div className="relative group">
                 <button className="relative flex items-center p-2 hover:bg-rose-50 rounded-full transition-colors">
                   <User className="h-5 w-5 text-gray-700" />
-                  <Sparkles className="absolute top-0 right-0 h-3 w-3 text-[#C2185B] fill-[#C2185B]" />
+                  <Sparkles className="absolute top-0 right-0 h-3 w-3 text-[#F59E0B] fill-[#F59E0B]" />
                 </button>
                 <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                   <div className="px-3 py-2 border-b border-gray-100">
@@ -143,9 +141,19 @@ export default function Navbar() {
             ) : (
               <Link href="/login" className="relative p-2 hover:bg-rose-50 rounded-full transition-colors" aria-label="Sign in">
                 <User className="h-5 w-5 text-gray-700" />
-                <Sparkles className="absolute top-0 right-0 h-3 w-3 text-[#C2185B] fill-[#C2185B]" />
+                <Sparkles className="absolute top-0 right-0 h-3 w-3 text-[#F59E0B] fill-[#F59E0B]" />
               </Link>
             )}
+
+            {/* Cart bag */}
+            <Link href="/cart" className="relative p-2 hover:bg-rose-50 rounded-full transition-colors">
+              <ShoppingBag className="h-5 w-5 text-gray-700" />
+              {totalItems() > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                  {totalItems()}
+                </span>
+              )}
+            </Link>
 
             <button className="md:hidden p-2" onClick={() => setMenuOpen(!menuOpen)}>
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
