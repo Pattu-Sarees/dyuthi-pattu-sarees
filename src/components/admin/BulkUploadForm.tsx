@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { toast } from 'sonner'
 import { Loader2, Upload, X, ImagePlus } from 'lucide-react'
 
-const CATEGORIES = ['kanjivaram', 'banarasi', 'patola', 'chanderi', 'silk', 'cotton', 'linen', 'georgette', 'kalamkari', 'gadwal', 'mangalgiri', 'mysore']
+const CATEGORIES = ['mangalgiri', 'kuppadam', 'gadwal', 'kota', 'kanchipattu', 'soft silks', 'jamdhani', 'butter silk', 'green mango', 'lehengas', 'dress materials']
 const FABRICS = ['pure silk', 'blended silk', 'pure cotton', 'handloom cotton', 'linen', 'georgette']
 
 export default function BulkUploadForm() {

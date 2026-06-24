@@ -7,7 +7,7 @@ import { Product, InventoryItem } from '@/types'
 import { toast } from 'sonner'
 import { Loader2, Upload, Trash2, ImagePlus } from 'lucide-react'
 
-const CATEGORIES = ['kanjivaram', 'banarasi', 'patola', 'chanderi', 'silk', 'cotton', 'linen', 'georgette', 'kalamkari', 'gadwal', 'mangalgiri', 'mysore']
+const CATEGORIES = ['mangalgiri', 'kuppadam', 'gadwal', 'kota', 'kanchipattu', 'soft silks', 'jamdhani', 'butter silk', 'green mango', 'lehengas', 'dress materials']
 const FABRICS = ['pure silk', 'blended silk', 'pure cotton', 'handloom cotton', 'linen', 'georgette']
 
 // Handle old data shapes gracefully

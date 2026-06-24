@@ -56,6 +56,30 @@ export default function Navbar() {
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/')
 
+  const collectionCols: { title: string; href?: string; items: { label: string; cat: string }[] }[] = [
+    {
+      title: 'Sarees',
+      items: [
+        { label: 'Mangalgiri', cat: 'mangalgiri' },
+        { label: 'Kuppadam', cat: 'kuppadam' },
+        { label: 'Gadwal', cat: 'gadwal' },
+        { label: 'Kota', cat: 'kota' },
+        { label: 'Kanchipattu', cat: 'kanchipattu' },
+        { label: 'Soft Silks', cat: 'soft silks' },
+      ],
+    },
+    {
+      title: 'Other Sarees',
+      items: [
+        { label: 'Jamdhani', cat: 'jamdhani' },
+        { label: 'Butter Silk', cat: 'butter silk' },
+        { label: 'Green Mango', cat: 'green mango' },
+      ],
+    },
+    { title: 'Lehengas', href: '/products?category=lehengas', items: [] },
+    { title: 'Dress Materials', href: '/products?category=dress materials', items: [] },
+  ]
+
   return (
     <header className="sticky top-0 z-50 bg-[#FAF3E8] border-b border-gray-100 shadow-sm">
       {/* Top bar — free shipping */}
@@ -84,6 +108,45 @@ export default function Navbar() {
           <nav className="hidden md:flex items-center justify-center gap-8 flex-1">
             {navLinks.map((link) => {
               const active = isActive(link.href)
+              if (link.label === 'All Collections') {
+                return (
+                  <div key={link.href} className="relative group/coll">
+                    <Link
+                      href={link.href}
+                      className={cn(
+                        'relative flex flex-col items-center text-sm font-medium transition-colors hover:text-[#C2185B] whitespace-nowrap',
+                        active ? 'text-[#C2185B]' : 'text-gray-700'
+                      )}
+                    >
+                      {link.label}
+                      <LotusAccent width={20} className={cn('mt-1 transition-opacity', active ? 'opacity-100' : 'opacity-0')} />
+                    </Link>
+                    {/* Mega menu */}
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full pt-3 opacity-0 invisible group-hover/coll:opacity-100 group-hover/coll:visible transition-all duration-150 z-50">
+                      <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 grid grid-cols-4 gap-8 w-[680px]">
+                        {collectionCols.map((col) => (
+                          <div key={col.title}>
+                            {col.href ? (
+                              <Link href={col.href} className="block text-sm font-semibold text-[#C2185B] hover:underline mb-3">{col.title}</Link>
+                            ) : (
+                              <p className="text-sm font-semibold text-[#C2185B] mb-3">{col.title}</p>
+                            )}
+                            <ul className="space-y-2">
+                              {col.items.map((it) => (
+                                <li key={it.cat}>
+                                  <Link href={`/products?category=${encodeURIComponent(it.cat)}`} className="text-sm text-gray-600 hover:text-[#C2185B] transition-colors">
+                                    {it.label}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
               return (
                 <Link
                   key={link.href}
@@ -190,6 +253,31 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+
+          {/* Collections by category */}
+          <div className="pt-2 border-t border-gray-100 space-y-3">
+            {collectionCols.map((col) => (
+              <div key={col.title}>
+                {col.href ? (
+                  <Link href={col.href} onClick={() => setMenuOpen(false)} className="block py-1 text-sm font-semibold text-[#C2185B]">{col.title}</Link>
+                ) : (
+                  <p className="text-xs font-semibold text-[#C2185B] uppercase tracking-wide mb-1">{col.title}</p>
+                )}
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  {col.items.map((it) => (
+                    <Link
+                      key={it.cat}
+                      href={`/products?category=${encodeURIComponent(it.cat)}`}
+                      onClick={() => setMenuOpen(false)}
+                      className="py-1 text-sm text-gray-600 hover:text-[#C2185B]"
+                    >
+                      {it.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </header>
