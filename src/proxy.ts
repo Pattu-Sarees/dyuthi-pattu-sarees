@@ -47,6 +47,8 @@ export async function proxy(request: NextRequest) {
       pathname === '/maintenance' ||
       pathname.startsWith('/api/maintenance') ||
       pathname.startsWith('/login') ||
+      pathname.startsWith('/admin') ||
+      pathname.startsWith('/api/admin') ||
       pathname.startsWith('/api/auth') ||
       pathname.startsWith('/auth')
 
@@ -64,7 +66,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // ---------- Protected routes ----------
-  const protectedPaths = ['/account', '/orders', '/checkout', '/admin']
+  const protectedPaths = ['/account', '/orders', '/checkout']
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p))
   if (isProtected && !user) {
     const redirectUrl = request.nextUrl.clone()

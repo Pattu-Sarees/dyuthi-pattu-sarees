@@ -1,17 +1,37 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail } from '@/lib/admin'
-import { LayoutDashboard, PlusCircle, Store, ImagePlus } from 'lucide-react'
+import { LayoutDashboard, PlusCircle, Store, ImagePlus, ShieldX } from 'lucide-react'
+import AdminGate from '@/components/admin/AdminGate'
 
-export const metadata = { title: 'Admin | Dyuthi Pattu Sarees' }
+export const metadata = { title: 'Admin | Dyuthi Pattu Sarees', robots: { index: false, follow: false } }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login?redirect=/admin')
-  if (!isAdminEmail(user.email)) redirect('/')
+  // Not signed in → show the admin email/OTP gate (verifies against ADMIN_EMAILS)
+  if (!user) return <AdminGate />
+
+  // Signed in but not an admin → restricted message, no admin UI
+  if (!isAdminEmail(user.email)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-md text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-rose-50">
+            <ShieldX className="h-8 w-8 text-[#C2185B]" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">You cannot access this page</h1>
+          <p className="text-gray-500 mb-6">
+            This area is restricted. You don&apos;t have permission to view it.
+          </p>
+          <Link href="/" className="inline-flex items-center justify-center gap-2 bg-[#C2185B] hover:bg-[#a01049] text-white font-semibold px-6 py-3 rounded-lg transition-colors">
+            Go to Store
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
