@@ -81,9 +81,9 @@ export default function Navbar() {
   ]
 
   return (
-    <header className="sticky top-0 z-50 bg-[#FAF3E8] border-b border-gray-100 shadow-sm">
+    <header className="sticky top-0 z-50 bg-[#F5EFE6] border-b border-gray-100 shadow-sm">
       {/* Top bar — free shipping */}
-      <div className="bg-[#C2185B] text-white text-xs md:text-sm py-2 px-4">
+      <div className="bg-[#B8860B] text-[#FFF8E7] text-xs md:text-sm py-2 px-4">
         <div className="flex items-center justify-center gap-2 font-medium tracking-wide">
           <Truck className="h-4 w-4 md:h-5 md:w-5" />
           <span>Enjoy Free Shipping All Over India</span>
@@ -115,7 +115,7 @@ export default function Navbar() {
                       href={link.href}
                       className={cn(
                         'relative flex flex-col items-center text-sm font-medium transition-colors hover:text-[#C2185B] whitespace-nowrap',
-                        active ? 'text-[#C2185B]' : 'text-gray-700'
+                        active ? 'text-[#C2185B]' : 'text-[#4E1E24]'
                       )}
                     >
                       {link.label}
@@ -153,7 +153,7 @@ export default function Navbar() {
                   href={link.href}
                   className={cn(
                     'relative flex flex-col items-center text-sm font-medium transition-colors hover:text-[#C2185B] whitespace-nowrap',
-                    active ? 'text-[#C2185B]' : 'text-gray-700'
+                    active ? 'text-[#C2185B]' : 'text-[#4E1E24]'
                   )}
                 >
                   {link.label}
@@ -183,7 +183,7 @@ export default function Navbar() {
 
             {/* Wishlist */}
             <Link href="/account" className="relative p-2 hover:bg-rose-50 rounded-full transition-colors" aria-label="Wishlist">
-              <Heart className="h-5 w-5 text-gray-700" />
+              <Heart className="h-5 w-5 text-[#4E1E24]" />
               <span className="absolute -top-1 -right-1 bg-gray-800 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">0</span>
             </Link>
 
@@ -191,7 +191,7 @@ export default function Navbar() {
             {user ? (
               <div className="relative group">
                 <button className="relative flex items-center p-2 hover:bg-rose-50 rounded-full transition-colors">
-                  <User className="h-5 w-5 text-gray-700" />
+                  <User className="h-5 w-5 text-[#4E1E24]" />
                   <Sparkles className="absolute top-0 right-0 h-3 w-3 text-[#F59E0B] fill-[#F59E0B]" />
                 </button>
                 <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
@@ -205,14 +205,14 @@ export default function Navbar() {
               </div>
             ) : (
               <Link href="/login" className="relative p-2 hover:bg-rose-50 rounded-full transition-colors" aria-label="Sign in">
-                <User className="h-5 w-5 text-gray-700" />
+                <User className="h-5 w-5 text-[#4E1E24]" />
                 <Sparkles className="absolute top-0 right-0 h-3 w-3 text-[#F59E0B] fill-[#F59E0B]" />
               </Link>
             )}
 
             {/* Cart bag */}
             <Link href="/cart" className="relative p-2 hover:bg-rose-50 rounded-full transition-colors">
-              <ShoppingBag className="h-5 w-5 text-gray-700" />
+              <ShoppingBag className="h-5 w-5 text-[#4E1E24]" />
               {mounted && totalItems() > 0 && (
                 <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
                   {totalItems()}
@@ -229,7 +229,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-[#FFFDF7] border-t border-gray-100 px-4 py-4 space-y-3">
+        <div className="md:hidden bg-[#F5EFE6] border-t border-gray-100 px-4 py-4 space-y-3">
           <form onSubmit={handleSearch} className="flex gap-2">
             <Input
               value={search}
@@ -246,7 +246,7 @@ export default function Navbar() {
               onClick={() => setMenuOpen(false)}
               className={cn(
                 'flex items-center gap-2 py-2 text-sm font-medium hover:text-[#C2185B]',
-                isActive(link.href) ? 'text-[#C2185B]' : 'text-gray-700'
+                isActive(link.href) ? 'text-[#C2185B]' : 'text-[#4E1E24]'
               )}
             >
               {isActive(link.href) && <LotusAccent width={16} />}
