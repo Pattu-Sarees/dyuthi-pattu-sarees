@@ -4,13 +4,14 @@ import { ArrowRight, Truck, ShieldCheck, Award, Gem, Star } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Product } from '@/types'
 import ProductCard from '@/components/products/ProductCard'
+import CategoryCarousel from '@/components/CategoryCarousel'
 
 export const metadata = {
   title: 'Dyuthi Pattu Sarees | Handloom Sarees Direct From Weavers',
   description: 'Shop authentic handloom sarees direct from weavers — Kanjivaram, Banarasi, Patola, Chanderi & more. Free shipping all over India.',
 }
 
-const categories = [
+const DEFAULT_CATEGORIES = [
   { name: 'Kanjivaram Sarees', slug: 'kanjivaram', img: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=500' },
   { name: 'Banarasi Sarees', slug: 'banarasi', img: 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=500' },
   { name: 'Patola Sarees', slug: 'patola', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4b4057?w=500' },
@@ -18,6 +19,13 @@ const categories = [
   { name: 'Silk Sarees', slug: 'silk', img: 'https://images.unsplash.com/photo-1600298882525-05bfbaa4ff45?w=500' },
   { name: 'Cotton Sarees', slug: 'cotton', img: 'https://images.unsplash.com/photo-1585487000160-6ebcfceb0d03?w=500' },
 ]
+
+async function getCategories() {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('categories').select('*').order('sort_order', { ascending: true })
+  if (error || !data || data.length === 0) return DEFAULT_CATEGORIES
+  return data.map((c) => ({ name: c.name, slug: c.slug, img: c.image }))
+}
 
 const priceRanges = [
   { label: 'Under ₹999', href: '/products?price_max=999' },
@@ -54,6 +62,7 @@ async function getProducts() {
 
 export default async function HomePage() {
   const { newArrivals, bestSellers } = await getProducts()
+  const categories = await getCategories()
 
   return (
     <div className="bg-white">
@@ -95,22 +104,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Category tiles */}
+      {/* Category cards with lotus arch frame */}
       <section className="container mx-auto px-4 py-14">
-        <SectionHeading title="Shop by Category" subtitle="Explore our curated handloom collections" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {categories.map((cat) => (
-            <Link key={cat.slug} href={`/products?category=${cat.slug}`} className="group">
-              <div className="relative aspect-square rounded-xl overflow-hidden shadow-sm">
-                <Image src={cat.img} alt={cat.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width:768px) 50vw, 16vw" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-3 text-center">
-                  <span className="text-white text-sm font-semibold leading-tight">{cat.name}</span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <CategoryCarousel categories={categories} />
       </section>
 
       {/* New Arrivals */}

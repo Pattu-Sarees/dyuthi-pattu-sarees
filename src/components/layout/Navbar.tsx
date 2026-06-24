@@ -123,18 +123,18 @@ export default function Navbar() {
                     </Link>
                     {/* Mega menu */}
                     <div className="absolute left-1/2 -translate-x-1/2 top-full pt-3 opacity-0 invisible group-hover/coll:opacity-100 group-hover/coll:visible transition-all duration-150 z-50">
-                      <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 grid grid-cols-4 gap-8 w-[680px]">
+                      <div className="bg-[#FBF7F0] border-t border-[#e7ddcd] shadow-md p-8 grid grid-cols-4 gap-12 w-[760px]">
                         {collectionCols.map((col) => (
                           <div key={col.title}>
                             {col.href ? (
-                              <Link href={col.href} className="block text-sm font-semibold text-[#C2185B] hover:underline mb-3">{col.title}</Link>
+                              <Link href={col.href} className="block text-base font-medium text-[#2F2A28] hover:text-[#C2185B] mb-4">{col.title}</Link>
                             ) : (
-                              <p className="text-sm font-semibold text-[#C2185B] mb-3">{col.title}</p>
+                              <p className="text-base font-medium text-[#2F2A28] mb-4">{col.title}</p>
                             )}
-                            <ul className="space-y-2">
+                            <ul className="space-y-2.5">
                               {col.items.map((it) => (
                                 <li key={it.cat}>
-                                  <Link href={`/products?category=${encodeURIComponent(it.cat)}`} className="text-sm text-gray-600 hover:text-[#C2185B] transition-colors">
+                                  <Link href={`/products?category=${encodeURIComponent(it.cat)}`} className="text-sm text-[#6B6B6B] hover:text-[#C2185B] transition-colors">
                                     {it.label}
                                   </Link>
                                 </li>

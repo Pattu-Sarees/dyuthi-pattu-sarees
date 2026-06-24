@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail } from '@/lib/admin'
-import { LayoutDashboard, PlusCircle, Store, ImagePlus, ShieldX } from 'lucide-react'
+import { LayoutDashboard, PlusCircle, Store, ImagePlus, ShieldX, LayoutGrid } from 'lucide-react'
 import AdminGate from '@/components/admin/AdminGate'
 
 export const metadata = { title: 'Admin | Dyuthi Pattu Sarees', robots: { index: false, follow: false } }
@@ -49,6 +49,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               </Link>
               <Link href="/admin/products/bulk" className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors">
                 <ImagePlus className="h-4 w-4" /> <span className="hidden sm:inline">Bulk Upload</span>
+              </Link>
+              <Link href="/admin/categories" className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors">
+                <LayoutGrid className="h-4 w-4" /> <span className="hidden sm:inline">Categories</span>
               </Link>
               <Link href="/" className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors">
                 <Store className="h-4 w-4" /> <span className="hidden sm:inline">View Store</span>
