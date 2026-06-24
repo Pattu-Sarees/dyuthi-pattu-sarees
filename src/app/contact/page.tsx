@@ -1,5 +1,6 @@
 import { Mail, Phone, MapPin, Clock, Truck } from 'lucide-react'
 import PageBanner from '@/components/layout/PageBanner'
+import ContactForm from '@/components/ContactForm'
 
 export const metadata = { title: 'Contact Us | Dyuthi Pattu Sarees' }
 
@@ -50,29 +51,7 @@ export default function ContactPage() {
           {/* Form */}
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-6">Send us a message</h2>
-            <form className="space-y-4" action="mailto:support@dyuthipattusarees.com" method="post" encType="text/plain">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Name</label>
-                  <input name="name" required className="w-full h-10 rounded-md border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]" placeholder="Your name" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
-                  <input name="phone" className="w-full h-10 rounded-md border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]" placeholder="Mobile number" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-                <input type="email" name="email" required className="w-full h-10 rounded-md border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]" placeholder="you@example.com" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Message</label>
-                <textarea name="message" required rows={5} className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]" placeholder="How can we help?" />
-              </div>
-              <button type="submit" className="w-full bg-[#C2185B] hover:bg-[#a01049] text-white font-semibold py-3 rounded-md transition-colors uppercase tracking-wide text-sm">
-                Send Message
-              </button>
-            </form>
+            <ContactForm />
           </div>
         </div>
       </div>

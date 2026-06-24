@@ -13,12 +13,17 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [leads, setLeads] = useState(0)
 
   const load = () => {
     fetch('/api/admin/products')
       .then((r) => r.json())
       .then(({ products }) => { setProducts(products || []); setLoading(false) })
       .catch(() => setLoading(false))
+    fetch('/api/admin/leads')
+      .then((r) => r.json())
+      .then(({ count }) => setLeads(count || 0))
+      .catch(() => setLeads(0))
   }
 
   useEffect(load, [])
@@ -38,12 +43,13 @@ export default function AdminDashboard() {
 
   const filtered = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
 
-  const stats = {
-    total: products.length,
-    inStock: products.filter((p) => p.in_stock).length,
-    newArrivals: products.filter((p) => p.is_new_arrival).length,
-    onSale: products.filter((p) => p.original_price).length,
-  }
+  // Total stock per category, e.g. { gadwal: 10, kanchipuram: 5 }
+  const categoryStock = products.reduce<Record<string, number>>((acc, p) => {
+    acc[p.category] = (acc[p.category] || 0) + (Number(p.stock_quantity) || 0)
+    return acc
+  }, {})
+  const categoryEntries = Object.entries(categoryStock).sort((a, b) => a[0].localeCompare(b[0]))
+  const lowCategories = categoryEntries.filter(([, qty]) => qty > 0 && qty <= 5)
 
   return (
     <div>
@@ -66,19 +72,56 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: 'Total Products', value: stats.total },
-          { label: 'In Stock', value: stats.inStock },
-          { label: 'New Arrivals', value: stats.newArrivals },
-          { label: 'On Sale', value: stats.onSale },
-        ].map((s) => (
-          <div key={s.label} className="bg-white rounded-xl border border-gray-100 p-4">
-            <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-            <p className="text-xs text-gray-500 mt-1">{s.label}</p>
-          </div>
-        ))}
+      {/* Stats — all sections in one row */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6 items-start">
+        <div className="bg-white rounded-xl border border-gray-100 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#A30B2E] mb-2">Total Products</p>
+          <p className="text-2xl font-bold text-gray-900">{products.length}</p>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-100 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#A30B2E] mb-2">Total Categories</p>
+          <p className="text-2xl font-bold text-gray-900">{categoryEntries.length}</p>
+        </div>
+
+        {/* Category In Stock */}
+        <div className="bg-white rounded-xl border border-gray-100 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#A30B2E] mb-2">Category In Stock</p>
+          {categoryEntries.length === 0 ? (
+            <p className="text-sm text-gray-400">No products yet</p>
+          ) : (
+            <div className="space-y-1">
+              {categoryEntries.map(([cat, qty]) => (
+                <div key={cat} className="flex items-center justify-between text-xs">
+                  <span className="capitalize text-gray-700 truncate mr-2">{cat}</span>
+                  <span className="font-bold text-gray-900">{qty}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Low Stock by category */}
+        <div className="bg-white rounded-xl border border-gray-100 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#A30B2E] mb-2">Low Stock <span className="normal-case">(≤5)</span></p>
+          {lowCategories.length === 0 ? (
+            <p className="text-sm text-gray-400">All well stocked</p>
+          ) : (
+            <div className="space-y-1">
+              {lowCategories.map(([cat, qty]) => (
+                <div key={cat} className="flex items-center justify-between text-xs">
+                  <span className="capitalize text-amber-700 truncate mr-2">{cat}</span>
+                  <span className="font-bold text-amber-600">{qty}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-100 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#A30B2E] mb-2">Leads</p>
+          <p className="text-2xl font-bold text-gray-900">{leads}</p>
+        </div>
       </div>
 
       {/* Search */}
