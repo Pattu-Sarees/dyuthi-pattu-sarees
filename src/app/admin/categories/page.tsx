@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { toast } from 'sonner'
 import { Loader2, ImagePlus, Trash2, Plus, X, Check } from 'lucide-react'
+import ImageCropper from '@/components/admin/ImageCropper'
 
 type Cat = { id: string; name: string; slug: string; image: string; sort_order: number }
 
@@ -15,6 +16,7 @@ export default function AdminCategories() {
   const [form, setForm] = useState<{ id?: string } & typeof empty>({ ...empty })
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
 
   const load = () => {
     fetch('/api/admin/categories')
@@ -26,18 +28,24 @@ export default function AdminCategories() {
 
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }))
 
-  const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const pickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    setCropSrc(URL.createObjectURL(file))
+    e.target.value = ''
+  }
+
+  const uploadBlob = async (blob: Blob) => {
     setUploading(true)
     const fd = new FormData()
-    fd.append('file', file)
+    fd.append('file', blob, 'category.jpg')
     const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
     const json = await res.json()
     setUploading(false)
+    if (cropSrc) URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
     if (json.url) set('image', json.url)
     else toast.error(json.error || 'Upload failed')
-    e.target.value = ''
   }
 
   const save = async () => {
@@ -63,9 +71,18 @@ export default function AdminCategories() {
 
   const remove = async (id: string, name: string) => {
     if (!confirm(`Delete "${name}" from the carousel?`)) return
-    const res = await fetch(`/api/admin/categories/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('Deleted'); setCats((c) => c.filter((x) => x.id !== id)) }
-    else toast.error('Failed to delete')
+    try {
+      const res = await fetch(`/api/admin/categories/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Deleted')
+        setCats((c) => c.filter((x) => x.id !== id))
+      } else {
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.error || `Failed to delete (${res.status})`)
+      }
+    } catch (e) {
+      toast.error('Network error while deleting')
+    }
   }
 
   const input = 'w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]'
@@ -86,7 +103,7 @@ export default function AdminCategories() {
               ) : uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : (
                 <span className="flex flex-col items-center"><ImagePlus className="h-6 w-6" /><span className="text-[10px] mt-1">Add image</span></span>
               )}
-              <input type="file" accept="image/*" onChange={upload} className="hidden" disabled={uploading} />
+              <input type="file" accept="image/*" onChange={pickFile} className="hidden" disabled={uploading} />
             </label>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
@@ -137,6 +154,16 @@ export default function AdminCategories() {
           )}
         </div>
       </div>
+
+      {cropSrc && (
+        <ImageCropper
+          src={cropSrc}
+          aspect={1}
+          shape="round"
+          onCancel={() => { if (cropSrc) URL.revokeObjectURL(cropSrc); setCropSrc(null) }}
+          onDone={uploadBlob}
+        />
+      )}
     </div>
   )
 }

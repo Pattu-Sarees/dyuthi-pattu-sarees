@@ -8,6 +8,31 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 type Category = { name: string; slug: string; img: string }
 
 const GOLD = '#D4AF37'
+const ANTIQUE = '#C9A227'
+const IVORY = '#FBF6EA'
+
+// Build a smooth lotus-bloom (scalloped flower) path
+function flowerPath(c: number, ri: number, rc: number, n: number) {
+  let d = ''
+  for (let i = 0; i < n; i++) {
+    const a0 = (i / n) * 2 * Math.PI
+    const a1 = ((i + 1) / n) * 2 * Math.PI
+    const am = (a0 + a1) / 2
+    const vx1 = c + ri * Math.sin(a1)
+    const vy1 = c - ri * Math.cos(a1)
+    const px = c + rc * Math.sin(am)
+    const py = c - rc * Math.cos(am)
+    if (i === 0) d += `M${(c + ri * Math.sin(a0)).toFixed(3)},${(c - ri * Math.cos(a0)).toFixed(3)} `
+    d += `Q${px.toFixed(3)},${py.toFixed(3)} ${vx1.toFixed(3)},${vy1.toFixed(3)} `
+  }
+  return d + 'Z'
+}
+const FLOWER_OUTER = flowerPath(50, 37, 50, 14)
+const FLOWER_INNER_BB = flowerPath(0.5, 0.34, 0.45, 14)
+
+// Scalloped (petal-edge) frame — finer, shallower lobes
+const SCALLOP_OUTER = flowerPath(50, 45, 49.5, 18)
+const SCALLOP_BB = flowerPath(0.5, 0.44, 0.49, 18)
 
 // All categories use the jeweled rectangle frame.
 const FRAME_BY_SLUG: Record<string, string> = {}
@@ -36,12 +61,121 @@ function Img({ cat, className, style }: { cat: Category; className?: string; sty
 }
 
 function CategoryCard({ cat, idx }: { cat: Category; idx: number }) {
-  const type = FRAME_BY_SLUG[cat.slug] || 'jewel'
+  const type = FRAME_BY_SLUG[cat.slug] || 'scallop'
   const uid = `frame${idx}`
   let image: React.ReactNode
   let frame: React.ReactNode
+  let back: React.ReactNode = null
+  const aspect = type === 'scallop' ? 'aspect-[4/5]' : 'aspect-square'
 
-  if (type === 'jewel') {
+  if (type === 'scallop') {
+    image = <Img cat={cat} style={{ inset: 0, clipPath: `url(#${uid})` }} />
+    frame = (
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+        <defs>
+          <clipPath id={uid} clipPathUnits="objectBoundingBox"><path d={SCALLOP_BB} /></clipPath>
+        </defs>
+        <path d={SCALLOP_OUTER} fill="none" stroke="#4E1E24" strokeWidth="1.1" />
+      </svg>
+    )
+  } else if (type === 'medallionfloral') {
+    const flower = (cx: number, cy: number, s: number) => (
+      <g transform={`translate(${cx} ${cy}) scale(${s})`}>
+        {Array.from({ length: 5 }).map((_, k) => (
+          <ellipse key={k} cx="0" cy="-2.3" rx="1.1" ry="2.3" fill="none" stroke={ANTIQUE} strokeWidth="0.7" transform={`rotate(${k * 72})`} />
+        ))}
+        <circle cx="0" cy="0" r="0.8" fill={ANTIQUE} />
+      </g>
+    )
+    image = <Img cat={cat} className="rounded-full" style={{ inset: '15%' }} />
+    frame = (
+      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+        {ring(46, 1)}
+        {ring(35.5, 1.2)}
+        {/* leaves between flowers (offset half a step) */}
+        <g transform="rotate(15 50 50)">
+          {radial(12, 41, (cx, cy, deg) => <path d="M0,0 C1.6,-2.6 5,-2.6 6.5,0 C5,2.6 1.6,2.6 0,0 Z" fill="none" stroke={ANTIQUE} strokeWidth="0.6" transform={`translate(${cx} ${cy}) rotate(${deg + 90})`} />)}
+        </g>
+        {/* ring of flowers */}
+        {radial(12, 41, (cx, cy) => flower(cx, cy, 0.85))}
+      </svg>
+    )
+  } else if (type === 'floral') {
+    const INK = '#1f1f1f'
+    const leaf = (x: number, y: number, r: number, s = 1) => (
+      <path d="M0,0 C2,-3.2 6.5,-3.2 8.5,0 C6.5,3.2 2,3.2 0,0 Z" fill="none" stroke={INK} strokeWidth="0.8" transform={`translate(${x} ${y}) rotate(${r}) scale(${s})`} />
+    )
+    const flower = (x: number, y: number, s: number) => (
+      <g transform={`translate(${x} ${y}) scale(${s})`}>
+        {Array.from({ length: 5 }).map((_, k) => (
+          <ellipse key={k} cx="0" cy="-2.4" rx="1.2" ry="2.4" fill="none" stroke={INK} strokeWidth="0.8" transform={`rotate(${k * 72})`} />
+        ))}
+        <circle cx="0" cy="0" r="0.7" fill={INK} />
+      </g>
+    )
+    const bud = (x: number, y: number, r: number) => (
+      <path d="M0,0 C2,-4 5,-4 6,0 C5,3 2,3 0,0 Z" fill="none" stroke={INK} strokeWidth="0.8" transform={`translate(${x} ${y}) rotate(${r})`} />
+    )
+    image = <Img cat={cat} className="rounded-full" style={{ inset: '9%' }} />
+    frame = (
+      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+        <circle cx="50" cy="50" r="46" fill="none" stroke={INK} strokeWidth="1" />
+        {/* botanical branch sweeping along the bottom and up the right */}
+        <path d="M22,74 C30,86 46,90 62,86 C76,82 84,68 85,52" fill="none" stroke={INK} strokeWidth="0.9" />
+        {/* leaves in opposite pairs along the branch */}
+        {leaf(31, 81, 205)} {leaf(31, 85, 25)}
+        {leaf(41, 86, 195)} {leaf(41, 90, 15)}
+        {leaf(51, 87, 184)} {leaf(51, 91, 6)}
+        {leaf(61, 86, 168)} {leaf(62, 89, -12)}
+        {leaf(70, 81, 150)} {leaf(73, 79, -34)}
+        {leaf(78, 71, 132)} {leaf(81, 69, -52)}
+        {leaf(82, 61, 118)}
+        {/* flowers and bud near the branch tip */}
+        {flower(85, 50, 1.05)}
+        {flower(79, 44, 0.9)}
+        {bud(87, 44, 30)}
+        {/* a small flower at the lower-left start */}
+        {flower(20, 66, 1)}
+      </svg>
+    )
+  } else if (type === 'pallu') {
+    image = <Img cat={cat} style={{ inset: 0, clipPath: `url(#${uid})` }} />
+    frame = (
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+        <defs>
+          <clipPath id={uid} clipPathUnits="objectBoundingBox"><path d={TAG_BB} /></clipPath>
+        </defs>
+        <path d={TAG} fill="none" stroke={GOLD} strokeWidth="2.4" />
+        {/* pallu zari border stripes */}
+        <line x1="31" y1="62" x2="69" y2="62" stroke={GOLD} strokeWidth="1" />
+        <line x1="35" y1="67" x2="65" y2="67" stroke={GOLD} strokeWidth="0.8" opacity="0.8" />
+        {/* fringe / tassels at the fold */}
+        {[44, 47, 50, 53, 56].map((x) => (
+          <line key={x} x1={x} y1="90" x2={x} y2="97" stroke={GOLD} strokeWidth="0.8" />
+        ))}
+      </svg>
+    )
+  } else if (type === 'lotuszari') {
+    back = (
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+        <path d={FLOWER_OUTER} fill={IVORY} />
+      </svg>
+    )
+    image = <Img cat={cat} style={{ inset: 0, clipPath: `url(#${uid})` }} />
+    frame = (
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+        <defs>
+          <clipPath id={uid} clipPathUnits="objectBoundingBox"><path d={FLOWER_INNER_BB} /></clipPath>
+        </defs>
+        {/* antique gold zari outline */}
+        <path d={FLOWER_OUTER} fill="none" stroke={ANTIQUE} strokeWidth="2.6" />
+        <path d={FLOWER_OUTER} fill="none" stroke={ANTIQUE} strokeWidth="0.7" opacity="0.55" transform="scale(0.92) translate(4.35 4.35)" />
+        {/* zari beads */}
+        {radial(28, 44.5, (cx, cy) => <circle cx={cx} cy={cy} r="0.9" fill={ANTIQUE} />)}
+        <circle cx="50" cy="50" r="33.5" fill="none" stroke={ANTIQUE} strokeWidth="0.8" opacity="0.7" />
+      </svg>
+    )
+  } else if (type === 'jewel') {
     image = <Img cat={cat} className="rounded-lg" style={{ inset: '12%' }} />
     frame = (
       <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
@@ -83,6 +217,30 @@ function CategoryCard({ cat, idx }: { cat: Category; idx: number }) {
         {ring(48, 0.8, 0.6)}
       </svg>
     )
+  } else if (type === 'wheel') {
+    // Handloom / spinning wheel frame
+    image = <Img cat={cat} className="rounded-full" style={{ inset: '15%' }} />
+    frame = (
+      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+        {ring(37, 1.5)}
+        {ring(46, 1.2)}
+        {Array.from({ length: 48 }).map((_, i) => {
+          const a = ((i * 360) / 48) * (Math.PI / 180)
+          return (
+            <line
+              key={i}
+              x1={50 + 38 * Math.sin(a)}
+              y1={50 - 38 * Math.cos(a)}
+              x2={50 + 45 * Math.sin(a)}
+              y2={50 - 45 * Math.cos(a)}
+              stroke={GOLD}
+              strokeWidth="0.8"
+            />
+          )
+        })}
+        {radial(8, 41.5, (cx, cy) => <circle cx={cx} cy={cy} r="1.4" fill={GOLD} />)}
+      </svg>
+    )
   } else {
     // simple circle
     image = <Img cat={cat} className="rounded-full" style={{ inset: '10%' }} />
@@ -94,8 +252,9 @@ function CategoryCard({ cat, idx }: { cat: Category; idx: number }) {
   }
 
   return (
-    <Link href={`/products?category=${cat.slug}`} className="group flex flex-col items-center flex-shrink-0 w-[200px] md:w-[230px]">
-      <div className="relative w-full aspect-square">
+    <Link href={`/products?category=${cat.slug}`} className="group flex flex-col items-center flex-shrink-0 w-[185px] md:w-[210px]">
+      <div className={`relative w-full ${aspect} transition-[filter] duration-300 group-hover:[filter:drop-shadow(0_0_14px_rgba(194,24,91,0.55))]`}>
+        {back}
         {image}
         {frame}
       </div>
