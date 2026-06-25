@@ -27,13 +27,6 @@ async function getCategories() {
   return data.map((c) => ({ name: c.name, slug: c.slug, img: c.image }))
 }
 
-const priceRanges = [
-  { label: 'Under ₹999', href: '/products?price_max=999' },
-  { label: '₹1000 - ₹2999', href: '/products?price_min=1000&price_max=2999' },
-  { label: '₹3000 - ₹5999', href: '/products?price_min=3000&price_max=5999' },
-  { label: 'Above ₹6000', href: '/products?price_min=6000' },
-]
-
 async function getProducts() {
   const supabase = await createClient()
   const [newArrivals, bestSellers] = await Promise.all([
@@ -104,23 +97,6 @@ export default async function HomePage() {
           </div>
         </section>
       )}
-
-      {/* Shop by Price */}
-      <section className="bg-[#FBF3E4] py-14 mt-6">
-        <div className="container mx-auto px-4">
-          <SectionHeading title="Shop by Price" subtitle="Find the perfect saree for your budget" />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {priceRanges.map((r) => (
-              <Link key={r.href} href={r.href}>
-                <div className="bg-white rounded-xl border border-amber-100 p-8 text-center hover:shadow-md hover:border-[#C2185B] transition-all group">
-                  <p className="text-xl font-bold text-gray-900 group-hover:text-[#C2185B] transition-colors">{r.label}</p>
-                  <p className="text-sm text-gray-500 mt-2 inline-flex items-center gap-1">Shop now <ArrowRight className="h-3.5 w-3.5" /></p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Best Sellers */}
       {bestSellers.length > 0 && (

@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { Loader2, Upload, X, ImagePlus } from 'lucide-react'
 
 const CATEGORIES = ['mangalgiri', 'kuppadam', 'gadwal', 'kota', 'kanchipattu', 'soft silks', 'jamdhani', 'butter silk', 'green mango', 'lehengas', 'dress materials']
-const FABRICS = ['pure silk', 'blended silk', 'pure cotton', 'handloom cotton', 'linen', 'georgette']
+const FABRICS = ['pure silk', 'blended silk', 'cotton', 'soft silk', 'linen']
 
 export default function BulkUploadForm() {
   const router = useRouter()

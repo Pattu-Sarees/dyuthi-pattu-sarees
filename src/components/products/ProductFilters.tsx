@@ -6,7 +6,7 @@ import { X } from 'lucide-react'
 
 const FILTERS = {
   category: ['mangalgiri', 'kuppadam', 'gadwal', 'kota', 'kanchipattu', 'soft silks', 'jamdhani', 'butter silk', 'green mango'],
-  fabric: ['pure silk', 'blended silk', 'pure cotton', 'handloom cotton', 'linen', 'georgette'],
+  fabric: ['pure silk', 'blended silk', 'cotton', 'soft silk', 'linen'],
 }
 
 const SORT_OPTIONS = [

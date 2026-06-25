@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import { Loader2, Upload, Trash2, ImagePlus } from 'lucide-react'
 
 const CATEGORIES = ['mangalgiri', 'kuppadam', 'gadwal', 'kota', 'kanchipattu', 'soft silks', 'jamdhani', 'butter silk', 'green mango', 'lehengas', 'dress materials']
-const FABRICS = ['pure silk', 'blended silk', 'pure cotton', 'handloom cotton', 'linen', 'georgette']
+const FABRICS = ['pure silk', 'blended silk', 'cotton', 'soft silk', 'linen']
 
 // Handle old data shapes gracefully
 function normalise(variants?: Array<Partial<InventoryItem> & { image?: string; images?: string[] }>): InventoryItem[] {
