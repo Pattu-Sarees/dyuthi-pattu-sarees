@@ -21,29 +21,13 @@ async function getProducts(searchParams: Record<string, string | string[]>) {
     query = query.in('fabric', fabrics)
   }
 
-  const occasion = searchParams.occasion
-  if (occasion) {
-    const occ = Array.isArray(occasion) ? occasion : [occasion]
-    query = query.overlaps('occasion', occ)
-  }
-
-  const region = searchParams.region
-  if (region) {
-    const regions = Array.isArray(region) ? region : [region]
-    query = query.in('region', regions)
-  }
-
-  const color = searchParams.color
-  if (color) {
-    const colors = Array.isArray(color) ? color : [color]
-    query = query.overlaps('color', colors)
-  }
-
   const priceMin = searchParams.price_min as string
   const priceMax = searchParams.price_max as string
   if (priceMin) query = query.gte('price', Number(priceMin))
   if (priceMax) query = query.lte('price', Number(priceMax))
 
+  if (searchParams.availability === 'in_stock') query = query.gt('stock_quantity', 0)
+  if (searchParams.availability === 'out_of_stock') query = query.eq('stock_quantity', 0)
   if (searchParams.in_stock === 'true') query = query.eq('in_stock', true)
   if (searchParams.is_featured === 'true') query = query.eq('is_featured', true)
   if (searchParams.is_new_arrival === 'true') query = query.eq('is_new_arrival', true)

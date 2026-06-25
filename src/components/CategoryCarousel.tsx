@@ -34,6 +34,11 @@ const FLOWER_INNER_BB = flowerPath(0.5, 0.34, 0.45, 14)
 const SCALLOP_OUTER = flowerPath(50, 45, 49.5, 18)
 const SCALLOP_BB = flowerPath(0.5, 0.44, 0.49, 18)
 
+// Octagon frame
+const OCT_OUTER = 'M30,4 L70,4 L96,30 L96,70 L70,96 L30,96 L4,70 L4,30 Z'
+const OCT_INNER = 'M33,9 L67,9 L91,33 L91,67 L67,91 L33,91 L9,67 L9,33 Z'
+const OCT_BB = 'M0.3,0.04 L0.7,0.04 L0.96,0.3 L0.96,0.7 L0.7,0.96 L0.3,0.96 L0.04,0.7 L0.04,0.3 Z'
+
 // All categories use the jeweled rectangle frame.
 const FRAME_BY_SLUG: Record<string, string> = {}
 
@@ -68,14 +73,25 @@ function CategoryCard({ cat, idx }: { cat: Category; idx: number }) {
   let back: React.ReactNode = null
   const aspect = type === 'scallop' ? 'aspect-[4/5]' : 'aspect-square'
 
-  if (type === 'scallop') {
+  if (type === 'octagon') {
+    image = <Img cat={cat} style={{ inset: 0, clipPath: `url(#${uid})` }} />
+    frame = (
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+        <defs>
+          <clipPath id={uid} clipPathUnits="objectBoundingBox"><path d={OCT_BB} /></clipPath>
+        </defs>
+        <path d={OCT_OUTER} fill="none" stroke="#C9A227" strokeWidth="1.8" />
+        <path d={OCT_INNER} fill="none" stroke="#C9A227" strokeWidth="0.7" opacity="0.8" />
+      </svg>
+    )
+  } else if (type === 'scallop') {
     image = <Img cat={cat} style={{ inset: 0, clipPath: `url(#${uid})` }} />
     frame = (
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
         <defs>
           <clipPath id={uid} clipPathUnits="objectBoundingBox"><path d={SCALLOP_BB} /></clipPath>
         </defs>
-        <path d={SCALLOP_OUTER} fill="none" stroke="#4E1E24" strokeWidth="1.1" />
+        <path d={SCALLOP_OUTER} fill="none" stroke="#5A3825" strokeWidth="1.5" />
       </svg>
     )
   } else if (type === 'medallionfloral') {

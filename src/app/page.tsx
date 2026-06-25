@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowRight, Truck, ShieldCheck, Award, Gem, Star } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { Product } from '@/types'
 import ProductCard from '@/components/products/ProductCard'
@@ -32,20 +32,6 @@ const priceRanges = [
   { label: '₹1000 - ₹2999', href: '/products?price_min=1000&price_max=2999' },
   { label: '₹3000 - ₹5999', href: '/products?price_min=3000&price_max=5999' },
   { label: 'Above ₹6000', href: '/products?price_min=6000' },
-]
-
-const testimonials = [
-  { name: 'Priya S.', location: 'Hyderabad', rating: 5, text: 'The Kanjivaram I ordered is breathtaking. The zari work is exactly as shown. Felt like buying directly from the weaver!' },
-  { name: 'Lakshmi R.', location: 'Bengaluru', rating: 5, text: 'Authentic handloom quality at honest prices. Fast delivery and beautiful packaging. Will order again.' },
-  { name: 'Anjali M.', location: 'Chennai', rating: 5, text: 'Bought a Banarasi for my sisters wedding. Everyone asked where I got it. Truly premium and elegant.' },
-  { name: 'Deepa K.', location: 'Vijayawada', rating: 5, text: 'Love that they source directly from weavers. The cotton sarees are so comfortable and the colors are vivid.' },
-]
-
-const trustBadges = [
-  { icon: Truck, title: 'Free Shipping', desc: 'All over India' },
-  { icon: ShieldCheck, title: 'Secure Payments', desc: 'UPI, Cards & COD' },
-  { icon: Award, title: 'Trusted Quality', desc: 'Handloom certified' },
-  { icon: Gem, title: 'Premium Collections', desc: 'Direct from weavers' },
 ]
 
 async function getProducts() {
@@ -145,44 +131,6 @@ export default async function HomePage() {
           </div>
         </section>
       )}
-
-      {/* Testimonials */}
-      <section className="bg-gray-50 py-14">
-        <div className="container mx-auto px-4">
-          <SectionHeading title="Loved by Our Customers" subtitle="Real reviews from happy saree lovers" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {testimonials.map((t) => (
-              <div key={t.name} className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-                <div className="flex gap-0.5 mb-3">
-                  {[1,2,3,4,5].map((s) => <Star key={s} className={`h-4 w-4 ${s <= t.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}`} />)}
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed mb-4">&ldquo;{t.text}&rdquo;</p>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">{t.name}</p>
-                  <p className="text-xs text-gray-400">{t.location}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Trust badges */}
-      <section className="container mx-auto px-4 py-14">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-          {trustBadges.map((b) => (
-            <div key={b.title} className="flex items-center gap-4 bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-              <div className="p-3 bg-[#FBF3E4] rounded-full flex-shrink-0">
-                <b.icon className="h-6 w-6 text-[#C2185B]" />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 text-sm">{b.title}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{b.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   )
 }

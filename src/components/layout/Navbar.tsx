@@ -7,9 +7,11 @@ import { ShoppingBag, User, Search, Menu, X, Heart, Truck, Sparkles } from 'luci
 import { useState, useEffect } from 'react'
 import { useCartStore } from '@/store/cart'
 import { createClient } from '@/lib/supabase/client'
+import { Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import LotusAccent from '@/components/ui/LotusAccent'
+import ProductFilters from '@/components/products/ProductFilters'
 import { cn } from '@/lib/utils'
 
 export default function Navbar() {
@@ -18,6 +20,7 @@ export default function Navbar() {
   const totalItems = useCartStore((s) => s.totalItems)
   const [user, setUser] = useState<{ email: string } | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [mounted, setMounted] = useState(false)
   const supabase = createClient()
@@ -91,7 +94,16 @@ export default function Navbar() {
       </div>
 
       <div className="container mx-auto px-4">
-        <div className="flex items-center gap-6 h-20">
+        <div className="flex items-center gap-3 md:gap-5 h-20">
+          {/* Filters hamburger */}
+          <button
+            onClick={() => setFilterOpen(true)}
+            aria-label="Open filters"
+            className="flex-shrink-0 p-2 -ml-3 md:-ml-4 rounded-lg hover:bg-rose-50 text-[#4E1E24] transition-colors"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
             <Image
@@ -277,6 +289,25 @@ export default function Navbar() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Filters drawer (left) — hero-themed */}
+      {filterOpen && (
+        <div className="fixed inset-0 z-[60]" role="dialog" aria-label="Filters">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setFilterOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-80 max-w-[85%] bg-[#F5EFE6] shadow-xl overflow-y-auto">
+            <div className="flex items-center justify-end px-4 py-3 sticky top-0 bg-[#F5EFE6] z-10">
+              <button onClick={() => setFilterOpen(false)} aria-label="Close filters" className="p-1.5 rounded-lg hover:bg-black/5 text-[#4E1E24]">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="px-5 pb-8">
+              <Suspense fallback={null}>
+                <ProductFilters theme="dark" onChange={() => setFilterOpen(false)} />
+              </Suspense>
+            </div>
           </div>
         </div>
       )}
