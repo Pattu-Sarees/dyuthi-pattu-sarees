@@ -44,6 +44,7 @@ const PinterestIcon = brandIcon('M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 
 
 function ShareMenu({ productName }: { productName: string }) {
   const [open, setOpen] = useState(false)
+  const [nativeShare, setNativeShare] = useState(false)
 
   // Close on Escape
   useEffect(() => {
@@ -53,9 +54,27 @@ function ShareMenu({ productName }: { productName: string }) {
     return () => document.removeEventListener('keydown', onKey)
   }, [open])
 
+  // On phones with the Web Share API, share via the native OS sheet instead of the modal.
+  useEffect(() => {
+    const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+    setNativeShare(isMobile && typeof navigator !== 'undefined' && typeof navigator.share === 'function')
+  }, [])
+
   const pageUrl = typeof window !== 'undefined' ? window.location.href : ''
   const encodedUrl = encodeURIComponent(pageUrl)
   const encodedText = encodeURIComponent(`Check out ${productName} on Dyuthi Pattu Sarees`)
+
+  const handleShareClick = async () => {
+    if (nativeShare) {
+      try {
+        await navigator.share({ title: productName, text: `Check out ${productName} on Dyuthi Pattu Sarees`, url: pageUrl })
+      } catch {
+        /* user dismissed the share sheet — no-op */
+      }
+      return
+    }
+    setOpen(true)
+  }
 
   const copyLink = async () => {
     try {
@@ -79,7 +98,7 @@ function ShareMenu({ productName }: { productName: string }) {
     <div className="flex-shrink-0">
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleShareClick}
         className="h-10 w-10 mt-1 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:text-[#C2185B] hover:border-rose-300 transition-colors"
         aria-label="Share product"
       >
