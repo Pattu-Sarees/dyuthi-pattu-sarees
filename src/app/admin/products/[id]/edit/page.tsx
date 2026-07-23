@@ -6,9 +6,9 @@ import { Product } from '@/types'
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const admin = createAdminClient()
-  const { data: product } = await admin.from('products').select('*').eq('id', id).single()
+  const { data: product, error } = await admin.from('products').select('*').eq('id', id).single()
 
-  if (!product) notFound()
+  if (error || !product) notFound()
 
   return (
     <div>

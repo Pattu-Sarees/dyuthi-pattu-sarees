@@ -3,6 +3,12 @@
 export interface InventoryItem {
   image: string
   quantity: number
+  // Per-item merchandising flags. A product's product-level is_new_arrival /
+  // is_best_seller is a rollup (= true if any of its items has the flag).
+  is_new_arrival?: boolean
+  is_best_seller?: boolean
+  // Extra angle shots of this item (not shown as separate listing items)
+  additional_images?: string[]
 }
 
 export interface Product {
@@ -24,6 +30,31 @@ export interface Product {
   review_count: number
   is_featured: boolean
   is_new_arrival: boolean
+  is_best_seller: boolean
+  status?: 'active' | 'inactive'
+  sold_count?: number
+  view_count?: number
+  wishlist_count?: number
+  slug?: string | null
+  // Opening video (R2 / YouTube URL); shown on the product page
+  video_url?: string | null
+  // On-site watermark text overlaid on the video (defaults to the website URL)
+  video_watermark?: string | null
+  // Procurement (vendor master lives in the vendors table)
+  vendor_id?: string | null
+  purchase_cost?: number | null
+  purchase_date?: string | null
+  invoice_number?: string | null
+  procurement_notes?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Vendor {
+  id: string
+  vendor_name: string
+  notes: string | null
+  status: 'active' | 'inactive'
   created_at: string
   updated_at: string
 }
@@ -43,6 +74,189 @@ export interface Cart {
   items: CartItem[]
 }
 
+export const LEAD_SOURCES = ['website', 'instagram', 'whatsapp', 'phone', 'other'] as const
+export const LEAD_STATUSES = ['new', 'contacted', 'interested', 'converted', 'closed'] as const
+export type LeadSource = (typeof LEAD_SOURCES)[number]
+export type LeadStatus = (typeof LEAD_STATUSES)[number]
+
+export interface Lead {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  message: string | null
+  source: LeadSource
+  status: LeadStatus
+  notes: string | null
+  follow_up_date: string | null
+  created_at: string
+  updated_at: string
+}
+
+// ==================== INVENTORY ====================
+export const STOCK_REASONS = ['restock', 'adjustment', 'damage', 'return', 'correction', 'sale'] as const
+export type StockReason = (typeof STOCK_REASONS)[number]
+
+export interface StockMovement {
+  id: string
+  product_id: string
+  change: number
+  resulting_quantity: number
+  reason: StockReason
+  note: string | null
+  variant_image: string | null
+  created_by: string | null
+  created_at: string
+}
+
+// A product row as shown in the inventory table
+export interface InventoryRow {
+  id: string
+  name: string
+  image: string | null
+  category: string
+  status: 'active' | 'inactive'
+  stock_quantity: number
+  in_stock: boolean
+  sold_count: number
+  variants: InventoryItem[]   // per-colour breakdown (image + quantity)
+  // Extra fields for fuller search
+  fabric: string
+  description: string
+}
+
+export const LOW_STOCK_THRESHOLD = 3 // fallback default; live value comes from store_settings
+
+// ==================== STORE SETTINGS (single row) ====================
+export interface StoreSettings {
+  store_name: string
+  support_mobile: string
+  whatsapp_number: string
+  business_email: string
+  store_address: string
+  low_stock_threshold: number
+  announcement_text: string
+  hero_banner_image: string
+  show_best_sellers: boolean
+  show_new_arrivals: boolean
+  updated_at?: string
+}
+
+export const DEFAULT_STORE_SETTINGS: StoreSettings = {
+  store_name: '',
+  support_mobile: '',
+  whatsapp_number: '',
+  business_email: '',
+  store_address: '',
+  low_stock_threshold: 3,
+  announcement_text: '',
+  hero_banner_image: '',
+  show_best_sellers: true,
+  show_new_arrivals: true,
+}
+
+// ==================== REVIEWS (testimonials table) ====================
+// Customer-facing submission sources + admin manual-entry sources.
+export const REVIEW_SOURCES = [
+  'Website Order',
+  'Product Page',
+  'Delivery Follow-up',
+  'WhatsApp',
+  'Instagram',
+  'Phone',
+  'Offline Customer',
+  'Manual Entry',
+  'Website', // legacy value kept for old rows
+] as const
+export type ReviewSource = (typeof REVIEW_SOURCES)[number]
+
+// Sources a customer submission is allowed to claim (server-enforced)
+export const CUSTOMER_REVIEW_SOURCES = ['Website Order', 'Product Page', 'Delivery Follow-up'] as const
+// Sources offered in the admin manual-entry form
+export const MANUAL_REVIEW_SOURCES = ['WhatsApp', 'Instagram', 'Phone', 'Offline Customer', 'Website Order', 'Product Page', 'Delivery Follow-up'] as const
+
+export const REVIEW_STATUSES = ['pending', 'approved', 'rejected'] as const
+export type ReviewStatus = (typeof REVIEW_STATUSES)[number]
+
+export interface Testimonial {
+  id: string
+  customer_name: string
+  customer_email: string | null
+  customer_mobile: string | null
+  location: string | null
+  order_id: string | null
+  product_id: string | null
+  review_title: string | null
+  review_text: string
+  rating: number
+  purchased_product: string | null
+  review_source: ReviewSource
+  avatar_initial: string | null
+  proof_image: string | null
+  review_images: string[]
+  is_verified_buyer: boolean
+  is_featured: boolean
+  is_active: boolean
+  status: ReviewStatus
+  display_order: number
+  created_at?: string
+}
+
+// ==================== HOMEPAGE CMS ====================
+export const HOMEPAGE_SECTION_KEYS = ['announcement', 'hero', 'new_arrivals', 'best_sellers', 'on_sale', 'collection', 'footer'] as const
+export type HomepageSectionKey = (typeof HOMEPAGE_SECTION_KEYS)[number]
+
+export const HOMEPAGE_SECTION_LABELS: Record<HomepageSectionKey, string> = {
+  announcement: 'Announcement Bar',
+  hero: 'Hero Banner',
+  new_arrivals: 'New Arrivals',
+  best_sellers: 'Best Sellers',
+  on_sale: 'On Sale',
+  collection: 'Collection Section',
+  footer: 'Footer',
+}
+
+export interface HomepageSection {
+  key: HomepageSectionKey
+  enabled: boolean
+  title: string | null
+  subtitle: string | null
+  images: string[]
+  sort_order: number
+  data: Record<string, unknown>
+  updated_at: string
+}
+
+// ==================== COUPONS ====================
+export const DISCOUNT_TYPES = ['percent', 'flat'] as const
+export type DiscountType = (typeof DISCOUNT_TYPES)[number]
+
+export interface Coupon {
+  id: string
+  code: string
+  discount_type: DiscountType
+  discount_value: number
+  min_order_value: number
+  expiry_date: string | null
+  usage_limit: number | null
+  used_count: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+// ==================== CUSTOMERS ====================
+// Derived (not a table) — aggregated from orders, keyed by phone.
+export interface Customer {
+  phone: string
+  name: string
+  email: string | null
+  total_orders: number
+  total_spending: number   // delivered orders only
+  last_order_at: string | null
+  first_order_at: string | null
+}
+
 export interface Address {
   id: string
   user_id: string
@@ -58,14 +272,20 @@ export interface Address {
 
 export interface Order {
   id: string
-  user_id: string
+  user_id: string | null
+  order_number?: string | null
+  customer_name?: string | null
+  customer_phone?: string | null
+  customer_email?: string | null
+  customer_country_code?: string | null
   status: OrderStatus
+  source?: OrderSource | string
   items: OrderItem[]
   total_amount: number
   shipping_amount: number
   discount_amount: number
-  address: Address
-  payment_method: string
+  address: Address | null
+  payment_method: string | null
   payment_status: PaymentStatus
   payment_id?: string
   tracking_number?: string
@@ -74,6 +294,25 @@ export interface Order {
   updated_at: string
   estimated_delivery?: string
 }
+
+// Statuses an admin uses to manage manual orders
+export const ADMIN_ORDER_STATUSES = ['pending', 'pre-booking', 'confirmed', 'packed', 'shipped', 'delivered', 'cancelled'] as const
+export const PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'] as const
+
+// Order source / channel. 'website' = online; the rest are manual/offline.
+export const ORDER_SOURCES = ['website', 'whatsapp', 'instagram', 'facebook', 'phone', 'walk-in'] as const
+export type OrderSource = (typeof ORDER_SOURCES)[number]
+export const ORDER_SOURCE_LABELS: Record<OrderSource, string> = {
+  website: 'Online',
+  whatsapp: 'WhatsApp',
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  phone: 'Phone',
+  'walk-in': 'Walk-in',
+}
+// Manual/offline channels the admin can pick when creating an order.
+export const MANUAL_ORDER_SOURCES = ['whatsapp', 'instagram', 'facebook', 'phone', 'walk-in'] as const
+export const isOnlineSource = (s?: string | null) => (s || 'website') === 'website'
 
 export interface OrderItem {
   id: string
@@ -87,7 +326,9 @@ export interface OrderItem {
 
 export type OrderStatus =
   | 'pending'
+  | 'pre-booking'
   | 'confirmed'
+  | 'packed'
   | 'processing'
   | 'shipped'
   | 'out_for_delivery'

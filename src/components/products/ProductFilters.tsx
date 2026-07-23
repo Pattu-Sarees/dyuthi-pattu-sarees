@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useCallback } from 'react'
 import { X } from 'lucide-react'
 
@@ -10,16 +10,19 @@ const FILTERS = {
 }
 
 const SORT_OPTIONS = [
-  { value: 'newest', label: 'Newest First' },
-  { value: 'price_asc', label: 'Price: Low to High' },
-  { value: 'price_desc', label: 'Price: High to Low' },
-  { value: 'rating', label: 'Top Rated' },
-  { value: 'popular', label: 'Most Popular' },
+  { value: 'name_asc', label: 'Alphabetically, A-Z' },
+  { value: 'name_desc', label: 'Alphabetically, Z-A' },
+  { value: 'price_asc', label: 'Price, low to high' },
+  { value: 'price_desc', label: 'Price, high to low' },
+  { value: 'date_asc', label: 'Date, old to new' },
+  { value: 'date_desc', label: 'Date, new to old' },
 ]
 
-export default function ProductFilters({ theme = 'light', onChange }: { theme?: 'light' | 'dark'; onChange?: () => void }) {
+export default function ProductFilters({ theme = 'light', onChange, basePath, hideSort = false }: { theme?: 'light' | 'dark'; onChange?: () => void; basePath?: string; hideSort?: boolean }) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const target = basePath || pathname
   const dark = theme === 'dark'
 
   const head = dark ? 'text-[#4E1E24]' : 'text-gray-900'
@@ -27,9 +30,9 @@ export default function ProductFilters({ theme = 'light', onChange }: { theme?: 
   const input = dark
     ? 'w-full text-sm bg-white border border-[#4E1E24]/25 text-[#4E1E24] rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#C2185B] placeholder-[#4E1E24]/50'
     : 'w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-500'
-  const chipActive = 'bg-[#C2185B] text-white border-[#C2185B]'
+  const chipActive = 'bg-[#AD1457] text-white border-[#AD1457]'
   const chipInactive = dark
-    ? 'bg-white text-[#4E1E24] border-[#4E1E24]/30 hover:border-[#C2185B] hover:text-[#C2185B]'
+    ? 'bg-white text-[#4E1E24] border-[#4E1E24]/30 hover:border-[#AD1457] hover:text-[#AD1457]'
     : 'bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:text-rose-600'
   const clearCls = dark ? 'text-[#C2185B] hover:text-[#a01049]' : 'text-rose-600 hover:text-rose-700'
 
@@ -40,10 +43,10 @@ export default function ProductFilters({ theme = 'light', onChange }: { theme?: 
       const params = new URLSearchParams(searchParams.toString())
       if (value === null || value === '') params.delete(key)
       else params.set(key, value)
-      router.push(`/products?${params.toString()}`)
+      router.push(`${target}?${params.toString()}`)
       onChange?.()
     },
-    [router, searchParams, onChange]
+    [router, searchParams, onChange, target]
   )
 
   const toggleArrayParam = useCallback(
@@ -56,13 +59,13 @@ export default function ProductFilters({ theme = 'light', onChange }: { theme?: 
       } else {
         params.append(key, value)
       }
-      router.push(`/products?${params.toString()}`)
+      router.push(`${target}?${params.toString()}`)
       onChange?.()
     },
-    [router, searchParams, onChange]
+    [router, searchParams, onChange, target]
   )
 
-  const clearAll = () => { router.push('/products'); after() }
+  const clearAll = () => { router.push(target); after() }
   const hasFilters = searchParams.toString().length > 0
 
   return (
@@ -92,13 +95,15 @@ export default function ProductFilters({ theme = 'light', onChange }: { theme?: 
       </div>
 
       {/* Sort */}
-      <div>
-        <h4 className={`text-sm font-medium mb-2 ${label}`}>Sort By</h4>
-        <select value={searchParams.get('sort') || ''} onChange={(e) => updateParam('sort', e.target.value || null)} className={`${input} text-gray-900`}>
-          <option value="">Default</option>
-          {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      </div>
+      {!hideSort && (
+        <div>
+          <h4 className={`text-sm font-medium mb-2 ${label}`}>Sort</h4>
+          <select value={searchParams.get('sort') || ''} onChange={(e) => updateParam('sort', e.target.value || null)} className={`${input} text-gray-900`}>
+            <option value="">Default</option>
+            {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+      )}
 
       {/* Price Range */}
       <div>

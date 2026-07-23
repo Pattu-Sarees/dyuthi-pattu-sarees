@@ -1,8 +1,13 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail } from '@/lib/admin'
-import { LayoutDashboard, PlusCircle, Store, ImagePlus, ShieldX, LayoutGrid } from 'lucide-react'
+import { ShieldX } from 'lucide-react'
 import AdminGate from '@/components/admin/AdminGate'
+import AdminSidebar from '@/components/admin/AdminSidebar'
+import AdminHeaderActions from '@/components/admin/AdminHeaderActions'
+import AdminMain from '@/components/admin/AdminMain'
+import GlobalSearch from '@/components/admin/GlobalSearch'
 
 export const metadata = { title: 'Admin | Dyuthi Pattu Sarees', robots: { index: false, follow: false } }
 
@@ -34,33 +39,45 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Admin top bar */}
-      <div className="bg-[#3a0d22] text-white sticky top-0 z-40">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-14">
-            <Link href="/admin" className="font-bold text-lg">Admin Panel</Link>
-            <nav className="flex items-center gap-1 text-sm">
-              <Link href="/admin" className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors">
-                <LayoutDashboard className="h-4 w-4" /> <span className="hidden sm:inline">Dashboard</span>
-              </Link>
-              <Link href="/admin/products/new" className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors">
-                <PlusCircle className="h-4 w-4" /> <span className="hidden sm:inline">Add</span>
-              </Link>
-              <Link href="/admin/products/bulk" className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors">
-                <ImagePlus className="h-4 w-4" /> <span className="hidden sm:inline">Bulk Upload</span>
-              </Link>
-              <Link href="/admin/categories" className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors">
-                <LayoutGrid className="h-4 w-4" /> <span className="hidden sm:inline">Categories</span>
-              </Link>
-              <Link href="/" className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors">
-                <Store className="h-4 w-4" /> <span className="hidden sm:inline">View Store</span>
-              </Link>
-            </nav>
+    <div className="min-h-screen bg-[#FFFDF7]">
+      {/* Top bar */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
+        <div className="flex items-center h-16">
+          {/* Desktop: full logo + wordmark on white, matching the storefront header */}
+          <Link href="/admin" className="flex-shrink-0 hidden md:flex items-center gap-2 h-16 pl-4 pr-6">
+            <span className="relative flex-shrink-0 overflow-hidden rounded-md h-12 w-12">
+              <Image src="/logo-v3.jpeg" alt="Dyuthi Pattu Sarees" width={256} height={256} priority className="h-full w-full object-cover scale-[1.35]" />
+            </span>
+            <span className="leading-tight flex flex-col items-stretch w-fit">
+              <span className="block text-lg font-bold tracking-wide text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>
+                Dyuthi Pattu Sarees
+              </span>
+              <span className="flex w-full items-center justify-center gap-1.5 text-[10px] tracking-wide text-[#A88C57]">
+                <span aria-hidden className="h-px flex-1 min-w-0" style={{ background: 'linear-gradient(to right, transparent, #C9A227)' }} />
+                <span aria-hidden className="h-[4px] w-[4px] rotate-45 flex-shrink-0" style={{ backgroundColor: '#C9A227' }} />
+                <span className="flex-shrink-0">Looms to Homes</span>
+                <span aria-hidden className="h-[4px] w-[4px] rotate-45 flex-shrink-0" style={{ backgroundColor: '#C9A227' }} />
+                <span aria-hidden className="h-px flex-1 min-w-0" style={{ background: 'linear-gradient(to left, transparent, #C9A227)' }} />
+              </span>
+            </span>
+          </Link>
+          {/* Mobile: compact icon only */}
+          <Link href="/admin" className="flex-shrink-0 md:hidden px-4">
+            <span className="relative flex-shrink-0 overflow-hidden rounded-md h-10 w-10 block">
+              <Image src="/logo-v3.jpeg" alt="Dyuthi Pattu Sarees" width={160} height={160} priority className="h-full w-full object-cover scale-[1.35]" />
+            </span>
+          </Link>
+          <div className="flex items-center justify-between gap-4 flex-1 px-4">
+            <GlobalSearch />
+            <AdminHeaderActions email={user.email} name={user.user_metadata?.full_name} avatar={user.user_metadata?.avatar_url} />
           </div>
         </div>
+      </header>
+
+      <div className="flex">
+        <AdminSidebar />
+        <AdminMain>{children}</AdminMain>
       </div>
-      <div className="container mx-auto px-4 py-6">{children}</div>
     </div>
   )
 }

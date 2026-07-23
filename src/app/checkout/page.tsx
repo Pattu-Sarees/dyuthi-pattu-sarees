@@ -6,7 +6,7 @@ import { useCartStore } from '@/store/cart'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, isValidEmail, toTitleCase } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Loader2, CreditCard, Smartphone, Building2, Banknote } from 'lucide-react'
 import Image from 'next/image'
@@ -27,13 +27,24 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState({
     name: '', phone: '', line1: '', line2: '', city: '', state: '', pincode: ''
   })
+  const [email, setEmail] = useState('')
+  const [emailError, setEmailError] = useState('')
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) { router.push('/login?redirect=/checkout'); return }
-      setUser(data.user as { id: string; email: string })
+      const u = data.user as { id: string; email: string }
+      setUser(u)
+      setEmail((prev) => prev || u.email || '') // pre-fill from the signed-in account
     })
   }, [])
+
+  const validateEmail = (value: string) => {
+    if (!value.trim()) { setEmailError('Email is required'); return false }
+    if (!isValidEmail(value)) { setEmailError('Please enter a valid email address'); return false }
+    setEmailError('')
+    return true
+  }
 
   const subtotal = totalPrice()
   const shipping = subtotal >= 999 ? 0 : 99
@@ -47,6 +58,7 @@ export default function CheckoutPage() {
 
   const placeOrder = async () => {
     if (!isAddressValid) { toast.error('Please fill all address fields'); return }
+    if (!validateEmail(email)) { toast.error('Please enter a valid email address'); return }
     if (items.length === 0) { toast.error('Cart is empty'); return }
     setLoading(true)
 
@@ -70,7 +82,7 @@ export default function CheckoutPage() {
           handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string }) => {
             await createOrder(response.razorpay_payment_id, response.razorpay_order_id)
           },
-          prefill: { email: user?.email, contact: address.phone, name: address.name },
+          prefill: { email: email || user?.email, contact: address.phone, name: address.name },
           theme: { color: '#be123c' },
         }
 
@@ -99,6 +111,7 @@ export default function CheckoutPage() {
           price: i.product.price,
         })),
         address,
+        customer_email: email.trim(),
         total_amount: total,
         shipping_amount: shipping,
         payment_method: paymentMethod,
@@ -143,6 +156,18 @@ export default function CheckoutPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
                 <Input value={address.phone} onChange={(e) => handleAddressChange('phone', e.target.value)} placeholder="10-digit mobile number" type="tel" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); if (emailError) validateEmail(e.target.value) }}
+                  onBlur={(e) => validateEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className={emailError ? 'border-red-400 focus-visible:ring-red-400' : ''}
+                />
+                {emailError && <p className="text-xs text-red-600 mt-1">{emailError}</p>}
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1 *</label>
@@ -213,7 +238,7 @@ export default function CheckoutPage() {
                     ) : <span className="w-full h-full flex items-center justify-center text-lg">🥻</span>}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 line-clamp-1 text-xs">{item.product.name}</p>
+                    <p className="font-medium text-gray-900 line-clamp-1 text-xs">{toTitleCase(item.product.name)}</p>
                     <p className="text-gray-500 text-xs">Qty: {item.quantity}</p>
                   </div>
                   <p className="font-semibold text-gray-900 text-xs">{formatPrice(item.product.price * item.quantity)}</p>

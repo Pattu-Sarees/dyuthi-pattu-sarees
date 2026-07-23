@@ -1,9 +1,7 @@
 'use client'
 
-import { useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 type Category = { name: string; slug: string; img: string }
 
@@ -65,13 +63,13 @@ function Img({ cat, className, style }: { cat: Category; className?: string; sty
   )
 }
 
-function CategoryCard({ cat, idx }: { cat: Category; idx: number }) {
+function CategoryCard({ cat, idx, active }: { cat: Category; idx: number; active?: boolean }) {
   const type = FRAME_BY_SLUG[cat.slug] || 'scallop'
   const uid = `frame${idx}`
   let image: React.ReactNode
   let frame: React.ReactNode
   let back: React.ReactNode = null
-  const aspect = type === 'scallop' ? 'aspect-[4/5]' : 'aspect-square'
+  const aspect = type === 'scallop' || type === 'oval' ? 'aspect-[4/5]' : 'aspect-square'
 
   if (type === 'octagon') {
     image = <Img cat={cat} style={{ inset: 0, clipPath: `url(#${uid})` }} />
@@ -84,7 +82,23 @@ function CategoryCard({ cat, idx }: { cat: Category; idx: number }) {
         <path d={OCT_INNER} fill="none" stroke="#C9A227" strokeWidth="0.7" opacity="0.8" />
       </svg>
     )
+  } else if (type === 'oval') {
+    // Smooth oval — image fills a 4:5 ellipse with a thin gold/brown ring (no scallop notches)
+    image = <Img cat={cat} className="rounded-[50%]" style={{ inset: 0 }} />
+    frame = (
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+        <ellipse cx="50" cy="50" rx="49" ry="49" fill="none" stroke="#5A3825" strokeWidth="1.6" />
+        <ellipse cx="50" cy="50" rx="46" ry="46" fill="none" stroke={GOLD} strokeWidth="0.8" opacity="0.7" />
+      </svg>
+    )
   } else if (type === 'scallop') {
+    // Ivory backing slightly larger than the image's scallop, so the petal
+    // notches read as a solid ivory rim instead of the page showing through
+    back = (
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+        <path d={SCALLOP_OUTER} fill={IVORY} transform="translate(50 50) scale(1.06) translate(-50 -50)" />
+      </svg>
+    )
     image = <Img cat={cat} style={{ inset: 0, clipPath: `url(#${uid})` }} />
     frame = (
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
@@ -268,40 +282,24 @@ function CategoryCard({ cat, idx }: { cat: Category; idx: number }) {
   }
 
   return (
-    <Link href={`/products?category=${cat.slug}`} className="group flex flex-col items-center flex-shrink-0 w-[185px] md:w-[210px]">
-      <div className={`relative w-full ${aspect} transition-[filter] duration-300 group-hover:[filter:drop-shadow(0_0_14px_rgba(194,24,91,0.55))]`}>
+    <Link href={`/?category=${cat.slug}`} scroll={false} className="group flex flex-col items-center flex-shrink-0 w-[33vw] max-w-[190px] md:w-[210px] md:max-w-none">
+      <div className={`relative w-full ${aspect} transition-[filter] duration-300 group-hover:[filter:drop-shadow(0_0_14px_rgba(194,24,91,0.55))] ${active ? '[filter:drop-shadow(0_0_14px_rgba(194,24,91,0.55))]' : ''}`}>
         {back}
         {image}
         {frame}
       </div>
-      <span className="mt-3 text-base font-medium text-[#4E1E24] text-center group-hover:text-[#C2185B] transition-colors leading-tight">{cat.name}</span>
+      <span className={`mt-3 text-base font-medium text-center group-hover:text-[#C2185B] transition-colors leading-tight ${active ? 'text-[#C2185B]' : 'text-[#4E1E24]'}`}>{cat.name}</span>
     </Link>
   )
 }
 
-export default function CategoryCarousel({ categories }: { categories: Category[] }) {
-  const scroller = useRef<HTMLDivElement>(null)
-  const scroll = (dir: 'left' | 'right') => {
-    const el = scroller.current
-    if (!el) return
-    el.scrollBy({ left: dir === 'left' ? -el.clientWidth * 0.8 : el.clientWidth * 0.8, behavior: 'smooth' })
-  }
-
+export default function CategoryCarousel({ categories, selectedSlug }: { categories: Category[]; selectedSlug?: string }) {
+  // Mobile: horizontal scroll showing ~2.5 cards. Desktop: centered wrap.
   return (
-    <div className="relative">
-      <button onClick={() => scroll('left')} aria-label="Previous" className="absolute -left-2 md:-left-4 top-[42%] -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white shadow-md border border-gray-100 flex items-center justify-center text-[#4E1E24] hover:bg-[#C2185B] hover:text-white transition-colors">
-        <ChevronLeft className="h-5 w-5" />
-      </button>
-
-      <div ref={scroller} className="flex gap-6 overflow-x-auto scroll-smooth px-1 py-2" style={{ scrollbarWidth: 'none' }}>
-        {categories.map((cat, idx) => (
-          <CategoryCard key={cat.slug} cat={cat} idx={idx} />
-        ))}
-      </div>
-
-      <button onClick={() => scroll('right')} aria-label="Next" className="absolute -right-2 md:-right-4 top-[42%] -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white shadow-md border border-gray-100 flex items-center justify-center text-[#4E1E24] hover:bg-[#C2185B] hover:text-white transition-colors">
-        <ChevronRight className="h-5 w-5" />
-      </button>
+    <div className="flex gap-4 overflow-x-auto pb-2 md:flex-wrap md:justify-center md:gap-6 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {categories.map((cat, idx) => (
+        <CategoryCard key={cat.slug} cat={cat} idx={idx} active={cat.slug === selectedSlug} />
+      ))}
     </div>
   )
 }

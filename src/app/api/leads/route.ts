@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { notify } from '@/lib/notify-server'
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -18,5 +19,12 @@ export async function POST(req: NextRequest) {
   })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  await notify(admin, {
+    type: 'new_lead',
+    title: `New lead — ${name}`,
+    body: message ? String(message).slice(0, 80) : (email || phone || null),
+    link: '/admin/leads',
+  })
   return NextResponse.json({ success: true })
 }

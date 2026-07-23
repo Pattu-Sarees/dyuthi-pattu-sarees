@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { toast } from 'sonner'
 import { Loader2, ImagePlus, Trash2, Plus, X, Check } from 'lucide-react'
 import ImageCropper from '@/components/admin/ImageCropper'
+import { PRODUCT_CATEGORIES } from '@/lib/categories'
 
 type Cat = { id: string; name: string; slug: string; image: string; sort_order: number }
 
@@ -97,7 +98,7 @@ export default function AdminCategories() {
         <div className="bg-white rounded-xl border border-gray-100 p-5 h-fit">
           <h2 className="font-semibold text-gray-900 mb-4">{form.id ? 'Edit category' : 'Add category'}</h2>
           <div className="space-y-3">
-            <label className="relative block w-full aspect-square max-w-[160px] mx-auto rounded-full overflow-hidden border-2 border-dashed border-gray-300 cursor-pointer hover:border-[#C2185B] flex items-center justify-center text-gray-400">
+            <label className="relative block w-full aspect-[4/5] max-w-[160px] mx-auto rounded-xl overflow-hidden border-2 border-dashed border-gray-300 cursor-pointer hover:border-[#C2185B] flex items-center justify-center text-gray-400">
               {form.image ? (
                 <Image src={form.image} alt="" fill className="object-cover" sizes="160px" />
               ) : uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : (
@@ -111,7 +112,10 @@ export default function AdminCategories() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Category slug <span className="text-gray-400">(matches product category)</span></label>
-              <input value={form.slug} onChange={(e) => set('slug', e.target.value)} className={input} placeholder="e.g. gadwal" />
+              <select value={form.slug} onChange={(e) => set('slug', e.target.value)} className={`${input} capitalize`}>
+                <option value="" disabled>Select a category</option>
+                {PRODUCT_CATEGORIES.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Sort order</label>
@@ -139,7 +143,7 @@ export default function AdminCategories() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {cats.map((c) => (
                 <div key={c.id} className="bg-white rounded-xl border border-gray-100 p-3 text-center">
-                  <div className="relative w-20 h-20 mx-auto rounded-full overflow-hidden bg-gray-100 ring-2 ring-[#D4AF37]">
+                  <div className="relative w-20 h-[100px] mx-auto rounded-lg overflow-hidden bg-gray-100 ring-2 ring-[#D4AF37]">
                     {c.image ? <Image src={c.image} alt={c.name} fill className="object-cover" sizes="80px" /> : null}
                   </div>
                   <p className="mt-2 text-sm font-medium text-gray-900 line-clamp-1">{c.name}</p>
@@ -158,8 +162,8 @@ export default function AdminCategories() {
       {cropSrc && (
         <ImageCropper
           src={cropSrc}
-          aspect={1}
-          shape="round"
+          aspect={4 / 5}
+          shape="rect"
           onCancel={() => { if (cropSrc) URL.revokeObjectURL(cropSrc); setCropSrc(null) }}
           onDone={uploadBlob}
         />

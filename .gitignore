@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+.env*
+
+certificates
+# local artifacts (not for deploy)
+tools/*.mp4
+backups/

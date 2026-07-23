@@ -1,7 +1,7 @@
 'use client'
 
 import { useCartStore } from '@/store/cart'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, toTitleCase } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -49,7 +49,7 @@ export default function CartPage() {
 
               <div className="flex-1 min-w-0">
                 <Link href={`/products/${item.product_id}`}>
-                  <h3 className="font-semibold text-gray-900 text-sm hover:text-rose-700 transition-colors line-clamp-2">{item.product.name}</h3>
+                  <h3 className="font-semibold text-gray-900 text-sm hover:text-rose-700 transition-colors line-clamp-2">{toTitleCase(item.product.name)}</h3>
                 </Link>
                 <p className="text-xs text-gray-500 capitalize mt-1">{item.product.fabric} • {item.product.region}</p>
                 <div className="flex items-center justify-between mt-3">

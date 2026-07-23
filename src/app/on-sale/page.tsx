@@ -1,15 +1,10 @@
-import PageBanner from '@/components/layout/PageBanner'
-import ProductsGrid from '@/components/products/ProductsGrid'
+import FilteredListing from '@/components/products/FilteredListing'
 
 export const metadata = { title: 'On Sale | Dyuthi Pattu Sarees' }
 
-export default function OnSalePage() {
+export default function OnSalePage({ searchParams }: { searchParams: Promise<Record<string, string | string[]>> }) {
+  const merged = (async () => ({ ...(await searchParams), on_sale: 'true' }))()
   return (
-    <div className="bg-white min-h-screen">
-      <PageBanner title="On Sale" subtitle="Exclusive savings on premium handloom sarees." />
-      <div className="container mx-auto px-4 py-10">
-        <ProductsGrid searchParams={Promise.resolve({ on_sale: 'true' })} />
-      </div>
-    </div>
+    <FilteredListing emoji="🎉" title="On Sale" subtitle="Exclusive savings on premium handloom sarees." searchParams={merged} />
   )
 }

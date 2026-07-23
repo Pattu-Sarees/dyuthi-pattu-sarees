@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { PUBLIC_PRODUCT_COLUMNS } from '@/lib/public-product-columns'
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
   const { searchParams } = request.nextUrl
 
-  let query = supabase.from('products').select('*')
+  let query = supabase.from('products').select(PUBLIC_PRODUCT_COLUMNS)
 
   // Search
   const search = searchParams.get('search')
@@ -60,6 +61,9 @@ export async function GET(request: NextRequest) {
   }
   if (searchParams.get('is_new_arrival') === 'true') {
     query = query.eq('is_new_arrival', true)
+  }
+  if (searchParams.get('is_best_seller') === 'true') {
+    query = query.eq('is_best_seller', true)
   }
 
   // Sort

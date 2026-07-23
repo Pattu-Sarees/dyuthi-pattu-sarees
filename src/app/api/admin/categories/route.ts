@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdminEmail } from '@/lib/admin'
+import { logActivity } from '@/lib/notify-server'
 
 async function requireAdmin() {
   const supabase = await createClient()
@@ -29,5 +30,7 @@ export async function POST(req: NextRequest) {
     sort_order: Number(body.sort_order) || 0,
   }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  const u = await requireAdmin()
+  await logActivity(admin, { adminEmail: u?.email ?? null, action: 'category_created', entity: 'category', entityId: data.id, detail: data.name })
   return NextResponse.json({ category: data })
 }

@@ -5,9 +5,10 @@ import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Order } from '@/types'
-import { formatPrice, formatDate, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from '@/lib/utils'
-import { Package, MapPin, CreditCard, ChevronLeft, ExternalLink, CheckCircle2, Circle } from 'lucide-react'
+import { formatPrice, formatDate, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, toTitleCase } from '@/lib/utils'
+import { Package, MapPin, CreditCard, ChevronLeft, ExternalLink, CheckCircle2, Circle, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import ReviewForm from '@/components/reviews/ReviewForm'
 
 const ORDER_STEPS = [
   { status: 'confirmed', label: 'Order Confirmed' },
@@ -21,6 +22,8 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
+  const [reviewed, setReviewed] = useState<boolean | null>(null) // null = still checking
+  const [showReviewForm, setShowReviewForm] = useState(false)
 
   useEffect(() => {
     fetch(`/api/orders/${id}`)
@@ -28,6 +31,15 @@ export default function OrderDetailPage() {
       .then(({ order }) => { setOrder(order); setLoading(false) })
       .catch(() => setLoading(false))
   }, [id])
+
+  // Has this order already been reviewed? (one review per delivered order)
+  useEffect(() => {
+    if (!order || order.status !== 'delivered') return
+    fetch(`/api/reviews?order_id=${order.id}`)
+      .then((r) => r.json())
+      .then(({ exists }) => setReviewed(!!exists))
+      .catch(() => setReviewed(null))
+  }, [order])
 
   if (loading) return (
     <div className="container mx-auto px-4 py-8">
@@ -115,7 +127,7 @@ export default function OrderDetailPage() {
                     ) : <div className="w-full h-full flex items-center justify-center text-2xl">🥻</div>}
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-900 text-sm">{item.product_name}</p>
+                    <p className="font-semibold text-gray-900 text-sm">{toTitleCase(item.product_name)}</p>
                     <p className="text-xs text-gray-500 mt-1">Qty: {item.quantity} × {formatPrice(item.price)}</p>
                   </div>
                   <p className="font-bold text-gray-900 text-sm">{formatPrice(item.quantity * item.price)}</p>
@@ -123,6 +135,40 @@ export default function OrderDetailPage() {
               ))}
             </div>
           </div>
+
+          {/* Write a review — only for delivered, not-yet-reviewed orders */}
+          {order.status === 'delivered' && reviewed !== null && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-6">
+              <div className="flex items-center gap-2 mb-1">
+                <Star className="h-5 w-5 text-[#D4AF37] fill-[#D4AF37]" />
+                <h2 className="font-bold text-gray-900">Share Your Experience</h2>
+              </div>
+              {reviewed ? (
+                <p className="text-sm text-gray-500 mt-2">
+                  Thank you — you have already submitted a review for this order. It will appear on the site once approved.
+                </p>
+              ) : showReviewForm ? (
+                <div className="mt-4">
+                  <ReviewForm
+                    source="Website Order"
+                    orderId={order.id}
+                    defaultName={order.customer_name || order.address?.name || ''}
+                    onDone={() => setReviewed(true)}
+                    onCancel={() => setShowReviewForm(false)}
+                  />
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-500 mt-1 mb-4">
+                    Loved your saree? Tell others about it — your review helps fellow shoppers.
+                  </p>
+                  <Button onClick={() => setShowReviewForm(true)} className="bg-[#C2185B] hover:bg-[#a01049] text-white">
+                    Write a Review
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Side info */}

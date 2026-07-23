@@ -1,29 +1,49 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
-import { usePathname, useRouter } from 'next/navigation'
-import { ShoppingBag, User, Search, Menu, X, Heart, Truck, Sparkles } from 'lucide-react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { ShoppingBag, User, Search, Menu, X, Heart, Sparkles, ChevronRight, ChevronLeft } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useCartStore } from '@/store/cart'
+import { useWishlistStore } from '@/store/wishlist'
 import { createClient } from '@/lib/supabase/client'
-import { Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import LotusAccent from '@/components/ui/LotusAccent'
-import ProductFilters from '@/components/products/ProductFilters'
+import BrandLogo from './BrandLogo'
+import AnnouncementBar from './AnnouncementBar'
 import { cn } from '@/lib/utils'
 
-export default function Navbar() {
+export default function Navbar({
+  logo = '/logo-v3.jpeg',
+  announcement = { enabled: true, text: 'Enjoy Free Shipping All Over India' },
+}: {
+  logo?: string
+  announcement?: { enabled: boolean; text: string }
+}) {
   const pathname = usePathname()
   const router = useRouter()
-  const totalItems = useCartStore((s) => s.totalItems)
+  const cartCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.quantity, 0))
+  const wishCount = useWishlistStore((s) => s.ids.length)
   const [user, setUser] = useState<{ email: string } | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [filterOpen, setFilterOpen] = useState(false)
+  const [openCats, setOpenCats] = useState<string[]>([])
+  const [collOpen, setCollOpen] = useState(false)
+  const toggleCat = (t: string) => setOpenCats((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]))
   const [search, setSearch] = useState('')
   const [mounted, setMounted] = useState(false)
   const supabase = createClient()
+
+  // Mobile search keeps the typed/searched term visible (synced with the URL ?search=)
+  const searchParams = useSearchParams()
+  const urlSearch = searchParams.get('search') || ''
+  const [mobileSearch, setMobileSearch] = useState(urlSearch)
+  useEffect(() => { setMobileSearch(urlSearch) }, [urlSearch])
+
+  const handleMobileSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (mobileSearch.trim()) router.push(`/products?search=${encodeURIComponent(mobileSearch)}`)
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -83,37 +103,26 @@ export default function Navbar() {
     { title: 'Dress Materials', href: '/products?category=dress materials', items: [] },
   ]
 
+  const searchRoutes = ['/', '/new-arrivals', '/best-sellers', '/on-sale', '/products']
+  const showMobileSearch = searchRoutes.includes(pathname)
+
   return (
+    <>
     <header className="sticky top-0 z-50 bg-[#F5EFE6] border-b border-gray-100 shadow-sm">
-      {/* Top bar — free shipping */}
-      <div className="bg-[#B8860B] text-[#FFF8E7] text-xs md:text-sm py-2 px-4">
-        <div className="flex items-center justify-center gap-2 font-medium tracking-wide">
-          <Truck className="h-4 w-4 md:h-5 md:w-5" />
-          <span>Enjoy Free Shipping All Over India</span>
-        </div>
-      </div>
+      {/* Top bar — auto-sliding announcement carousel */}
+      {announcement.enabled && <AnnouncementBar />}
 
       <div className="container mx-auto px-4">
-        <div className="flex items-center gap-3 md:gap-5 h-20">
-          {/* Filters hamburger */}
-          <button
-            onClick={() => setFilterOpen(true)}
-            aria-label="Open filters"
-            className="flex-shrink-0 p-2 -ml-3 md:-ml-4 rounded-lg hover:bg-rose-50 text-[#4E1E24] transition-colors"
-          >
-            <Menu className="h-6 w-6" />
+        <div className="flex items-center gap-2 md:gap-5 h-20 md:h-24">
+
+          {/* Mobile menu hamburger — left side */}
+          <button className="md:hidden p-2 -ml-2 flex-shrink-0 text-[#4E1E24]" onClick={() => { setMenuOpen(!menuOpen); setCollOpen(false) }} aria-label="Menu">
+            {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
 
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <Image
-              src="/logo.png"
-              alt="Dyuthi Pattu Sarees — Direct From Weavers"
-              width={396}
-              height={100}
-              priority
-              className="h-12 w-auto md:h-16"
-            />
+            <BrandLogo logo={logo} priority hoverZoom />
           </Link>
 
           {/* Nav links — centered */}
@@ -139,14 +148,14 @@ export default function Navbar() {
                         {collectionCols.map((col) => (
                           <div key={col.title}>
                             {col.href ? (
-                              <Link href={col.href} className="block text-base font-medium text-[#2F2A28] hover:text-[#C2185B] mb-4">{col.title}</Link>
+                              <Link href={col.href} className="block text-base font-bold text-[#4E1E24] hover:text-[#C2185B] mb-4">{col.title}</Link>
                             ) : (
-                              <p className="text-base font-medium text-[#2F2A28] mb-4">{col.title}</p>
+                              <p className="text-base font-bold text-[#4E1E24] mb-4">{col.title}</p>
                             )}
                             <ul className="space-y-2.5">
                               {col.items.map((it) => (
                                 <li key={it.cat}>
-                                  <Link href={`/products?category=${encodeURIComponent(it.cat)}`} className="text-sm text-[#6B6B6B] hover:text-[#C2185B] transition-colors">
+                                  <Link href={`/products?category=${encodeURIComponent(it.cat)}`} className="text-sm text-[#71474D] hover:text-[#C2185B] transition-colors">
                                     {it.label}
                                   </Link>
                                 </li>
@@ -179,7 +188,7 @@ export default function Navbar() {
           </nav>
 
           {/* Right cluster: search first, then actions */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-0.5 md:gap-2 flex-shrink-0 ml-auto">
             {/* Search — after nav links, before cart/login */}
             <form onSubmit={handleSearch} className="hidden md:flex md:mr-2">
               <div className="relative w-44 lg:w-56">
@@ -194,15 +203,19 @@ export default function Navbar() {
             </form>
 
             {/* Wishlist */}
-            <Link href="/account" className="relative p-2 hover:bg-rose-50 rounded-full transition-colors" aria-label="Wishlist">
+            <Link href="/wishlist" className="relative p-1.5 md:p-2 hover:bg-rose-50 rounded-full transition-colors" aria-label="Wishlist">
               <Heart className="h-5 w-5 text-[#4E1E24]" />
-              <span className="absolute -top-1 -right-1 bg-gray-800 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">0</span>
+              {mounted && wishCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-gray-800 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                  {wishCount}
+                </span>
+              )}
             </Link>
 
             {/* Account */}
             {user ? (
               <div className="relative group">
-                <button className="relative flex items-center p-2 hover:bg-rose-50 rounded-full transition-colors">
+                <button className="relative flex items-center p-1.5 md:p-2 hover:bg-rose-50 rounded-full transition-colors">
                   <User className="h-5 w-5 text-[#4E1E24]" />
                   <Sparkles className="absolute top-0 right-0 h-3 w-3 text-[#F59E0B] fill-[#F59E0B]" />
                 </button>
@@ -216,101 +229,157 @@ export default function Navbar() {
                 </div>
               </div>
             ) : (
-              <Link href="/login" className="relative p-2 hover:bg-rose-50 rounded-full transition-colors" aria-label="Sign in">
+              <Link href="/login" className="relative p-1.5 md:p-2 hover:bg-rose-50 rounded-full transition-colors" aria-label="Sign in">
                 <User className="h-5 w-5 text-[#4E1E24]" />
                 <Sparkles className="absolute top-0 right-0 h-3 w-3 text-[#F59E0B] fill-[#F59E0B]" />
               </Link>
             )}
 
             {/* Cart bag */}
-            <Link href="/cart" className="relative p-2 hover:bg-rose-50 rounded-full transition-colors">
+            <Link href="/cart" id="cart-fly-target" className="relative p-1.5 md:p-2 hover:bg-rose-50 rounded-full transition-colors">
               <ShoppingBag className="h-5 w-5 text-[#4E1E24]" />
-              {mounted && totalItems() > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
-                  {totalItems()}
+              {mounted && cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#AD1457] text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
+                  {cartCount}
                 </span>
               )}
             </Link>
 
-            <button className="md:hidden p-2" onClick={() => setMenuOpen(!menuOpen)}>
-              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile navigation drawer — slide-in from left */}
       {menuOpen && (
-        <div className="md:hidden bg-[#F5EFE6] border-t border-gray-100 px-4 py-4 space-y-3">
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search sarees..."
-              className="flex-1"
-            />
-            <Button type="submit" size="sm">Search</Button>
-          </form>
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMenuOpen(false)}
-              className={cn(
-                'flex items-center gap-2 py-2 text-sm font-medium hover:text-[#C2185B]',
-                isActive(link.href) ? 'text-[#C2185B]' : 'text-[#4E1E24]'
-              )}
-            >
-              {isActive(link.href) && <LotusAccent width={16} />}
-              {link.label}
-            </Link>
-          ))}
-
-          {/* Collections by category */}
-          <div className="pt-2 border-t border-gray-100 space-y-3">
-            {collectionCols.map((col) => (
-              <div key={col.title}>
-                {col.href ? (
-                  <Link href={col.href} onClick={() => setMenuOpen(false)} className="block py-1 text-sm font-semibold text-[#C2185B]">{col.title}</Link>
-                ) : (
-                  <p className="text-xs font-semibold text-[#C2185B] uppercase tracking-wide mb-1">{col.title}</p>
-                )}
-                <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  {col.items.map((it) => (
-                    <Link
-                      key={it.cat}
-                      href={`/products?category=${encodeURIComponent(it.cat)}`}
-                      onClick={() => setMenuOpen(false)}
-                      className="py-1 text-sm text-gray-600 hover:text-[#C2185B]"
-                    >
-                      {it.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Filters drawer (left) — hero-themed */}
-      {filterOpen && (
-        <div className="fixed inset-0 z-[60]" role="dialog" aria-label="Filters">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setFilterOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-80 max-w-[85%] bg-[#F5EFE6] shadow-xl overflow-y-auto">
-            <div className="flex items-center justify-end px-4 py-3 sticky top-0 bg-[#F5EFE6] z-10">
-              <button onClick={() => setFilterOpen(false)} aria-label="Close filters" className="p-1.5 rounded-lg hover:bg-black/5 text-[#4E1E24]">
+        <div className="md:hidden fixed inset-0 z-[60]" role="dialog" aria-label="Menu">
+          <div className="absolute inset-0 bg-black/50" onClick={() => { setMenuOpen(false); setCollOpen(false) }} />
+          <div className="absolute inset-y-0 left-0 w-80 max-w-[85%] bg-[#F5EFE6] shadow-xl overflow-y-auto animate-drawer-slide">
+            <div className="flex items-center justify-between px-4 py-3 sticky top-0 bg-[#F5EFE6] border-b border-[#e7ddcd] z-10">
+              <span className="font-semibold text-[#4E1E24]">Menu</span>
+              <button onClick={() => { setMenuOpen(false); setCollOpen(false) }} aria-label="Close menu" className="p-1 rounded-lg hover:bg-black/5 text-[#4E1E24]">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="px-5 pb-8">
-              <Suspense fallback={null}>
-                <ProductFilters theme="dark" onChange={() => setFilterOpen(false)} />
-              </Suspense>
+            <div className="px-4 py-4 space-y-3">
+          {!collOpen ? (
+            <>
+              {navLinks.map((link, i) =>
+                link.href === '/products' ? (
+                  <button
+                    key={link.href}
+                    onClick={() => setCollOpen(true)}
+                    style={{ animationDelay: `${i * 60}ms` }}
+                    className={cn(
+                      'animate-drawer-item w-full flex items-center justify-between py-2 text-sm font-medium hover:text-[#C2185B]',
+                      isActive(link.href) ? 'text-[#C2185B]' : 'text-[#4E1E24]'
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      {isActive(link.href) && <LotusAccent width={16} />}
+                      {link.label}
+                    </span>
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    style={{ animationDelay: `${i * 60}ms` }}
+                    onClick={() => setMenuOpen(false)}
+                    className={cn(
+                      'animate-drawer-item flex items-center gap-2 py-2 text-sm font-medium hover:text-[#C2185B]',
+                      isActive(link.href) ? 'text-[#C2185B]' : 'text-[#4E1E24]'
+                    )}
+                  >
+                    {isActive(link.href) && <LotusAccent width={16} />}
+                    {link.label}
+                  </Link>
+                )
+              )}
+            </>
+          ) : (
+            /* All Collections sub-panel (drill-down) */
+            <div>
+              <button
+                onClick={() => setCollOpen(false)}
+                className="flex items-center gap-2 py-2 text-base font-semibold text-[#4E1E24]"
+              >
+                <ChevronLeft className="h-5 w-5" />
+                All Collections
+              </button>
+              <div className="mt-2">
+                {collectionCols.map((col) =>
+                  col.items.length > 0 ? (
+                    <div key={col.title} className="border-b border-gray-200/70">
+                      <button
+                        onClick={() => toggleCat(col.title)}
+                        className="w-full flex items-center justify-between py-3 text-sm font-medium text-[#4E1E24]"
+                        aria-expanded={openCats.includes(col.title)}
+                      >
+                        {col.title}
+                        <span className="text-lg leading-none text-[#4E1E24]">{openCats.includes(col.title) ? '−' : '+'}</span>
+                      </button>
+                      {openCats.includes(col.title) && (
+                        <div className="pb-2">
+                          {col.items.map((it) => (
+                            <Link
+                              key={it.cat}
+                              href={`/products?category=${encodeURIComponent(it.cat)}`}
+                              onClick={() => setMenuOpen(false)}
+                              className="block py-1.5 text-sm text-gray-600 hover:text-[#C2185B]"
+                            >
+                              {it.label}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link
+                      key={col.title}
+                      href={col.href!}
+                      onClick={() => setMenuOpen(false)}
+                      className="block py-3 text-sm font-medium text-[#4E1E24] border-b border-gray-200/70 hover:text-[#C2185B]"
+                    >
+                      {col.title}
+                    </Link>
+                  )
+                )}
+              </div>
+
+              <Link
+                href="/products"
+                onClick={() => { setMenuOpen(false); setCollOpen(false) }}
+                className="mt-4 flex items-center justify-center bg-[#AD1457] hover:bg-[#880E4F] text-white font-semibold py-2.5 rounded-md transition-colors"
+              >
+                View All
+              </Link>
+            </div>
+          )}
             </div>
           </div>
         </div>
       )}
+
     </header>
+
+    {/* Mobile search bar — between header and content, on listing/home pages only */}
+    {showMobileSearch && (
+      <div className="md:hidden bg-[#F5EFE6] border-b border-gray-100 px-4 py-2">
+        <form onSubmit={handleMobileSearch} className="flex gap-2 max-w-sm mx-auto">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              value={mobileSearch}
+              onChange={(e) => setMobileSearch(e.target.value)}
+              placeholder="Search sarees..."
+              className="pl-10 h-9 w-full text-sm"
+            />
+          </div>
+          <Button type="submit" size="sm" className="h-9 bg-[#AD1457] hover:bg-[#880E4F] text-white">Search</Button>
+        </form>
+      </div>
+    )}
+    </>
   )
 }

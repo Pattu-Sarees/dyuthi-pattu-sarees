@@ -1,10 +1,15 @@
-import Link from 'next/link'
-import Image from 'next/image'
-import { ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { Product } from '@/types'
-import ProductCard from '@/components/products/ProductCard'
+import { Product, Testimonial } from '@/types'
+import CollectionsGrid from '@/components/products/CollectionsGrid'
+import FeaturedCollections from '@/components/products/FeaturedCollections'
+import Testimonials from '@/components/Testimonials'
+import { toDisplayItems } from '@/components/products/displayItems'
 import CategoryCarousel from '@/components/CategoryCarousel'
+import HeroCarousel from '@/components/HeroCarousel'
+import { getHomepageConfig } from '@/lib/homepage'
+import { resolveHeroSlides } from '@/lib/hero'
+import { PUBLIC_PRODUCT_COLUMNS } from '@/lib/public-product-columns'
+// Rollback: import HeroClassic from '@/components/HeroClassic' and render <HeroClassic /> below.
 
 export const metadata = {
   title: 'Dyuthi Pattu Sarees | Handloom Sarees Direct From Weavers',
@@ -29,101 +34,105 @@ async function getCategories() {
 
 async function getProducts() {
   const supabase = await createClient()
-  const [newArrivals, bestSellers] = await Promise.all([
-    supabase.from('products').select('*').eq('is_new_arrival', true).order('created_at', { ascending: false }).limit(8),
-    supabase.from('products').select('*').order('review_count', { ascending: false }).limit(8),
+  const [newArrivals, bestSellers, onSale] = await Promise.all([
+    supabase.from('products').select(PUBLIC_PRODUCT_COLUMNS).eq('is_new_arrival', true).order('created_at', { ascending: false }).limit(40),
+    supabase.from('products').select(PUBLIC_PRODUCT_COLUMNS).eq('is_best_seller', true).order('created_at', { ascending: false }).limit(40),
+    supabase.from('products').select(PUBLIC_PRODUCT_COLUMNS).not('original_price', 'is', null).order('created_at', { ascending: false }).limit(40),
   ])
   return {
     newArrivals: (newArrivals.data || []) as Product[],
     bestSellers: (bestSellers.data || []) as Product[],
+    onSale: (onSale.data || []) as Product[],
   }
 }
 
-export default async function HomePage() {
-  const { newArrivals, bestSellers } = await getProducts()
-  const categories = await getCategories()
-
-  return (
-    <div className="bg-white">
-      {/* Hero */}
-      <section className="relative bg-[#4A1F1F] overflow-hidden">
-        {/* Image — full-bleed right half on desktop, top on mobile */}
-        <div className="relative h-52 sm:h-64 md:absolute md:inset-y-0 md:right-0 md:h-full md:w-1/2">
-          <Image
-            src="/hero.png"
-            alt="Artisan weaving a handloom saree"
-            fill
-            priority
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 50vw"
-          />
-        </div>
-
-        {/* Text */}
-        <div className="container mx-auto px-4 relative">
-          <div className="md:w-1/2 md:pr-10 py-10 md:py-14 max-w-lg flex flex-col justify-center">
-            <p className="font-medium tracking-widest uppercase text-xs mb-2 text-[#D9B36C]">A Legacy Woven in Silk</p>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 leading-snug text-[#F8E7C5]">Treasures from Timeless Traditions</h1>
-            <p className="text-sm md:text-[15px] mb-6 leading-relaxed text-[#E8DCC7]">
-              Discover authentic handloom sarees born from generations of artistry and dedication, where every weave reflects India&apos;s rich cultural heritage. Crafted by skilled artisans, each piece embodies timeless tradition, exceptional craftsmanship, and the enduring legacy of handloom weaving.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/products">
-                <span className="inline-flex items-center gap-2 bg-[#B8860B] hover:bg-[#9c7209] text-white font-semibold px-5 py-2.5 rounded-md transition-colors uppercase text-xs tracking-wide">
-                  Shop Premium Sarees <ArrowRight className="h-4 w-4" />
-                </span>
-              </Link>
-              <Link href="/products?is_new_arrival=true">
-                <span className="inline-flex items-center gap-2 bg-transparent border border-[#B8860B] text-[#F8E7C5] hover:bg-[#B8860B]/10 font-semibold px-5 py-2.5 rounded-md transition-colors uppercase text-xs tracking-wide">
-                  Explore Heritage
-                </span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Category cards with lotus arch frame */}
-      <section className="container mx-auto px-4 py-14">
-        <CategoryCarousel categories={categories} />
-      </section>
-
-      {/* New Arrivals */}
-      {newArrivals.length > 0 && (
-        <section className="container mx-auto px-4 py-8">
-          <SectionHeading title="New Arrivals" subtitle="Fresh from the loom" viewAllHref="/products?is_new_arrival=true" />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {newArrivals.map((p) => <ProductCard key={p.id} product={p} />)}
-          </div>
-        </section>
-      )}
-
-      {/* Best Sellers */}
-      {bestSellers.length > 0 && (
-        <section className="container mx-auto px-4 py-14">
-          <SectionHeading title="Best Sellers" subtitle="Loved by thousands of customers" viewAllHref="/products?sort=popular" />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {bestSellers.map((p) => <ProductCard key={p.id} product={p} />)}
-          </div>
-        </section>
-      )}
-    </div>
-  )
+async function getTestimonials() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('testimonials')
+    .select('*')
+    .eq('is_active', true)
+    .eq('status', 'approved')
+    .order('is_featured', { ascending: false }) // featured reviews first
+    .order('display_order', { ascending: true })
+    .order('created_at', { ascending: false })
+    .limit(24)
+  if (error) return []
+  return (data || []) as Testimonial[]
 }
 
-function SectionHeading({ title, subtitle, viewAllHref }: { title: string; subtitle?: string; viewAllHref?: string }) {
+async function getAllProducts() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('products')
+    .select(PUBLIC_PRODUCT_COLUMNS)
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return ((data || []) as Product[]).filter((p) => (p.status ?? 'active') !== 'inactive')
+}
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>
+}) {
+  const { category: selectedCategory } = await searchParams
+  const { newArrivals, bestSellers, onSale } = await getProducts()
+  const categories = await getCategories()
+  const allProducts = await getAllProducts()
+  const testimonials = await getTestimonials()
+  const heroSlides = resolveHeroSlides((await getHomepageConfig()).hero?.data)
+
+  const collectionProducts = selectedCategory
+    ? allProducts.filter((p) => p.category === selectedCategory)
+    : allProducts
+  const selectedName = categories.find((c) => c.slug === selectedCategory)?.name
+
   return (
-    <div className="flex items-end justify-between mb-8">
-      <div>
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{title}</h2>
-        {subtitle && <p className="text-gray-500 mt-1.5 text-sm">{subtitle}</p>}
-        <div className="h-1 w-16 bg-[#C2185B] rounded-full mt-3" />
-      </div>
-      {viewAllHref && (
-        <Link href={viewAllHref} className="text-sm font-medium text-[#C2185B] hover:text-[#a01049] inline-flex items-center gap-1 whitespace-nowrap">
-          View all <ArrowRight className="h-4 w-4" />
-        </Link>
+    <div className="bg-[#FFFDF7]">
+      {/* Hero — auto-playing carousel. Rollback: replace with <HeroClassic /> */}
+      <HeroCarousel slides={heroSlides} />
+
+      {/* Category cards with heading */}
+      <section className="container mx-auto px-4 pt-8">
+        <div className="md:w-fit max-w-full mx-auto md:px-10">
+          <h2 className="text-3xl md:text-4xl font-bold mb-8 text-center text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>Explore Heritage Collection</h2>
+          <CategoryCarousel categories={categories} selectedSlug={selectedCategory} />
+        </div>
+      </section>
+
+      {/* Our Collections — all sarees, or filtered by selected category */}
+      {allProducts.length > 0 && (
+        <section className="container mx-auto px-4 pt-8">
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold text-center text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>
+              {selectedName ? `${selectedName}` : 'Our Collection'}
+            </h2>
+          </div>
+          {collectionProducts.length > 0 ? (
+            <CollectionsGrid
+              items={toDisplayItems(collectionProducts)}
+              viewAllHref={selectedCategory ? `/products?category=${selectedCategory}` : '/products'}
+            />
+          ) : (
+            <p className="text-center text-gray-500 py-10">No products in this category yet.</p>
+          )}
+        </section>
       )}
+
+      {/* New Arrivals / Best Sellers / On Sale — switchable via dropdown */}
+      {(newArrivals.length > 0 || bestSellers.length > 0 || onSale.length > 0) && (
+        <section className="container mx-auto px-4 pt-8 pb-10">
+          <FeaturedCollections
+            newArrivals={toDisplayItems(newArrivals).filter((it) => it.isNewArrival)}
+            bestSellers={toDisplayItems(bestSellers).filter((it) => it.isBestSeller)}
+            onSale={toDisplayItems(onSale.filter((p) => p.original_price != null && p.original_price > p.price))}
+          />
+        </section>
+      )}
+
+      {/* Loved by Our Customers — testimonials */}
+      {testimonials.length > 0 && <Testimonials items={testimonials} />}
     </div>
   )
 }

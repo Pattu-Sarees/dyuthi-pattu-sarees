@@ -51,14 +51,15 @@ export default function AccountPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-20 flex justify-center">
+      <div className="bg-[#FFFDF7] min-h-screen px-4 py-20 flex justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-rose-600" />
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="bg-[#FFFDF7] min-h-screen">
+      <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-8">My Account</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -131,6 +132,7 @@ export default function AccountPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )
