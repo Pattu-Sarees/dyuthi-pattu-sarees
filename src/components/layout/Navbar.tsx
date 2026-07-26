@@ -25,7 +25,8 @@ export default function Navbar({
   const router = useRouter()
   const cartCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.quantity, 0))
   const wishCount = useWishlistStore((s) => s.ids.length)
-  const [user, setUser] = useState<{ email: string } | null>(null)
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null)
+  const [firstName, setFirstName] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [openCats, setOpenCats] = useState<string[]>([])
   const [collOpen, setCollOpen] = useState(false)
@@ -47,11 +48,35 @@ export default function Navbar({
 
   useEffect(() => {
     setMounted(true)
-    supabase.auth.getUser().then(({ data }) => setUser(data.user as { email: string } | null))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user as { email: string } | null ?? null)
+    // Proper-case a single word: "SAINATH"/"sainath" -> "Sainath".
+    const properCase = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '')
+    const loadName = (u: { id: string; email: string } | null) => {
+      if (!u) { setFirstName(''); return }
+      // Fallback: name portion of the email, letters only (strip digits & symbols).
+      const emailName = (u.email || '').split('@')[0].replace(/[^a-zA-Z]/g, '')
+      supabase.from('profiles').select('full_name').eq('id', u.id).single()
+        .then(({ data: p }) => {
+          const first = (p?.full_name || '').trim().split(/\s+/)[0] || emailName
+          setFirstName(properCase(first))
+        })
+    }
+    supabase.auth.getUser().then(({ data }) => {
+      const u = data.user as { id: string; email: string } | null
+      setUser(u)
+      loadName(u)
     })
-    return () => subscription.unsubscribe()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      const u = (session?.user as { id: string; email: string } | null) ?? null
+      setUser(u)
+      loadName(u)
+    })
+    // Refresh the displayed name right after the account page saves it.
+    const onProfileUpdated = () => supabase.auth.getUser().then(({ data }) => loadName(data.user as { id: string; email: string } | null))
+    window.addEventListener('profile-updated', onProfileUpdated)
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener('profile-updated', onProfileUpdated)
+    }
   }, [])
 
   const handleSearch = (e: React.FormEvent) => {
@@ -221,6 +246,7 @@ export default function Navbar({
                 </button>
                 <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                   <div className="px-3 py-2 border-b border-gray-100">
+                    {firstName && <p className="text-sm font-semibold text-[#4E1E24] truncate">{firstName}</p>}
                     <p className="text-xs text-gray-500 truncate">{user.email}</p>
                   </div>
                   <Link href="/account" className="block px-3 py-2 text-sm hover:bg-rose-50 hover:text-rose-700">My Account</Link>

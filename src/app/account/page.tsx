@@ -22,9 +22,13 @@ export default function AccountPage() {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) { router.push('/login?redirect=/account'); return }
       setUser(data.user as { id: string; email: string })
+      // Prefill Full Name from the email (letters only, proper-cased) when the
+      // profile has no name yet — the user can edit and save it.
+      const emailName = (data.user.email || '').split('@')[0].replace(/[^a-zA-Z]/g, '')
+      const fallbackName = emailName ? emailName.charAt(0).toUpperCase() + emailName.slice(1).toLowerCase() : ''
       supabase.from('profiles').select('*').eq('id', data.user.id).single()
         .then(({ data: profileData }) => {
-          if (profileData) setProfile({ full_name: profileData.full_name || '', phone: profileData.phone || '' })
+          setProfile({ full_name: profileData?.full_name?.trim() || fallbackName, phone: profileData?.phone || '' })
           setLoading(false)
         })
     })
@@ -41,7 +45,11 @@ export default function AccountPage() {
     })
     setSaving(false)
     if (error) toast.error('Failed to save profile')
-    else toast.success('Profile updated successfully!')
+    else {
+      toast.success('Profile updated successfully!')
+      // Let the persistent navbar refresh the displayed name immediately.
+      window.dispatchEvent(new Event('profile-updated'))
+    }
   }
 
   const signOut = async () => {
@@ -126,7 +134,7 @@ export default function AccountPage() {
                   type="tel"
                 />
               </div>
-              <Button onClick={saveProfile} disabled={saving}>
+              <Button onClick={saveProfile} disabled={saving} className="bg-[#AD1457] hover:bg-[#880E4F] text-white">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Changes'}
               </Button>
             </div>

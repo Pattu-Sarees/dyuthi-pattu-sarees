@@ -35,7 +35,7 @@ export default function OrdersPage() {
         <ShoppingBag className="h-16 w-16 text-gray-300 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-700 mb-2">No orders yet</h2>
         <p className="text-gray-500 mb-8">You haven't placed any orders yet</p>
-        <Link href="/products"><Button size="lg">Start Shopping</Button></Link>
+        <Link href="/products"><Button size="lg" className="bg-[#AD1457] hover:bg-[#880E4F] text-white">Start Shopping</Button></Link>
       </div>
     )
   }
