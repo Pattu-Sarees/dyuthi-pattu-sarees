@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { PUBLIC_PRODUCT_COLUMNS } from '@/lib/public-product-columns'
+import { buildProductSearchOr } from '@/lib/product-search'
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
@@ -8,10 +9,10 @@ export async function GET(request: NextRequest) {
 
   let query = supabase.from('products').select(PUBLIC_PRODUCT_COLUMNS)
 
-  // Search
-  const search = searchParams.get('search')
-  if (search) {
-    query = query.ilike('name', `%${search}%`)
+  // Search — partial, multi-word match across name/description/category/fabric
+  const searchOr = buildProductSearchOr(searchParams.get('search'))
+  if (searchOr) {
+    query = query.or(searchOr)
   }
 
   // Category filter

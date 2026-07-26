@@ -1,14 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { ShoppingBag, User, Search, Menu, X, Heart, Sparkles, ChevronRight, ChevronLeft } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { ShoppingBag, User, Menu, X, Heart, Sparkles, ChevronRight, ChevronLeft } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 import { useCartStore } from '@/store/cart'
 import { useWishlistStore } from '@/store/wishlist'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import SearchBox from './SearchBox'
 import LotusAccent from '@/components/ui/LotusAccent'
 import BrandLogo from './BrandLogo'
 import AnnouncementBar from './AnnouncementBar'
@@ -27,24 +26,14 @@ export default function Navbar({
   const wishCount = useWishlistStore((s) => s.ids.length)
   const [user, setUser] = useState<{ id: string; email: string } | null>(null)
   const [firstName, setFirstName] = useState('')
+  const [accountOpen, setAccountOpen] = useState(false)
+  const accountRef = useRef<HTMLDivElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [openCats, setOpenCats] = useState<string[]>([])
   const [collOpen, setCollOpen] = useState(false)
   const toggleCat = (t: string) => setOpenCats((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]))
-  const [search, setSearch] = useState('')
   const [mounted, setMounted] = useState(false)
   const supabase = createClient()
-
-  // Mobile search keeps the typed/searched term visible (synced with the URL ?search=)
-  const searchParams = useSearchParams()
-  const urlSearch = searchParams.get('search') || ''
-  const [mobileSearch, setMobileSearch] = useState(urlSearch)
-  useEffect(() => { setMobileSearch(urlSearch) }, [urlSearch])
-
-  const handleMobileSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (mobileSearch.trim()) router.push(`/products?search=${encodeURIComponent(mobileSearch)}`)
-  }
 
   useEffect(() => {
     setMounted(true)
@@ -79,15 +68,18 @@ export default function Navbar({
     }
   }, [])
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (search.trim()) {
-      router.push(`/products?search=${encodeURIComponent(search)}`)
-      setSearch('')
+  // Close the account menu on outside click (needed for tap-to-open on mobile).
+  useEffect(() => {
+    if (!accountOpen) return
+    const h = (e: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) setAccountOpen(false)
     }
-  }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [accountOpen])
 
   const handleSignOut = async () => {
+    setAccountOpen(false)
     await supabase.auth.signOut()
     router.push('/')
   }
@@ -215,17 +207,9 @@ export default function Navbar({
           {/* Right cluster: search first, then actions */}
           <div className="flex items-center gap-0.5 md:gap-2 flex-shrink-0 ml-auto">
             {/* Search — after nav links, before cart/login */}
-            <form onSubmit={handleSearch} className="hidden md:flex md:mr-2">
-              <div className="relative w-44 lg:w-56">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search sarees..."
-                  className="pl-10 pr-3 w-full h-9"
-                />
-              </div>
-            </form>
+            <div className="hidden md:flex md:mr-2">
+              <SearchBox variant="desktop" />
+            </div>
 
             {/* Wishlist */}
             <Link href="/wishlist" className="relative p-1.5 md:p-2 hover:bg-rose-50 rounded-full transition-colors" aria-label="Wishlist">
@@ -239,18 +223,23 @@ export default function Navbar({
 
             {/* Account */}
             {user ? (
-              <div className="relative group">
-                <button className="relative flex items-center p-1.5 md:p-2 hover:bg-rose-50 rounded-full transition-colors">
+              <div className="relative group" ref={accountRef}>
+                <button
+                  onClick={() => setAccountOpen((o) => !o)}
+                  aria-label="Account menu"
+                  aria-expanded={accountOpen}
+                  className="relative flex items-center p-1.5 md:p-2 hover:bg-rose-50 rounded-full transition-colors"
+                >
                   <User className="h-5 w-5 text-[#4E1E24]" />
                   <Sparkles className="absolute top-0 right-0 h-3 w-3 text-[#F59E0B] fill-[#F59E0B]" />
                 </button>
-                <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className={`absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 transition-all duration-200 z-50 ${accountOpen ? 'opacity-100 visible' : 'opacity-0 invisible'} md:group-hover:opacity-100 md:group-hover:visible`}>
                   <div className="px-3 py-2 border-b border-gray-100">
                     {firstName && <p className="text-sm font-semibold text-[#4E1E24] truncate">{firstName}</p>}
                     <p className="text-xs text-gray-500 truncate">{user.email}</p>
                   </div>
-                  <Link href="/account" className="block px-3 py-2 text-sm hover:bg-rose-50 hover:text-rose-700">My Account</Link>
-                  <Link href="/orders" className="block px-3 py-2 text-sm hover:bg-rose-50 hover:text-rose-700">My Orders</Link>
+                  <Link href="/account" onClick={() => setAccountOpen(false)} className="block px-3 py-2 text-sm hover:bg-rose-50 hover:text-rose-700">My Account</Link>
+                  <Link href="/orders" onClick={() => setAccountOpen(false)} className="block px-3 py-2 text-sm hover:bg-rose-50 hover:text-rose-700">My Orders</Link>
                   <button onClick={handleSignOut} className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50">Sign Out</button>
                 </div>
               </div>
@@ -392,18 +381,7 @@ export default function Navbar({
     {/* Mobile search bar — between header and content, on listing/home pages only */}
     {showMobileSearch && (
       <div className="md:hidden bg-[#F5EFE6] border-b border-gray-100 px-4 py-2">
-        <form onSubmit={handleMobileSearch} className="flex gap-2 max-w-sm mx-auto">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              value={mobileSearch}
-              onChange={(e) => setMobileSearch(e.target.value)}
-              placeholder="Search sarees..."
-              className="pl-10 h-9 w-full text-sm"
-            />
-          </div>
-          <Button type="submit" size="sm" className="h-9 bg-[#AD1457] hover:bg-[#880E4F] text-white">Search</Button>
-        </form>
+        <SearchBox variant="mobile" />
       </div>
     )}
     </>

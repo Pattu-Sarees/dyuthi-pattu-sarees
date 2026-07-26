@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdminEmail } from '@/lib/admin'
 import { REVIEW_SOURCES } from '@/types'
+import { recomputeProductRating } from '@/lib/reviews-aggregate'
 
 async function requireAdmin() {
   const supabase = await createClient()
@@ -50,6 +51,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { data, error } = await admin.from('testimonials').update(patch).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // Keep the product's stored rating/review_count in sync with its approved reviews.
+  await recomputeProductRating(admin, (data as { product_id?: string | null })?.product_id)
   return NextResponse.json({ testimonial: data })
 }
 
@@ -57,7 +60,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params
   if (!(await requireAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const admin = createAdminClient()
+  // Capture the product before deleting so we can recompute its rating after.
+  const { data: row } = await admin.from('testimonials').select('product_id').eq('id', id).single()
   const { error } = await admin.from('testimonials').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recomputeProductRating(admin, (row as { product_id?: string | null })?.product_id)
   return NextResponse.json({ success: true })
 }

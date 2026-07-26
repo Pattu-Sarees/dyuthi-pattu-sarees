@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { X } from 'lucide-react'
 import LotusAccent from '@/components/ui/LotusAccent'
@@ -19,6 +20,34 @@ export default function CollectionsHeader({
   const router = useRouter()
   const searchParams = useSearchParams()
   const cats = searchParams.getAll('category')
+  const search = (searchParams.get('search') || '').trim()
+
+  // Resolve the matched products' category so the heading shows e.g. "Kuppadam"
+  // (the category) rather than the raw typed term. Uses the most common category
+  // among the matches.
+  const [searchCat, setSearchCat] = useState('')
+  useEffect(() => {
+    if (!search) { setSearchCat(''); return }
+    let cancelled = false
+    fetch(`/api/products?search=${encodeURIComponent(search)}&limit=60`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return
+        const counts = new Map<string, number>()
+        let top = ''
+        let topN = 0
+        for (const p of (d.products || []) as { category?: string }[]) {
+          const c = (p.category || '').trim().toLowerCase()
+          if (!c) continue
+          const n = (counts.get(c) || 0) + 1
+          counts.set(c, n)
+          if (n > topN) { topN = n; top = c }
+        }
+        setSearchCat(top)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [search])
 
   const removeCat = (c: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -66,6 +95,14 @@ export default function CollectionsHeader({
             style={{ fontFamily: 'var(--font-kurale), serif' }}
           >
             {titleCase(cats[0])}
+          </h1>
+        ) : search ? (
+          /* Search — show the matched product category (fallback: the term) */
+          <h1
+            className="text-sm md:text-2xl font-bold text-[#F4E5C2]"
+            style={{ fontFamily: 'var(--font-kurale), serif' }}
+          >
+            {titleCase(searchCat || search)}
           </h1>
         ) : (
           /* Default — All Collections + tagline */

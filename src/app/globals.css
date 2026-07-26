@@ -60,6 +60,11 @@ body {
   100% { transform: translate(var(--tx), var(--ty)) scale(0.2); opacity: 0; }
 }
 .dot-burst { animation: dotBurst 0.5s ease-out forwards; }
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.animate-blink { animation: blink 1s step-start infinite; }
 
 .line-clamp-2 {
   display: -webkit-box;

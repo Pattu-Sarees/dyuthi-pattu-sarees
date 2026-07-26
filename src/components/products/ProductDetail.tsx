@@ -186,6 +186,16 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
   const angles = [product.images?.[selectedImage], ...(currentVariant?.additional_images || [])].filter(Boolean) as string[]
   const displayedImage = angles[selectedAngle] || product.images?.[selectedImage]
 
+  // Pieces available for the SELECTED design (variant). null = product has no
+  // per-colour variants, so it falls back to the total stock.
+  const variantPieces = currentVariant ? Math.max(0, Number(currentVariant.quantity) || 0) : null
+  const maxForItem = variantPieces ?? product.stock_quantity
+  const itemAvailable = maxForItem > 0
+
+  // Switching to a different design resets the quantity so it can't exceed that
+  // design's pieces (e.g. carrying 5 over to a design with only 1 left).
+  useEffect(() => { setQuantity(1) }, [selectedImage])
+
   const goToImage = (idx: number) => { setSelectedImage(idx); setSelectedAngle(0) }
 
   // Cursor-following zoom — armed by clicking the magnifier, disarmed by clicking outside the image
@@ -410,38 +420,66 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
 
         {/* Info */}
         <div className="space-y-5 lg:col-span-3">
+          {/* Title → review → price/stock kept tight together at the top */}
+          <div className="space-y-2">
           <div className="flex items-start justify-between gap-3">
-            <h1
-              className="text-[32px] md:text-[48px]"
-              style={{
-                fontFamily: 'var(--font-cormorant-garamond)',
-                fontWeight: 600,
-                lineHeight: 1.1,
-                letterSpacing: '-0.5px',
-                color: '#4E1E24',
-              }}
-            >
-              {toTitleCase(product.name)}
-            </h1>
+            <div>
+              {/* Editorial kicker — category · fabric */}
+              {(product.category || product.fabric) && (
+                <p className="text-[11px] font-semibold tracking-[0.18em] uppercase text-[#9A8C86] mb-1.5">
+                  {[product.category, product.fabric].filter(Boolean).join(' · ')}
+                </p>
+              )}
+              <h1
+                className="text-[32px] md:text-[48px]"
+                style={{
+                  fontFamily: 'var(--font-cormorant-garamond)',
+                  fontWeight: 600,
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.5px',
+                  color: '#4E1E24',
+                }}
+              >
+                {toTitleCase(product.name)}
+              </h1>
+            </div>
             <ShareMenu productName={toTitleCase(product.name)} />
           </div>
 
-          {/* Rating + write a review */}
-          <div className="flex items-center gap-3 flex-wrap">
-            {product.rating > 0 && (
-              <>
-                <div className="flex bg-green-600 text-white text-sm font-bold px-2 py-0.5 rounded-md items-center gap-1">
-                  {product.rating} <Star className="h-3.5 w-3.5 fill-white" />
+          {/* Rating + write a review — kept subtle so it doesn't compete with the title */}
+          {(() => {
+            // Prefer the live approved reviews; fall back to the stored column
+            // for seeded products that have a rating but no review rows loaded.
+            const rated = reviews.map((r) => r.rating).filter(Boolean)
+            const reviewCount = reviews.length || product.review_count || 0
+            const avgRating = rated.length ? rated.reduce((a, b) => a + b, 0) / rated.length : (product.rating || 0)
+            return (
+              <div className="flex items-center gap-2 flex-wrap text-sm">
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map((i) => {
+                    const fill = Math.max(0, Math.min(1, avgRating - (i - 1))) // 0..1 per star
+                    return (
+                      <span key={i} className="relative inline-block h-3.5 w-3.5">
+                        <Star className="absolute inset-0 h-3.5 w-3.5 fill-none text-gray-300" />
+                        {fill > 0 && (
+                          <span className="absolute inset-0 overflow-hidden" style={{ width: `${fill * 100}%` }}>
+                            <Star className="h-3.5 w-3.5 fill-[#D4A72C] text-[#D4A72C]" />
+                          </span>
+                        )}
+                      </span>
+                    )
+                  })}
                 </div>
-                <span className="text-sm text-gray-500">
-                  {reviews.length > 0 ? `${reviews.length} review${reviews.length > 1 ? 's' : ''}` : `${product.review_count} verified reviews`}
+                <span className="text-gray-500">
+                  {reviewCount > 0 ? `${avgRating.toFixed(1)} · ${reviewCount} review${reviewCount > 1 ? 's' : ''}` : 'No reviews yet'}
                 </span>
-              </>
-            )}
-            <button onClick={openReviewForm} className="text-sm font-medium text-[#C2185B] hover:underline">
-              Write a Review
-            </button>
-          </div>
+                <span className="text-gray-300">·</span>
+                <button onClick={openReviewForm} className="text-gray-500 hover:text-[#7A1F3D] underline underline-offset-2">
+                  Write a review
+                </button>
+              </div>
+            )
+          })()}
 
           {/* Price */}
           <div className="flex items-end gap-3">
@@ -453,6 +491,41 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
               </>
             )}
           </div>
+          </div>
+
+          {/* Stock + per-design pieces — one compact status row */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className={`flex items-center gap-2 text-sm font-medium ${
+              stock.level === 'in' ? 'text-green-600' : stock.level === 'low' ? 'text-amber-600' : 'text-red-500'
+            }`}>
+              <div className={`h-2 w-2 rounded-full ${
+                stock.level === 'in' ? 'bg-green-500' : stock.level === 'low' ? 'bg-amber-500' : 'bg-red-500'
+              }`} />
+              {stock.level === 'out'
+                ? 'Sold Out'
+                : `${stock.label} (${product.stock_quantity} left)`}
+            </div>
+            {/* Per-design availability — soft pill, updates as designs change */}
+            {variantPieces != null && stock.level !== 'out' && (
+              <>
+                {variantPieces < 1 ? (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold animate-blink"
+                    style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}
+                  >
+                    📦 Sold Out
+                  </span>
+                ) : (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold"
+                    style={{ backgroundColor: '#FFF4E5', color: '#7A1F3D' }}
+                  >
+                    📦 {variantPieces} Piece{variantPieces === 1 ? '' : 's'} Available
+                  </span>
+                )}
+              </>
+            )}
+          </div>
 
           {/* Tags */}
           <div className="flex flex-wrap gap-2">
@@ -461,20 +534,8 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
             ))}
           </div>
 
-          {/* Stock */}
-          <div className={`flex items-center gap-2 text-sm font-medium ${
-            stock.level === 'in' ? 'text-green-600' : stock.level === 'low' ? 'text-amber-600' : 'text-red-500'
-          }`}>
-            <div className={`h-2 w-2 rounded-full ${
-              stock.level === 'in' ? 'bg-green-500' : stock.level === 'low' ? 'bg-amber-500' : 'bg-red-500'
-            }`} />
-            {stock.level === 'out'
-              ? 'Sold Out'
-              : `${stock.label} (${product.stock_quantity} left)`}
-          </div>
-
           {/* Quantity + Cart */}
-          {available && (
+          {available && itemAvailable && (
             <div className="flex items-center gap-3">
               <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                 <button
@@ -485,8 +546,9 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
                 </button>
                 <span className="w-10 text-center font-semibold">{quantity}</span>
                 <button
-                  onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))}
-                  className="p-2 hover:bg-gray-50 transition-colors"
+                  onClick={() => setQuantity(Math.min(maxForItem, quantity + 1))}
+                  disabled={quantity >= maxForItem}
+                  className="p-2 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -496,9 +558,15 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
               </Button>
             </div>
           )}
+          {/* This design is sold out even though other designs remain in stock */}
+          {available && !itemAvailable && (
+            <Button size="lg" disabled className="w-full bg-gray-300 text-white cursor-not-allowed">
+              <ShoppingCart className="h-5 w-5" /> Item Sold Out
+            </Button>
+          )}
 
-          <Link href={available ? '/checkout' : '#'} onClick={() => available && addItem(product, quantity, product.images[selectedImage])}>
-            <Button size="lg" variant="outline" className="w-full mt-0" disabled={!available}>
+          <Link href={available && itemAvailable ? '/checkout' : '#'} onClick={() => available && itemAvailable && addItem(product, quantity, product.images[selectedImage])}>
+            <Button size="lg" variant="outline" className="w-full mt-0" disabled={!available || !itemAvailable}>
               Buy Now
             </Button>
           </Link>

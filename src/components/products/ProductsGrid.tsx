@@ -3,13 +3,15 @@ import { PUBLIC_PRODUCT_COLUMNS } from '@/lib/public-product-columns'
 import { Product } from '@/types'
 import InfiniteProductsGrid from './InfiniteProductsGrid'
 import { toDisplayItems } from './displayItems'
+import { buildProductSearchOr } from '@/lib/product-search'
 
 async function getProducts(searchParams: Record<string, string | string[]>) {
   const supabase = await createClient()
   let query = supabase.from('products').select(PUBLIC_PRODUCT_COLUMNS)
 
   const search = searchParams.search as string
-  if (search) query = query.ilike('name', `%${search}%`)
+  const searchOr = buildProductSearchOr(search)
+  if (searchOr) query = query.or(searchOr)
 
   const category = searchParams.category
   if (category) {
