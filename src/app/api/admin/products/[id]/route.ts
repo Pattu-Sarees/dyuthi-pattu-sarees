@@ -39,9 +39,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   // Existing images keep their stored quantity; new images take the submitted one.
   const variants = incoming
     .filter((v: { image?: string }) => v.image)
-    .map((v: { image: string; quantity?: number; is_new_arrival?: boolean; is_best_seller?: boolean; additional_images?: string[] }) => ({
+    .map((v: { image: string; quantity?: number; color?: string; is_new_arrival?: boolean; is_best_seller?: boolean; additional_images?: string[] }) => ({
       image: v.image,
       quantity: dbQtyByImage.has(v.image) ? dbQtyByImage.get(v.image)! : Math.max(0, Number(v.quantity) || 0),
+      color: typeof v.color === 'string' ? v.color.trim() : '',
       is_new_arrival: !!v.is_new_arrival,
       is_best_seller: !!v.is_best_seller,
       additional_images: Array.isArray(v.additional_images) ? v.additional_images.filter((u) => typeof u === 'string') : [],
@@ -58,15 +59,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const currentStock = Number(existing?.stock_quantity ?? 0)
   const newStock = Math.max(0, currentStock - removedQty + addedQty)
 
+  const variantColors = Array.from(new Set(variants.map((v: { color?: string }) => v.color).filter(Boolean)))
   const payload = {
     name: body.name,
     description: body.description || '',
+    code: body.code ? String(body.code).trim() : null,
     price: Number(body.price),
     original_price: body.original_price ? Number(body.original_price) : null,
     images: body.images || [],
     category: body.category,
     fabric: body.fabric || '',
-    color: body.color || [],
+    color: variantColors.length ? variantColors : (body.color || []),
     color_variants: variants,
     occasion: body.occasion || [],
     region: body.region || '',

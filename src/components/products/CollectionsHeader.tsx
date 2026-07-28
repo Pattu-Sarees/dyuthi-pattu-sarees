@@ -8,6 +8,16 @@ import LotusAccent from '@/components/ui/LotusAccent'
 const titleCase = (s: string) =>
   s.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 
+// Full hero (emoji + title + subtitle) for each page a search can originate from,
+// keyed by the origin name carried in ?from=. When a search runs, the results page
+// keeps showing the origin page's own hero instead of a stripped-down heading.
+const PAGE_HEROES: Record<string, { emoji: string; title: string; subtitle: string }> = {
+  'Best Sellers': { emoji: '🔥', title: 'Best Sellers', subtitle: 'Our most loved sarees, handpicked by our customers.' },
+  'New Arrivals': { emoji: '✨', title: 'New Arrivals', subtitle: 'Fresh handloom weaves, just off the loom' },
+  'On Sale': { emoji: '🎉', title: 'On Sale', subtitle: 'Exclusive savings on premium handloom sarees.' },
+  'All Collections': { emoji: '❤️', title: 'All Collections', subtitle: 'Authentic handloom sarees from master weavers' },
+}
+
 export default function CollectionsHeader({
   emoji,
   title,
@@ -22,32 +32,29 @@ export default function CollectionsHeader({
   const cats = searchParams.getAll('category')
   const search = (searchParams.get('search') || '').trim()
 
-  // Resolve the matched products' category so the heading shows e.g. "Kuppadam"
-  // (the category) rather than the raw typed term. Uses the most common category
-  // among the matches.
-  const [searchCat, setSearchCat] = useState('')
+  // When a search is active, keep showing the origin page's own hero (resolved
+  // from ?from=, falling back to this listing's own props / All Collections).
+  const originHero = PAGE_HEROES[searchParams.get('from') || ''] || {
+    emoji: emoji || '❤️', title, subtitle: subtitle || '',
+  }
+
+  // On an explicit submit (Enter / search icon) the URL carries h=cat, and the
+  // hero shows the matched item's CATEGORY instead of the origin page hero. The
+  // category comes from ?hc= when known (no flicker); otherwise we resolve it
+  // from the top search match.
+  const showCat = !!search && searchParams.get('h') === 'cat'
+  const hcParam = searchParams.get('hc') || ''
+  const [fetchedCat, setFetchedCat] = useState('')
   useEffect(() => {
-    if (!search) { setSearchCat(''); return }
+    if (!showCat || hcParam) { setFetchedCat(''); return }
     let cancelled = false
-    fetch(`/api/products?search=${encodeURIComponent(search)}&limit=60`)
+    fetch(`/api/search?query=${encodeURIComponent(search)}&limit=1`)
       .then((r) => r.json())
-      .then((d) => {
-        if (cancelled) return
-        const counts = new Map<string, number>()
-        let top = ''
-        let topN = 0
-        for (const p of (d.products || []) as { category?: string }[]) {
-          const c = (p.category || '').trim().toLowerCase()
-          if (!c) continue
-          const n = (counts.get(c) || 0) + 1
-          counts.set(c, n)
-          if (n > topN) { topN = n; top = c }
-        }
-        setSearchCat(top)
-      })
+      .then((d) => { if (!cancelled) setFetchedCat(d.items?.[0]?.category || '') })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [search])
+  }, [showCat, hcParam, search])
+  const searchCat = hcParam || fetchedCat
 
   const removeCat = (c: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -96,14 +103,30 @@ export default function CollectionsHeader({
           >
             {titleCase(cats[0])}
           </h1>
-        ) : search ? (
-          /* Search — show the matched product category (fallback: the term) */
+        ) : showCat && searchCat ? (
+          /* Explicit submit — show the matched item's CATEGORY as the heading. */
           <h1
             className="text-sm md:text-2xl font-bold text-[#F4E5C2]"
             style={{ fontFamily: 'var(--font-kurale), serif' }}
           >
-            {titleCase(searchCat || search)}
+            {titleCase(searchCat)}
           </h1>
+        ) : search ? (
+          /* Live search — keep the full hero of the page the search came from
+             (emoji + title + subtitle + lotus), never the raw typed term. */
+          <>
+            <div className="hidden md:flex justify-center mb-1.5">
+              <LotusAccent width={26} color="#F4C430" />
+            </div>
+            <h1
+              className="text-sm md:text-2xl font-bold text-[#F4E5C2] inline-flex items-center justify-center gap-2"
+              style={{ fontFamily: 'var(--font-kurale), serif' }}
+            >
+              {originHero.emoji && <span className="text-[0.8em] leading-none">{originHero.emoji}</span>}
+              {originHero.title}
+            </h1>
+            {originHero.subtitle && <p className="text-[#E8DCC7] text-xs md:text-sm mt-0.5 md:mt-2 max-w-xl mx-auto">{originHero.subtitle}</p>}
+          </>
         ) : (
           /* Default — All Collections + tagline */
           <>

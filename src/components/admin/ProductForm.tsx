@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { blendFromName } from '@/lib/color-blend'
+import { toTitleCase } from '@/lib/utils'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Product, InventoryItem, Vendor } from '@/types'
@@ -12,6 +14,154 @@ import { PRODUCT_CATEGORIES } from '@/lib/categories'
 const CATEGORIES = PRODUCT_CATEGORIES
 const FABRICS = ['pure silk', 'blended silk', 'cotton', 'soft silk', 'linen']
 
+// Swatch palette for the per-variant colour selector — light, dark & blended shades.
+const SAREE_COLORS: { name: string; hex: string }[] = [
+  // Reds & maroons
+  { name: 'Red', hex: '#E53935' }, { name: 'Bright Red', hex: '#FF1744' }, { name: 'Dark Red', hex: '#8B0000' },
+  { name: 'Crimson', hex: '#DC143C' }, { name: 'Maroon', hex: '#7A1F3D' }, { name: 'Rust', hex: '#B7410E' }, { name: 'Brick', hex: '#9C3B2E' },
+  // Pinks
+  { name: 'Pink', hex: '#E91E63' }, { name: 'Hot Pink', hex: '#FF4081' }, { name: 'Baby Pink', hex: '#F8BBD0' },
+  { name: 'Rose', hex: '#C2185B' }, { name: 'Blush', hex: '#F4C2C2' }, { name: 'Fuchsia', hex: '#D500F9' }, { name: 'Onion Pink', hex: '#E39FA9' },
+  // Oranges & peach
+  { name: 'Orange', hex: '#FB8C00' }, { name: 'Dark Orange', hex: '#EF6C00' }, { name: 'Coral', hex: '#FF7043' }, { name: 'Peach', hex: '#FFD1B3' },
+  // Yellows & gold
+  { name: 'Yellow', hex: '#FDD835' }, { name: 'Lemon', hex: '#FFF176' }, { name: 'Mustard', hex: '#C9A227' }, { name: 'Gold', hex: '#B8860B' }, { name: 'Turmeric', hex: '#E1A100' },
+  // Greens
+  { name: 'Green', hex: '#43A047' }, { name: 'Light Green', hex: '#A5D6A7' }, { name: 'Dark Green', hex: '#1B5E20' },
+  { name: 'Bottle Green', hex: '#0B3D2E' }, { name: 'Olive', hex: '#808000' }, { name: 'Mint', hex: '#98FF98' },
+  { name: 'Lime', hex: '#9CCC65' }, { name: 'Teal', hex: '#00897B' }, { name: 'Emerald', hex: '#2E7D53' }, { name: 'Sea Green', hex: '#2E8B57' },
+  // Blues
+  { name: 'Blue', hex: '#1E88E5' }, { name: 'Sky Blue', hex: '#81D4FA' }, { name: 'Light Blue', hex: '#B3E5FC' },
+  { name: 'Royal Blue', hex: '#283593' }, { name: 'Navy', hex: '#0D1B4C' }, { name: 'Peacock', hex: '#005F73' }, { name: 'Turquoise', hex: '#26C6DA' }, { name: 'Indigo', hex: '#3F51B5' },
+  // Purples
+  { name: 'Purple', hex: '#8E24AA' }, { name: 'Violet', hex: '#AB47BC' }, { name: 'Lavender', hex: '#B39DDB' },
+  { name: 'Wine', hex: '#5E2129' }, { name: 'Plum', hex: '#8E4585' }, { name: 'Mauve', hex: '#C8A2C8' },
+  // Neutrals & metallics
+  { name: 'Black', hex: '#212121' }, { name: 'Charcoal', hex: '#36454F' }, { name: 'Grey', hex: '#9E9E9E' },
+  { name: 'Silver', hex: '#C0C0C0' }, { name: 'White', hex: '#FAFAFA' }, { name: 'Off White', hex: '#F5F5F0' },
+  { name: 'Cream', hex: '#F3E5AB' }, { name: 'Ivory', hex: '#FFFFF0' }, { name: 'Beige', hex: '#E8D5B7' },
+  { name: 'Brown', hex: '#6D4C41' }, { name: 'Tan', hex: '#D2B48C' }, { name: 'Copper', hex: '#B87333' },
+  // Popular Indian saree shades
+  { name: 'Rani Pink', hex: '#E0115F' }, { name: 'Gajari', hex: '#F45B69' }, { name: 'Salmon', hex: '#FA8072' },
+  { name: 'Kesar', hex: '#F4A100' }, { name: 'Saffron', hex: '#F4C430' }, { name: 'Mehendi', hex: '#7B8B3D' },
+  { name: 'Elaichi', hex: '#B5C689' }, { name: 'Firozi', hex: '#3FB8AF' }, { name: 'Aqua', hex: '#7FDBDA' },
+  { name: 'Powder Blue', hex: '#B0E0E6' }, { name: 'Peacock Blue', hex: '#1C5D7A' }, { name: 'Burgundy', hex: '#800020' },
+  { name: 'Chandan', hex: '#EADAC1' }, { name: 'Sandal', hex: '#D9BF8C' }, { name: 'Apricot', hex: '#FBCEB1' },
+  { name: 'Grey Green', hex: '#8A9A5B' }, { name: 'Steel Blue', hex: '#4682B4' }, { name: 'Magenta', hex: '#C2185B' },
+  // Blended / special
+  { name: 'Multicolour', hex: 'multi' }, { name: 'Half & Half', hex: 'half' }, { name: 'Ombre', hex: 'ombre' },
+]
+// A palette entry: hex may be a real "#rrggbb", a blended special
+// ('multi'|'half'|'ombre'), or null (couldn't be blended → "✕" swatch).
+type Swatch = { name: string; hex: string | null }
+
+// Background style for a resolved hex/special. null is rendered as "✕" in JSX.
+function swatchStyleFromHex(hex: string | null | undefined): React.CSSProperties {
+  if (hex === 'multi') return { background: 'conic-gradient(from 0deg,#ef4444,#f59e0b,#eab308,#22c55e,#3b82f6,#a855f7,#ef4444)' }
+  if (hex === 'half') return { background: 'linear-gradient(90deg,#7A1F3D 50%,#B8860B 50%)' }
+  if (hex === 'ombre') return { background: 'linear-gradient(180deg,#E91E63,#7B1FA2)' }
+  if (hex && /^#/.test(hex)) return { backgroundColor: hex }
+  return { backgroundColor: '#f3f4f6' } // ✕ placeholder base
+}
+
+// A single swatch circle; shows "✕" when the colour has no derivable hex.
+function SwatchDot({ hex, className = '', style }: { hex: string | null | undefined; className?: string; style?: React.CSSProperties }) {
+  const isUnknown = hex === null || hex === undefined
+  return (
+    <span className={`inline-flex items-center justify-center rounded-full border border-black/10 ${className}`} style={{ ...swatchStyleFromHex(hex), ...style }}>
+      {isUnknown && <span className="text-[9px] font-bold text-gray-400 leading-none">✕</span>}
+    </span>
+  )
+}
+
+// Colour-swatch selector shown against each parent variant row. Palette = base
+// shades + shared custom colours; a free-text box blends new colours by name.
+function ColorSwatchSelect({
+  value,
+  onChange,
+  palette,
+  onAddCustom,
+}: {
+  value: string
+  onChange: (name: string) => void
+  palette: Swatch[]
+  onAddCustom: (name: string) => Promise<void> | void
+}) {
+  const [open, setOpen] = useState(false)
+  const [custom, setCustom] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+
+  // Resolve the hex for display: palette first, else a live client-side blend.
+  const hexOf = (name: string): string | null | undefined => {
+    if (!name) return 'transparent'
+    const found = palette.find((c) => c.name.toLowerCase() === name.toLowerCase())
+    if (found) return found.hex
+    return blendFromName(name) // string | null
+  }
+
+  const applyCustom = async () => {
+    const c = toTitleCase(custom.trim()) // always store custom colours in Title Case
+    if (!c) return
+    await onAddCustom(c)
+    onChange(c)
+    setCustom('')
+    setOpen(false)
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:border-[#C2185B] hover:text-[#C2185B]"
+      >
+        <SwatchDot hex={hexOf(value)} className="h-4 w-4" />
+        <span>{value || 'Color'}</span>
+        <ChevronDown className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <div className="absolute z-30 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-100 p-2">
+          <div className="grid grid-cols-7 gap-1.5 max-h-56 overflow-y-auto pr-1">
+            {palette.map((c) => (
+              <button
+                type="button"
+                key={c.name}
+                title={c.name}
+                onClick={() => { onChange(c.name); setOpen(false) }}
+                className={`rounded-full ${(value || '').toLowerCase() === c.name.toLowerCase() ? 'ring-2 ring-offset-1 ring-[#C2185B]' : ''}`}
+              >
+                <SwatchDot hex={c.hex} className="h-7 w-7" />
+              </button>
+            ))}
+          </div>
+          {/* Custom colour — blends by name (e.g. "blueish pink") and saves for reuse */}
+          <div className="mt-2 flex items-center gap-1.5 border-t border-gray-100 pt-2">
+            <input
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCustom() } }}
+              placeholder="Custom colour…"
+              className="flex-1 h-8 px-2 rounded-md border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#C2185B]"
+            />
+            <button type="button" onClick={applyCustom} className="h-8 px-2.5 rounded-md bg-[#C2185B] text-white text-xs font-medium hover:bg-[#a01049]">Add</button>
+          </div>
+          {value && (
+            <button type="button" onClick={() => { onChange(''); setOpen(false) }} className="mt-1.5 w-full text-xs text-gray-500 hover:text-red-600 py-1">
+              Clear colour
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // A row in the form. `isNew` marks photos/colours added during this edit —
 // their quantity is editable (first-time stock entry). Existing rows are locked.
 type Row = InventoryItem & { isNew?: boolean }
@@ -21,6 +171,7 @@ function normalise(variants?: Array<Partial<InventoryItem> & { image?: string; i
   if (!variants?.length) return []
   return variants.flatMap((v) => {
     const flags = {
+      color: (v as { color?: string }).color || '',
       is_new_arrival: !!v.is_new_arrival,
       is_best_seller: !!v.is_best_seller,
       additional_images: Array.isArray(v.additional_images) ? v.additional_images : [],
@@ -112,6 +263,7 @@ export default function ProductForm({ product }: { product?: Product }) {
   const [form, setForm] = useState({
     name: product?.name || '',
     description: product?.description || '',
+    code: product?.code || '',
     price: product?.price?.toString() || '',
     original_price: product?.original_price?.toString() || '',
     category: product?.category || 'kanjivaram',
@@ -185,6 +337,29 @@ export default function ProductForm({ product }: { product?: Product }) {
   const toggleFlag = (i: number, key: 'is_new_arrival' | 'is_best_seller', val: boolean) =>
     setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, [key]: val } : it)))
 
+  const setColor = (i: number, color: string) =>
+    setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, color } : it)))
+
+  // Shared custom-colour palette (blended colours saved by any admin).
+  const [customColors, setCustomColors] = useState<{ name: string; hex: string | null }[]>([])
+  useEffect(() => {
+    fetch('/api/admin/colors').then((r) => r.json()).then((d) => setCustomColors(d.colors || [])).catch(() => {})
+  }, [])
+  const palette = useMemo<{ name: string; hex: string | null }[]>(
+    () => [...(SAREE_COLORS as { name: string; hex: string | null }[]), ...customColors],
+    [customColors]
+  )
+  const addCustomColor = async (name: string) => {
+    if (palette.some((c) => c.name.toLowerCase() === name.toLowerCase())) return
+    const hex = blendFromName(name) // string | null (null → "✕" swatch)
+    setCustomColors((prev) => [...prev, { name, hex }])
+    fetch('/api/admin/colors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, hex }),
+    }).catch(() => {})
+  }
+
   // Extra angle shots for one row — uploaded like main photos but stored on the row.
   const handleAddAngles = async (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -220,7 +395,7 @@ export default function ProductForm({ product }: { product?: Product }) {
     e.preventDefault()
     if (!form.name || !form.price) { toast.error('Name and price are required'); return }
     if (!form.vendor_id) { toast.error('Vendor is required — select one in the Procurement section'); return }
-    const clean = items.filter((it) => it.image).map((it) => ({ image: it.image, quantity: Number(it.quantity) || 0, is_new_arrival: !!it.is_new_arrival, is_best_seller: !!it.is_best_seller, additional_images: it.additional_images || [] }))
+    const clean = items.filter((it) => it.image).map((it) => ({ image: it.image, quantity: Number(it.quantity) || 0, color: it.color || '', is_new_arrival: !!it.is_new_arrival, is_best_seller: !!it.is_best_seller, additional_images: it.additional_images || [] }))
     if (clean.length === 0) { toast.error('Add at least one photo'); return }
 
     setSaving(true)
@@ -306,6 +481,8 @@ export default function ProductForm({ product }: { product?: Product }) {
                     <Link href={`/admin/inventory?adjust=${product!.id}&variant=${encodeURIComponent(it.image)}`} className="text-[11px] font-medium text-[#AD1457] hover:underline">Update in Inventory</Link>
                   </div>
                 )}
+                {/* Per-item colour swatch selector (main row only) */}
+                <ColorSwatchSelect value={it.color || ''} onChange={(c) => setColor(i, c)} palette={palette} onAddCustom={addCustomColor} />
                 {/* Per-item merchandising flags — same row */}
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input type="checkbox" checked={!!it.is_new_arrival} onChange={(e) => toggleFlag(i, 'is_new_arrival', e.target.checked)} className="h-4 w-4 accent-[#C2185B]" />
@@ -362,6 +539,10 @@ export default function ProductForm({ product }: { product?: Product }) {
         <div>
           <label className={label}>Description</label>
           <textarea value={form.description} onChange={(e) => set('description', e.target.value)} rows={4} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]" placeholder="Describe the saree, weave, border, occasion..." />
+        </div>
+        <div>
+          <label className={label}>Code</label>
+          <input value={form.code} onChange={(e) => set('code', e.target.value)} className={input} placeholder="e.g. DPS-GAD-001" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>

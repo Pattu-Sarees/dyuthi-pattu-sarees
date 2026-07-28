@@ -360,3 +360,37 @@ drop trigger if exists wishlist_collections_set_updated_at on wishlist_collectio
 create trigger wishlist_collections_set_updated_at before update on wishlist_collections
   for each row execute function set_updated_at();
 
+
+
+-- ============================================================
+-- Product Code column
+-- ============================================================
+alter table products add column if not exists code text;
+create index if not exists products_code_idx on products (code);
+
+
+-- ============================================================
+-- Custom colours (shared admin palette)
+-- ============================================================
+create table if not exists custom_colors (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  hex text,
+  created_at timestamptz not null default now()
+);
+create index if not exists custom_colors_created_idx on custom_colors (created_at desc);
+alter table custom_colors enable row level security;
+grant select (code) on products to anon, authenticated;
+
+
+-- ============================================================
+-- Product search_text (name + code + category + colour)
+-- ============================================================
+alter table products add column if not exists search_text text
+  generated always as (
+    lower(
+      coalesce(name, '') || ' ' || coalesce(code, '') || ' ' ||
+      coalesce(category, '') || ' ' || coalesce(array_to_string(color, ' '), '')
+    )
+  ) stored;
+grant select (search_text) on products to anon, authenticated;

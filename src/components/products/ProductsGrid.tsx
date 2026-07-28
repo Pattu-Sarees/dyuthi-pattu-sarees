@@ -2,16 +2,22 @@ import { createClient } from '@/lib/supabase/server'
 import { PUBLIC_PRODUCT_COLUMNS } from '@/lib/public-product-columns'
 import { Product } from '@/types'
 import InfiniteProductsGrid from './InfiniteProductsGrid'
-import { toDisplayItems } from './displayItems'
-import { buildProductSearchOr } from '@/lib/product-search'
+import { toDisplayItems, filterItemsForColorSearch } from './displayItems'
+import { searchTextPattern, buildFallbackSearchOr, normalizeSearch } from '@/lib/product-search'
 
 async function getProducts(searchParams: Record<string, string | string[]>) {
   const supabase = await createClient()
-  let query = supabase.from('products').select(PUBLIC_PRODUCT_COLUMNS)
-
   const search = searchParams.search as string
-  const searchOr = buildProductSearchOr(search)
-  if (searchOr) query = query.or(searchOr)
+
+  const buildQuery = (mode: 'search_text' | 'fallback') => {
+    let query = supabase.from('products').select(PUBLIC_PRODUCT_COLUMNS)
+    if (mode === 'search_text') {
+      const pattern = searchTextPattern(search)
+      if (pattern) query = query.ilike('search_text', pattern)
+    } else {
+      const or = buildFallbackSearchOr(search)
+      if (or) query = query.or(or)
+    }
 
   const category = searchParams.category
   if (category) {
@@ -51,7 +57,15 @@ async function getProducts(searchParams: Record<string, string | string[]>) {
     default: query = query.order('created_at', { ascending: false })
   }
 
-  const { data, error } = await query.limit(2000)
+    return query.limit(2000)
+  }
+
+  // Prefer the generated search_text column (full-phrase match incl. colour);
+  // fall back to the migration-free builder if that column isn't present yet.
+  let { data, error } = await buildQuery('search_text')
+  if (error && normalizeSearch(search)) {
+    ;({ data, error } = await buildQuery('fallback'))
+  }
   if (error) return []
   return (data as Product[]).filter((p) => (p.status ?? 'active') !== 'inactive')
 }
@@ -75,6 +89,13 @@ export default async function ProductsGrid({
   }
 
   let items = toDisplayItems(products)
+  // Colour search: show only the matching-colour variant card(s), not every
+  // shade of a product that happened to match on colour.
+  items = filterItemsForColorSearch(items, params.search as string)
+  // Picking a suggestion pins one exact variant card (id-imageIndex) so only
+  // that item shows, even when the product's variants share/lack a colour.
+  const pinned = params.item as string | undefined
+  if (pinned) items = items.filter((it) => it.key === pinned)
   // New Arrival / Best Seller are per-item flags — show only the flagged photos.
   if (params.is_new_arrival === 'true') items = items.filter((it) => it.isNewArrival)
   if (params.is_best_seller === 'true') items = items.filter((it) => it.isBestSeller)

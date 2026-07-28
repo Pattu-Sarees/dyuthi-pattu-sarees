@@ -3,6 +3,8 @@
 export interface InventoryItem {
   image: string
   quantity: number
+  // Colour/shade name for this specific photo/variant (main row only).
+  color?: string
   // Per-item merchandising flags. A product's product-level is_new_arrival /
   // is_best_seller is a rollup (= true if any of its items has the flag).
   is_new_arrival?: boolean
@@ -15,6 +17,7 @@ export interface Product {
   id: string
   name: string
   description: string
+  code?: string | null
   price: number
   original_price?: number
   images: string[]

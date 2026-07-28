@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { X, ShoppingBag, Check } from 'lucide-react'
 import { useState } from 'react'
 import type { Product } from '@/types'
-import { formatPrice, getDiscountPercent, getStockStatus, toTitleCase } from '@/lib/utils'
+import { formatPrice, getDiscountPercent, toTitleCase } from '@/lib/utils'
 import { useCartStore } from '@/store/cart'
 import { toast } from 'sonner'
 
@@ -28,8 +28,10 @@ export default function WishlistCard({
   const [added, setAdded] = useState(false)
 
   const displayImage = image || product.images?.[0] || ''
-  const stock = getStockStatus(product.stock_quantity)
-  const soldOut = stock.level === 'out'
+  // Availability for THIS design/colour (the wishlisted image), not the product total.
+  const variant = product.color_variants?.find((v) => v.image === displayImage)
+  const effectiveStock = variant ? (Number(variant.quantity) || 0) : product.stock_quantity
+  const soldOut = effectiveStock <= 0
   const discount = product.original_price ? getDiscountPercent(product.original_price, product.price) : 0
 
   const moveToBag = () => {

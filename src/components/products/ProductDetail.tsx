@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { ShoppingCart, Star, ChevronRight, ChevronLeft, Minus, Plus, RefreshCw, Gem, CreditCard, Timer, BadgeCheck, ClipboardList, Truck, Share2, Link2, Mail, X, ZoomIn, PlayCircle } from 'lucide-react'
 import { Product } from '@/types'
 import { formatPrice, formatDate, getDiscountPercent, getStockStatus, toTitleCase } from '@/lib/utils'
+import { colorNameToHex } from '@/lib/color-blend'
 import { useCartStore } from '@/store/cart'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -198,6 +199,24 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
 
   const goToImage = (idx: number) => { setSelectedImage(idx); setSelectedAngle(0) }
 
+  // Gallery slides = images + (video as the LAST slide, played inline).
+  const [videoActive, setVideoActive] = useState(false)
+  const hasVideo = !!product.video_url
+  const imgCount = product.images?.length || 0
+  const slideCount = imgCount + (hasVideo ? 1 : 0)
+  const currentSlide = videoActive ? imgCount : selectedImage
+  const goToSlide = (idx: number) => {
+    if (slideCount === 0) return
+    const i = ((idx % slideCount) + slideCount) % slideCount
+    if (hasVideo && i === imgCount) setVideoActive(true)
+    else { setVideoActive(false); goToImage(i) }
+  }
+  // "Watch Saree Video" → jump the gallery to the video slide and scroll it into view.
+  const openVideoSlide = () => {
+    setVideoActive(true)
+    setTimeout(() => imageBoxRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 0)
+  }
+
   // Cursor-following zoom — armed by clicking the magnifier, disarmed by clicking outside the image
   const [zoomMode, setZoomMode] = useState(false)
   const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null)
@@ -292,12 +311,27 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
 
             <div
               ref={imageBoxRef}
-              className={`relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100 group flex-1 ${zoomMode ? 'cursor-zoom-in' : 'cursor-pointer'}`}
-              onMouseMove={zoomMode && displayedImage ? handleZoomMove : undefined}
+              className={`relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100 group flex-1 ${videoActive ? '' : zoomMode ? 'cursor-zoom-in' : 'cursor-pointer'}`}
+              onMouseMove={!videoActive && zoomMode && displayedImage ? handleZoomMove : undefined}
               onMouseLeave={() => setZoom(null)}
-              onClick={() => !zoomMode && displayedImage && setPreview(true)}
+              onClick={() => !videoActive && !zoomMode && displayedImage && setPreview(true)}
             >
-              {displayedImage ? (
+              {videoActive && product.video_url ? (
+                /* Video plays inline as the last gallery slide */
+                <div className="absolute inset-0 flex items-center justify-center bg-black" onClick={(e) => e.stopPropagation()}>
+                  {youTubeEmbed(product.video_url) ? (
+                    <iframe
+                      src={`${youTubeEmbed(product.video_url)!}?autoplay=1`}
+                      title={`${product.name} video`}
+                      className="absolute inset-0 h-full w-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <VideoPlayer src={product.video_url} title={`${product.name} video`} watermark={product.video_watermark || undefined} fill />
+                  )}
+                </div>
+              ) : displayedImage ? (
                 <Image
                   src={displayedImage}
                   alt={product.name}
@@ -310,8 +344,8 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-8xl">🥻</div>
               )}
-              {/* Magnifier — click to start zooming; hidden while zoom is active */}
-              {displayedImage && !zoomMode && (
+              {/* Magnifier — click to start zooming; hidden while zoom is active or on video */}
+              {!videoActive && displayedImage && !zoomMode && (
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setZoomMode(true) }}
@@ -332,69 +366,70 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
                 <Badge className="absolute top-4 left-4 bg-green-500 text-white border-0">{discount}% OFF</Badge>
               )}
 
-              {product.images?.length > 1 && (
+              {slideCount > 1 && (
                 <>
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); goToImage((selectedImage - 1 + product.images.length) % product.images.length) }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 shadow flex items-center justify-center text-gray-700 hover:bg-white hover:text-[#C2185B] transition-colors"
-                    aria-label="Previous image"
+                    onClick={(e) => { e.stopPropagation(); goToSlide(currentSlide - 1) }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/90 shadow flex items-center justify-center text-gray-700 hover:bg-white hover:text-[#C2185B] transition-colors"
+                    aria-label="Previous"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); goToImage((selectedImage + 1) % product.images.length) }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 shadow flex items-center justify-center text-gray-700 hover:bg-white hover:text-[#C2185B] transition-colors"
-                    aria-label="Next image"
+                    onClick={(e) => { e.stopPropagation(); goToSlide(currentSlide + 1) }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/90 shadow flex items-center justify-center text-gray-700 hover:bg-white hover:text-[#C2185B] transition-colors"
+                    aria-label="Next"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </button>
-                  <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full">
-                    {selectedImage + 1} / {product.images.length}
+                  <div className="absolute bottom-3 right-3 z-10 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                    {currentSlide + 1} / {slideCount}
                   </div>
                 </>
               )}
             </div>
           </div>
-          {product.images?.length > 1 && (
+          {slideCount > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {product.images.map((img, idx) => (
                 <button
                   key={idx}
-                  onClick={() => goToImage(idx)}
+                  onClick={() => goToSlide(idx)}
                   className={`relative flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
-                    selectedImage === idx ? 'border-rose-600' : 'border-transparent'
+                    !videoActive && selectedImage === idx ? 'border-rose-600' : 'border-transparent'
                   }`}
                 >
                   <Image src={img} alt="" fill className="object-cover" sizes="64px" />
                 </button>
               ))}
+              {/* Video as the LAST gallery item — plays inline in the gallery on tap */}
+              {hasVideo && (
+                <button
+                  onClick={() => goToSlide(imgCount)}
+                  aria-label="Watch saree video"
+                  className={`relative flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden border-2 bg-black transition-colors ${
+                    videoActive ? 'border-rose-600' : 'border-transparent'
+                  }`}
+                >
+                  {product.images?.[0] && <Image src={product.images[0]} alt="" fill className="object-cover opacity-50" sizes="64px" />}
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <PlayCircle className="h-7 w-7 text-white drop-shadow" />
+                  </span>
+                </button>
+              )}
             </div>
           )}
 
-          {/* Opening video — native player for MP4/R2 links, iframe for YouTube */}
-          {product.video_url && (
-            <div className="pt-1">
-              {youTubeEmbed(product.video_url) ? (
-                <>
-                  <p className="flex items-center gap-1.5 text-sm font-semibold text-[#4E1E24] mb-2">
-                    <PlayCircle className="h-4 w-4 text-[#C2185B]" /> Watch saree opening video
-                  </p>
-                  <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black">
-                    <iframe
-                      src={youTubeEmbed(product.video_url)!}
-                      title={`${product.name} video`}
-                      className="absolute inset-0 h-full w-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
-                </>
-              ) : (
-                <VideoPlayer src={product.video_url} title={`${product.name} video`} label="Watch saree opening video" watermark={product.video_watermark || undefined} />
-              )}
-            </div>
+          {/* Watch Saree Video — jumps the gallery to the inline video slide */}
+          {hasVideo && (
+            <button
+              onClick={openVideoSlide}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#C2185B] hover:underline"
+            >
+              <PlayCircle className="h-4 w-4" /> Watch Saree Video
+            </button>
           )}
 
           {/* Full-size image preview popup — portaled to <body> so nothing overlaps it */}
@@ -416,6 +451,7 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
             </div>,
             document.body
           )}
+
         </div>
 
         {/* Info */}
@@ -495,8 +531,8 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
 
           {/* Stock + per-design pieces — one compact status row */}
           <div className="flex items-center gap-3 flex-wrap">
-            <div className={`flex items-center gap-2 text-sm font-medium ${
-              stock.level === 'in' ? 'text-green-600' : stock.level === 'low' ? 'text-amber-600' : 'text-red-500'
+            <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium ${
+              stock.level === 'in' ? 'bg-green-50 text-green-700' : stock.level === 'low' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600'
             }`}>
               <div className={`h-2 w-2 rounded-full ${
                 stock.level === 'in' ? 'bg-green-500' : stock.level === 'low' ? 'bg-amber-500' : 'bg-red-500'
@@ -510,14 +546,14 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
               <>
                 {variantPieces < 1 ? (
                   <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold animate-blink"
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium animate-blink"
                     style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}
                   >
                     📦 Sold Out
                   </span>
                 ) : (
                   <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold"
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium"
                     style={{ backgroundColor: '#FFF4E5', color: '#7A1F3D' }}
                   >
                     📦 {variantPieces} Piece{variantPieces === 1 ? '' : 's'} Available
@@ -527,12 +563,44 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
             )}
           </div>
 
-          {/* Tags */}
-          <div className="flex flex-wrap gap-2">
-            {product.occasion?.map((occ) => (
-              <Badge key={occ} variant="secondary" className="capitalize">{occ}</Badge>
-            ))}
-          </div>
+          {/* Code + Colour of the selected design */}
+          {(product.code || currentVariant?.color) && (
+            <div className="text-sm space-y-1">
+              {product.code && (
+                <p>
+                  <span className="text-gray-800">Code: </span>
+                  <span className="font-medium text-[#B8860B]">
+                    {product.code}{currentVariant?.color ? `-${currentVariant.color}` : ''}
+                  </span>
+                </p>
+              )}
+              {currentVariant?.color && (
+                <p>
+                  <span className="text-gray-800">Color: </span>
+                  <span className="text-gray-800">{currentVariant.color}</span>
+                </p>
+              )}
+            </div>
+          )}
+          {/* Colour swatch — its own block row so spacing is equal above & below */}
+          {currentVariant?.color && (
+            <div>
+              <span
+                className="block h-6 w-6 rounded-full border border-black/10"
+                style={{ backgroundColor: colorNameToHex(currentVariant.color) || '#e5e7eb' }}
+                title={currentVariant.color}
+              />
+            </div>
+          )}
+
+          {/* Tags — only when the product has occasions */}
+          {(product.occasion?.length ?? 0) > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {product.occasion.map((occ) => (
+                <Badge key={occ} variant="secondary" className="capitalize">{occ}</Badge>
+              ))}
+            </div>
+          )}
 
           {/* Quantity + Cart */}
           {available && itemAvailable && (

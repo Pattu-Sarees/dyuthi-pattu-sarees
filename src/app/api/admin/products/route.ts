@@ -29,13 +29,16 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient()
 
   const variants = (Array.isArray(body.color_variants) ? body.color_variants : [])
-    .map((v: { image?: string; quantity?: number; is_new_arrival?: boolean; is_best_seller?: boolean; additional_images?: string[] }) => ({
+    .map((v: { image?: string; quantity?: number; color?: string; is_new_arrival?: boolean; is_best_seller?: boolean; additional_images?: string[] }) => ({
       image: v.image,
       quantity: Number(v.quantity) || 0,
+      color: typeof v.color === 'string' ? v.color.trim() : '',
       is_new_arrival: !!v.is_new_arrival,
       is_best_seller: !!v.is_best_seller,
       additional_images: Array.isArray(v.additional_images) ? v.additional_images.filter((u) => typeof u === 'string') : [],
     }))
+  // Product-level colour list = the distinct colours across variants.
+  const variantColors = Array.from(new Set(variants.map((v: { color?: string }) => v.color).filter(Boolean)))
   const stockFromVariants = variants.reduce((s: number, v: { quantity: number }) => s + (Number(v.quantity) || 0), 0)
   // Product-level flags are a rollup of the per-item flags.
   const anyNewArrival = variants.some((v: { is_new_arrival?: boolean }) => !!v.is_new_arrival)
@@ -43,12 +46,13 @@ export async function POST(req: NextRequest) {
   const payload = {
     name: body.name,
     description: body.description || '',
+    code: body.code ? String(body.code).trim() : null,
     price: Number(body.price),
     original_price: body.original_price ? Number(body.original_price) : null,
     images: body.images || [],
     category: body.category,
     fabric: body.fabric || '',
-    color: body.color || [],
+    color: variantColors.length ? variantColors : (body.color || []),
     color_variants: variants,
     occasion: body.occasion || [],
     region: body.region || '',

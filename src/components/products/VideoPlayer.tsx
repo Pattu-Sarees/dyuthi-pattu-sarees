@@ -5,7 +5,7 @@ import { Play, Pause, Maximize, PlayCircle, X } from 'lucide-react'
 
 // Minimal video player for silent product videos: play/pause + progress + fullscreen.
 // No volume (videos have no audio) and no download/right-save (custom controls only).
-export default function VideoPlayer({ src, title, label, watermark }: { src: string; title?: string; label?: string; watermark?: string }) {
+export default function VideoPlayer({ src, title, label, watermark, fill = false }: { src: string; title?: string; label?: string; watermark?: string; fill?: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const [playing, setPlaying] = useState(false)
@@ -61,7 +61,7 @@ export default function VideoPlayer({ src, title, label, watermark }: { src: str
   const fullscreen = () => wrapRef.current?.requestFullscreen?.()
 
   return (
-    <div className="w-fit max-w-full">
+    <div className={fill ? 'w-full h-full' : 'w-fit max-w-full'}>
       {label && (
         <button
           type="button"
@@ -71,7 +71,7 @@ export default function VideoPlayer({ src, title, label, watermark }: { src: str
           <PlayCircle className="h-4 w-4 text-[#C2185B]" /> {label}
         </button>
       )}
-    <div ref={wrapRef} className="productVideoWrap relative w-fit max-w-full rounded-xl overflow-hidden bg-black group/vid">
+    <div ref={wrapRef} className={`productVideoWrap relative rounded-xl overflow-hidden bg-black group/vid ${fill ? 'w-full h-full' : 'w-fit max-w-full'}`}>
       {/* Close (X) — only in fullscreen, easy exit on mobile */}
       {isFullscreen && (
         <button
@@ -93,10 +93,12 @@ export default function VideoPlayer({ src, title, label, watermark }: { src: str
         onClick={toggle}
         onLoadedMetadata={onMeta}
         onTimeUpdate={onTime}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
         onEnded={() => setPlaying(false)}
         onContextMenu={(e) => e.preventDefault()}
-        style={ratio ? { aspectRatio: String(ratio) } : undefined}
-        className="block max-h-[80vh] w-auto max-w-full cursor-pointer"
+        style={fill ? undefined : (ratio ? { aspectRatio: String(ratio) } : undefined)}
+        className={fill ? 'absolute inset-0 h-full w-full object-cover cursor-pointer' : 'block max-h-[80vh] w-auto max-w-full cursor-pointer'}
       />
 
       {/* Watermark overlay — centered, large; promotes the brand and rides along on screen-recordings */}
@@ -111,13 +113,27 @@ export default function VideoPlayer({ src, title, label, watermark }: { src: str
         </div>
       )}
 
-      {/* Invisible click layer — tap the video to play/pause (no big button) */}
+      {/* Invisible click layer — tap the video to play/pause */}
       <button
         type="button"
         onClick={toggle}
         aria-label={playing ? 'Pause video' : 'Play video'}
         className="absolute inset-0"
       />
+
+      {/* Center play button — visible only when paused, hidden while playing */}
+      {!playing && (
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label="Play video"
+          className="absolute inset-0 z-10 flex items-center justify-center"
+        >
+          <span className="h-14 w-14 rounded-full bg-black/50 hover:bg-black/60 flex items-center justify-center transition-colors">
+            <Play className="h-7 w-7 text-white translate-x-0.5" fill="currentColor" />
+          </span>
+        </button>
+      )}
 
       {/* Bottom control bar — always visible on touch/mobile, hover-reveal on desktop */}
       <div className="absolute bottom-0 inset-x-0 z-10 flex items-center gap-3 px-3 py-2 bg-gradient-to-t from-black/60 to-transparent opacity-100 md:opacity-0 md:group-hover/vid:opacity-100 md:focus-within:opacity-100 transition-opacity">

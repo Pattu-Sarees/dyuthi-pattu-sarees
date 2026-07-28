@@ -4,7 +4,7 @@
 // queries — these props end up serialized into the page HTML.
 // Keep in sync with supabase/vendors-module.sql column grants.
 export const PUBLIC_PRODUCT_COLUMNS =
-  'id,name,description,price,original_price,images,category,fabric,color,color_variants,occasion,region,in_stock,stock_quantity,rating,review_count,is_featured,is_new_arrival,is_best_seller,status,sold_count,view_count,wishlist_count,slug,created_at,updated_at'
+  'id,name,description,code,price,original_price,images,category,fabric,color,color_variants,occasion,region,in_stock,stock_quantity,rating,review_count,is_featured,is_new_arrival,is_best_seller,status,sold_count,view_count,wishlist_count,slug,created_at,updated_at'
 
 // The product detail page also needs the opening video. Kept separate because
 // it's only used there, and so a pre-migration DB (column absent) can fall back.

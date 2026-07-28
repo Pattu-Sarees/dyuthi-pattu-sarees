@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import { Heart, Share2, Loader2, Layers, PackageX, ChevronLeft, Plus, Trash2, FolderPlus, MoreVertical, Pencil } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { PUBLIC_PRODUCT_COLUMNS } from '@/lib/public-product-columns'
-import { getStockStatus } from '@/lib/utils'
 import { useWishlistStore } from '@/store/wishlist'
 import { buildWishlistEntries, parseWishKey, type WishlistEntry } from '@/lib/wishlist-resolve'
 import { fetchCollections, createCollection, addItemsToCollection, renameCollection, deleteCollection, type Collection } from '@/lib/collections'
@@ -94,8 +93,14 @@ export default function WishlistPage() {
   }, [mounted, loadCollections])
 
   const entries = useMemo(() => buildWishlistEntries(ids, products), [ids, products])
-  const inStock = useMemo(() => entries.filter((e) => getStockStatus(e.product.stock_quantity).level !== 'out'), [entries])
-  const outOfStock = useMemo(() => entries.filter((e) => getStockStatus(e.product.stock_quantity).level === 'out'), [entries])
+  // Availability is per wishlisted design/colour: use the matching variant's
+  // pieces, falling back to the product's total stock when there are no variants.
+  const variantQty = (e: WishlistEntry) => {
+    const v = e.product.color_variants?.find((cv) => cv.image === e.image)
+    return v ? (Number(v.quantity) || 0) : (e.product.stock_quantity ?? 0)
+  }
+  const inStock = useMemo(() => entries.filter((e) => variantQty(e) > 0), [entries])
+  const outOfStock = useMemo(() => entries.filter((e) => variantQty(e) <= 0), [entries])
 
   const removeItem = useCallback(
     (key: string) => {

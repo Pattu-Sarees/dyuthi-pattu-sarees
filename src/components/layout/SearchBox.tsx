@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { Search, X, Loader2 } from 'lucide-react'
@@ -8,12 +8,16 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { formatPrice, toTitleCase } from '@/lib/utils'
 
+// One matching colour-variant item (from /api/search). Clicking opens the
+// product on this exact colour via ?image={imageIndex}.
 interface Suggestion {
   id: string
   name: string
-  images?: string[]
+  color?: string
   price?: number
   category?: string
+  image?: string
+  imageIndex?: number
 }
 
 // Bold the matched query words inside a suggestion name.
@@ -38,6 +42,25 @@ export default function SearchBox({
   const pathname = usePathname()
   const urlSearch = params.get('search') || ''
 
+  // Origin page name — shown in the results hero when a search finds no match
+  // (so we never blindly display the typed term). Preserved across refinements.
+  const PAGE_NAMES: Record<string, string> = {
+    '/best-sellers': 'Best Sellers', '/new-arrivals': 'New Arrivals',
+    '/on-sale': 'On Sale', '/products': 'All Collections', '/': 'All Collections',
+  }
+  const originFrom = pathname === '/products' ? (params.get('from') || 'All Collections') : (PAGE_NAMES[pathname] || 'All Collections')
+
+  // Search within the CURRENT listing page (so the active nav item / hero stay
+  // put) when we're on one; otherwise fall back to All Collections (/products).
+  const LISTING_PATHS = new Set(['/products', '/new-arrivals', '/best-sellers', '/on-sale'])
+  const listingPath = LISTING_PATHS.has(pathname) ? pathname : '/products'
+  const searchUrl = (term: string) => `${listingPath}?search=${encodeURIComponent(term)}&from=${encodeURIComponent(originFrom)}`
+
+  // Scope the dropdown suggestions to the current page's own filter, so e.g. on
+  // Best Sellers a search only suggests best-seller items.
+  const SCOPES: Record<string, string> = { '/best-sellers': 'best', '/new-arrivals': 'new', '/on-sale': 'sale' }
+  const scope = SCOPES[pathname] || ''
+
   const [q, setQ] = useState(urlSearch)
   const [items, setItems] = useState<Suggestion[]>([])
   const [open, setOpen] = useState(false)
@@ -54,10 +77,10 @@ export default function SearchBox({
     if (Date.now() - lastTypedRef.current > 1200) setQ(urlSearch)
   }, [urlSearch])
 
-  // Live search: as the user types (no Enter needed), show matched products by
-  // navigating to the filtered listing. Clearing shows all products. Skipped on
-  // the Contact page. Uses replace while refining an existing search so the back
-  // button still returns to the page the user searched from.
+  // Live search: as the user types (no Enter needed), filter the CURRENT listing
+  // page in place — the active nav item and page hero stay put. Clearing removes
+  // the search. Skipped on the Contact page. Uses replace while refining an
+  // existing search so the back button still returns to the un-searched page.
   useEffect(() => {
     if (pathname === '/contact') return
     const t = setTimeout(() => {
@@ -66,19 +89,21 @@ export default function SearchBox({
       const current = params.get('search') || ''
       if (term.length >= 2) {
         if (term !== current) {
-          const url = `/products?search=${encodeURIComponent(term)}`
-          if (pathname === '/products' && current) router.replace(url)
+          const url = searchUrl(term)
+          if (current) router.replace(url)
           else router.push(url)
         }
       } else if (term.length === 0 && current) {
-        router.replace('/products')
+        router.replace(listingPath)
       }
-    }, 450)
+    }, 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, pathname])
 
-  // Debounced typeahead suggestions.
+  // Debounced typeahead suggestions (300ms) — hits the dedicated /api/search
+  // endpoint, which searches only name/category/code/colour and returns matches
+  // ordered by precision (code > colour > name > category).
   useEffect(() => {
     const term = q.trim()
     if (term.length < 2) {
@@ -88,14 +113,15 @@ export default function SearchBox({
     }
     setLoading(true)
     const t = setTimeout(() => {
-      fetch(`/api/products?search=${encodeURIComponent(term)}&limit=6`)
+      fetch(`/api/search?query=${encodeURIComponent(term)}&limit=6${scope ? `&scope=${scope}` : ''}`)
         .then((r) => r.json())
-        .then((d) => setItems(((d.products as Suggestion[]) || []).slice(0, 6)))
+        .then((d) => setItems(((d.items as Suggestion[]) || []).slice(0, 6)))
         .catch(() => setItems([]))
         .finally(() => setLoading(false))
-    }, 220)
+    }, 300)
     return () => clearTimeout(t)
-  }, [q])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, scope])
 
   useEffect(() => setActive(-1), [items])
 
@@ -112,10 +138,15 @@ export default function SearchBox({
   const showDropdown = open && term.length >= 2
   const noMatches = showDropdown && !loading && items.length === 0
 
+  // Explicit submit (Enter / search icon / "See all"): show matched items in the
+  // body AND swap the hero to the matched item's category. `h=cat` tells the
+  // header to show the category; `hc` passes it along when we already know it
+  // (from the loaded suggestions) so the hero updates without a flicker.
   const goToResults = () => {
     if (!term) return
     setOpen(false)
-    router.push(`/products?search=${encodeURIComponent(term)}`)
+    const hc = items[0]?.category ? `&hc=${encodeURIComponent(items[0].category)}` : ''
+    router.push(`${searchUrl(term)}&h=cat${hc}`)
     onNavigate?.()
   }
 
@@ -124,16 +155,17 @@ export default function SearchBox({
     suppressLiveRef.current = true
     setOpen(false)
     setItems([])
-    // Selecting a suggestion opens that product's CATEGORY listing (name + its
-    // items), not the detail page. Falls back to a name search if no category.
-    // The box keeps showing the term so it doesn't vanish after selecting.
-    if (s.category) {
-      setQ(toTitleCase(s.category))
-      router.push(`/products?category=${encodeURIComponent(s.category)}`)
-    } else {
-      setQ(toTitleCase(s.name))
-      router.push(`/products?search=${encodeURIComponent(s.name)}`)
-    }
+    // Show the selected item ALONE in the listing on the SAME page — don't jump
+    // to the product detail screen (that also caused a bounce back to All
+    // Collections). `item=<productId>-<imageIndex>` pins exactly this variant
+    // card (colour alone isn't enough when a product's variants share/lack a
+    // colour). The user opens details by clicking the card. Hero shows the
+    // item's category (h=cat).
+    const termToUse = s.name
+    setQ(toTitleCase(termToUse))
+    const hc = s.category ? `&hc=${encodeURIComponent(s.category)}` : ''
+    const itemKey = `${s.id}-${s.imageIndex ?? 0}`
+    router.push(`${searchUrl(termToUse)}&h=cat${hc}&item=${encodeURIComponent(itemKey)}`)
     onNavigate?.()
   }
 
@@ -176,12 +208,19 @@ export default function SearchBox({
 
   const dropdownWidth = variant === 'mobile' ? 'left-0 right-0' : 'w-full min-w-[18rem]'
 
-  const listId = useMemo(() => `sb-${Math.random().toString(36).slice(2, 8)}`, [])
+  // Stable id across SSR + client render (Math.random() caused a hydration mismatch).
+  const listId = useId()
 
   return (
     <form onSubmit={submit} ref={boxRef} className={`relative ${variant === 'mobile' ? 'flex gap-2 w-full max-w-sm mx-auto' : ''}`}>
       <div className={`relative ${variant === 'desktop' ? 'w-44 lg:w-56' : 'flex-1'}`}>
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <button
+          type="submit"
+          aria-label="Search"
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-gray-400 hover:text-[#AD1457]"
+        >
+          <Search className="h-4 w-4" />
+        </button>
         <Input
           ref={inputRef}
           value={q}
@@ -210,13 +249,13 @@ export default function SearchBox({
       {showDropdown && (loading || items.length > 0 || noMatches) && (
         <div id={listId} role="listbox" className={`absolute z-[70] mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 max-h-96 overflow-y-auto ${dropdownWidth}`}>
           {noMatches ? (
-            <p className="px-3 py-3 text-sm text-gray-500">No matches found</p>
+            <p className="px-3 py-3 text-sm text-gray-500">No sarees found</p>
           ) : (
             <>
               {items.map((s, i) => (
                 <button
                   type="button"
-                  key={s.id}
+                  key={`${s.id}-${s.imageIndex ?? 0}`}
                   role="option"
                   aria-selected={active === i}
                   onMouseEnter={() => setActive(i)}
@@ -225,10 +264,13 @@ export default function SearchBox({
                   className={`w-full flex items-center gap-3 px-3 py-2 text-left ${active === i ? 'bg-rose-50' : 'hover:bg-rose-50'}`}
                 >
                   <span className="relative h-9 w-9 flex-shrink-0 rounded overflow-hidden bg-gray-100">
-                    {s.images?.[0] && <Image src={s.images[0]} alt="" fill className="object-cover" sizes="36px" />}
+                    {s.image && <Image src={s.image} alt="" fill className="object-cover" sizes="36px" />}
                   </span>
                   <span className="flex-1 min-w-0">
-                    <span className="block text-sm text-gray-800 truncate">{highlight(toTitleCase(s.name), term)}</span>
+                    <span className="block text-sm text-gray-800 truncate">
+                      {highlight(toTitleCase(s.name), term)}
+                      {s.color && <span className="text-gray-400"> · {highlight(toTitleCase(s.color), term)}</span>}
+                    </span>
                     <span className="flex items-center gap-2">
                       {typeof s.price === 'number' && <span className="text-xs font-semibold text-[#C2185B]">{formatPrice(s.price)}</span>}
                       {s.category && <span className="text-[11px] text-gray-400 capitalize">{s.category}</span>}
