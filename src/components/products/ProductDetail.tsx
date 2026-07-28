@@ -426,7 +426,7 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
           {hasVideo && (
             <button
               onClick={openVideoSlide}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#C2185B] hover:underline"
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-[#C2185B] hover:underline"
             >
               <PlayCircle className="h-4 w-4" /> Watch Saree Video
             </button>
@@ -467,7 +467,7 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
                 </p>
               )}
               <h1
-                className="text-[32px] md:text-[48px]"
+                className="text-[32px] md:text-[48px] -mt-1.5"
                 style={{
                   fontFamily: 'var(--font-cormorant-garamond)',
                   fontWeight: 600,

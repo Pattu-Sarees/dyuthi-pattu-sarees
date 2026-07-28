@@ -59,10 +59,15 @@ export default function ProductCard({
   useEffect(() => setMounted(true), [])
 
   // Fly a thumbnail of the product from the button to the header cart icon.
-  const flyToCart = (fromRef: React.RefObject<HTMLButtonElement | null>) => {
+  // `onLanded` fires once the thumbnail actually reaches the cart icon — the
+  // cart count shouldn't tick up before the animation visually gets there.
+  const flyToCart = (fromRef: React.RefObject<HTMLButtonElement | null>, onLanded?: () => void) => {
     const start = fromRef.current?.getBoundingClientRect()
     const target = document.getElementById('cart-fly-target')?.getBoundingClientRect()
-    if (!start || !target || !displayImage) return
+    if (!start || !target || !displayImage) {
+      onLanded?.()
+      return
+    }
     const size = 44
     const cx = start.left + start.width / 2
     const cy = start.top + start.height / 2
@@ -95,7 +100,10 @@ export default function ProductCard({
       ],
       { duration: 1000, easing: 'cubic-bezier(0.45, 0, 0.35, 1)' }
     )
-    anim.onfinish = () => fly.remove()
+    anim.onfinish = () => {
+      fly.remove()
+      onLanded?.()
+    }
   }
 
   const handleWishlist = (e: React.MouseEvent) => {
@@ -127,15 +135,17 @@ export default function ProductCard({
       toast.error(`Only ${max} in stock`, { description: product.name })
       return
     }
-    addItem(product, 1, mainImage)
-    // Sequence: dots burst → check mark + fly to cart → message → back to bag
+    // Sequence: dots burst → check mark + fly to cart → THEN bump the cart
+    // count/message once the thumbnail actually lands → back to bag icon.
     setBurst(true)
     setTimeout(() => {
       setBurst(false)
       setJustAdded(true)
-      flyToCart(fromRef)
+      flyToCart(fromRef, () => {
+        addItem(product, 1, mainImage)
+        toast.success('Added to cart', { description: product.name })
+      })
     }, 280)
-    setTimeout(() => toast.success('Added to cart', { description: product.name }), 1300)
     setTimeout(() => setJustAdded(false), 1600)
   }
 

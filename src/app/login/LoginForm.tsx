@@ -62,7 +62,19 @@ export default function LoginForm() {
   }
 
   const handleOtpChange = (i: number, value: string) => {
-    const digit = value.replace(/\D/g, '').slice(-1)
+    const digits = value.replace(/\D/g, '')
+    // Mobile keyboards often fill the whole code into whichever box is focused
+    // (tapping the clipboard/autofill suggestion) instead of firing a paste
+    // event — spread it across all boxes just like a real paste would.
+    if (digits.length > 1) {
+      const chars = digits.slice(0, OTP_LENGTH).split('')
+      const next = Array(OTP_LENGTH).fill('')
+      chars.forEach((d, idx) => { next[idx] = d })
+      setOtp(next)
+      inputsRef.current[Math.min(chars.length, OTP_LENGTH - 1)]?.focus()
+      return
+    }
+    const digit = digits.slice(-1)
     setOtp((prev) => {
       const next = [...prev]
       next[i] = digit
@@ -147,7 +159,8 @@ export default function LoginForm() {
                       ref={(el) => { inputsRef.current[i] = el }}
                       type="text"
                       inputMode="numeric"
-                      maxLength={1}
+                      autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                      maxLength={OTP_LENGTH}
                       value={otp[i]}
                       onChange={(e) => handleOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(i, e)}

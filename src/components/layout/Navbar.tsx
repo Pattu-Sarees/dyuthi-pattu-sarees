@@ -264,6 +264,14 @@ export default function Navbar({
         </div>
       </div>
 
+      {/* Mobile search bar — part of the sticky header so it never scrolls away
+          on its own (and its dropdown always renders below a visible input). */}
+      {showMobileSearch && (
+        <div className="md:hidden bg-[#F5EFE6] border-t border-gray-100 px-4 py-2">
+          <SearchBox variant="mobile" />
+        </div>
+      )}
+
       {/* Mobile navigation drawer — slide-in from left */}
       {menuOpen && (
         <div className="md:hidden fixed inset-0 z-[60]" role="dialog" aria-label="Menu">
@@ -377,13 +385,6 @@ export default function Navbar({
       )}
 
     </header>
-
-    {/* Mobile search bar — between header and content, on listing/home pages only */}
-    {showMobileSearch && (
-      <div className="md:hidden bg-[#F5EFE6] border-b border-gray-100 px-4 py-2">
-        <SearchBox variant="mobile" />
-      </div>
-    )}
     </>
   )
 }

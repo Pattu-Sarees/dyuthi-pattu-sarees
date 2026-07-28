@@ -149,7 +149,7 @@ export default function InfiniteProductsGrid({ items, onlyBadge }: { items: Disp
         }`}
       >
         {items.slice(0, visible).map((item) => (
-          <div key={item.key} className={desktopCols === 2 ? 'lg:max-w-sm lg:mx-auto lg:w-full' : ''}>
+          <div key={item.key} className={`min-w-0 ${desktopCols === 2 ? 'lg:max-w-sm lg:mx-auto lg:w-full' : ''}`}>
             <ProductCard
               product={item.product}
               image={item.image}
