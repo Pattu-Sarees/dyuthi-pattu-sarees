@@ -91,7 +91,7 @@ async function search(query: string | null, limit: number, scope: Scope) {
     .map<VariantSuggestion>((it) => ({
       id: it.product.id,
       name: it.product.name,
-      code: it.product.code,
+      code: it.product.code ?? undefined,
       category: it.product.category,
       color: it.color,
       price: it.product.price,
