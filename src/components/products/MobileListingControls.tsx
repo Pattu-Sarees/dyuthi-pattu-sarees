@@ -32,21 +32,20 @@ export default function MobileListingControls() {
 
   return (
     <div className="lg:hidden">
-      {/* Filter & Sort — fixed bottom navigation bar. Kept smaller and pushed
-          toward the right so the WhatsApp floater (bottom-left) never overlaps it. */}
-      <div className="fixed bottom-4 inset-x-0 z-40 flex justify-end pr-4 pl-24">
-        <div className="grid grid-cols-2 w-full max-w-[13rem] bg-[#B8860B] text-[#FFF8E7] rounded-full shadow-lg overflow-hidden">
+      {/* Filter & Sort — fixed bottom navigation bar, centered. */}
+      <div className="fixed bottom-4 inset-x-0 z-40 flex justify-center px-4">
+        <div className="grid grid-cols-2 w-full max-w-[15rem] bg-[#B8860B] text-[#FFF8E7] rounded-full shadow-lg overflow-hidden">
           <button
             onClick={() => setFilterOpen(true)}
-            className="flex items-center justify-center gap-1.5 py-2 text-xs font-semibold border-r border-[#FFF8E7]/25 active:bg-[#9c7209]"
+            className="flex items-center justify-center gap-2 py-2.5 text-sm font-semibold border-r border-[#FFF8E7]/25 active:bg-[#9c7209]"
           >
-            <SlidersHorizontal className="h-3.5 w-3.5" /> Filter
+            <SlidersHorizontal className="h-4 w-4" /> Filter
           </button>
           <button
             onClick={() => setSortOpen(true)}
-            className="flex items-center justify-center gap-1.5 py-2 text-xs font-semibold active:bg-[#9c7209]"
+            className="flex items-center justify-center gap-2 py-2.5 text-sm font-semibold active:bg-[#9c7209]"
           >
-            <ArrowUpDown className="h-3.5 w-3.5" /> Sort
+            <ArrowUpDown className="h-4 w-4" /> Sort
           </button>
         </div>
       </div>

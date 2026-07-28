@@ -247,7 +247,7 @@ export default function SearchBox({
 
       {/* Typeahead dropdown */}
       {showDropdown && (loading || items.length > 0 || noMatches) && (
-        <div id={listId} role="listbox" className={`absolute z-[70] mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 max-h-96 overflow-y-auto ${dropdownWidth}`}>
+        <div id={listId} role="listbox" className={`absolute top-full z-[70] mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 max-h-96 overflow-y-auto ${dropdownWidth}`}>
           {noMatches ? (
             <p className="px-3 py-3 text-sm text-gray-500">No sarees found</p>
           ) : (
