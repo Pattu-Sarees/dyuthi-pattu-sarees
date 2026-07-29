@@ -1,14 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ShoppingBag, Check, Plus, Trash2, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCartStore } from '@/store/cart'
+import { createClient } from '@/lib/supabase/client'
+import { fetchCollections, createCollection, addItemsToCollection, type Collection } from '@/lib/collections'
 import { formatPrice, toTitleCase } from '@/lib/utils'
 import type { SharedCartEntry } from '@/lib/cart-share-resolve'
 import ShareCartModal from '@/components/cart/ShareCartModal'
+import SaveToCollectionSheet from '@/components/wishlist/SaveToCollectionSheet'
+import CreateCollectionModal from '@/components/wishlist/CreateCollectionModal'
 
 // Possessive form: "Sainath" -> "Sainath's", "My" -> "My"
 function possessiveTitle(name: string) {
@@ -23,10 +28,26 @@ export default function SharedCartView({
   entries: SharedCartEntry[]
   ownerName: string
 }) {
+  const router = useRouter()
   const [entries, setEntries] = useState(initialEntries)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [shareOpen, setShareOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [collections, setCollections] = useState<Collection[]>([])
+  const [userId, setUserId] = useState<string | null>(null)
   const addItem = useCartStore((s) => s.addItem)
+
+  // Resolve the viewer's identity — collections belong to the logged-in viewer,
+  // not the original cart owner.
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return
+      setUserId(data.user.id)
+      fetchCollections().then(setCollections).catch(() => {})
+    })
+  }, [])
 
   const selectMode = selected.size > 0
 
@@ -38,11 +59,44 @@ export default function SharedCartView({
     })
 
   const selectedEntries = entries.filter((e) => selected.has(e.key))
+  const selectedKeys = () => Array.from(selected)
 
-  const addSelectedToBag = () => {
-    selectedEntries.forEach((e) => addItem(e.product, e.quantity, e.image))
-    toast.success(`Added ${selectedEntries.length} item${selectedEntries.length === 1 ? '' : 's'} to your bag`)
-    setSelected(new Set())
+  // "+" opens the same "Save items to" collection picker used on the Wishlist
+  // page — saves the selected shared items into one of the viewer's own
+  // wishlist collections (or a brand-new one).
+  const openSaveToCollection = () => {
+    if (!userId) {
+      toast.info('Please sign in to save items to a collection')
+      router.push(`/login?redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname : '/')}`)
+      return
+    }
+    setSheetOpen(true)
+  }
+
+  const saveToExisting = async (c: Collection) => {
+    try {
+      await addItemsToCollection(c, selectedKeys())
+      toast.success(`Saved to ${c.name}`)
+      setSheetOpen(false)
+      setSelected(new Set())
+      fetchCollections().then(setCollections).catch(() => {})
+    } catch {
+      toast.error('Could not save to collection')
+    }
+  }
+
+  const doCreateCollection = async (name: string) => {
+    if (!userId) return
+    try {
+      const cover = selectedEntries[0]?.image || null
+      await createCollection(userId, name, selectedKeys(), cover)
+      toast.success(`Collection "${name}" created`)
+      setCreateOpen(false)
+      setSelected(new Set())
+      fetchCollections().then(setCollections).catch(() => {})
+    } catch {
+      toast.error('Could not create collection')
+    }
   }
 
   // Removes items from THIS shared view only (client-side) — never touches
@@ -80,9 +134,9 @@ export default function SharedCartView({
         {selectMode && (
           <div className="flex items-center gap-2">
             <button
-              onClick={addSelectedToBag}
-              aria-label="Add selected items to your bag"
-              title="Add to bag"
+              onClick={openSaveToCollection}
+              aria-label="Save selected items to a collection"
+              title="Save to collection"
               className="h-10 w-10 flex items-center justify-center rounded-lg border border-gray-300 text-[#4E1E24] hover:border-[#AD1457] hover:text-[#AD1457] transition-colors"
             >
               <Plus className="h-5 w-5" />
@@ -173,6 +227,26 @@ export default function SharedCartView({
           ownerName={ownerName}
           userId={null}
           onClose={() => setShareOpen(false)}
+        />
+      )}
+
+      {sheetOpen && (
+        <SaveToCollectionSheet
+          collections={collections}
+          onCreateNew={() => {
+            setSheetOpen(false)
+            setCreateOpen(true)
+          }}
+          onSelect={saveToExisting}
+          onClose={() => setSheetOpen(false)}
+        />
+      )}
+
+      {createOpen && (
+        <CreateCollectionModal
+          previewImages={selectedEntries.map((e) => e.image)}
+          onCreate={doCreateCollection}
+          onClose={() => setCreateOpen(false)}
         />
       )}
     </>
