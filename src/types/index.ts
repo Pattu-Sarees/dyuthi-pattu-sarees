@@ -263,7 +263,13 @@ export interface Customer {
 export interface Address {
   id: string
   user_id: string
+  // `name` is the combined full name — kept so existing order records / admin
+  // views (which only ever read `.name`) keep working unchanged. Checkout
+  // collects first_name/last_name separately and combines them into `name`.
   name: string
+  first_name?: string
+  last_name?: string
+  country?: string
   phone: string
   line1: string
   line2?: string
@@ -271,6 +277,18 @@ export interface Address {
   state: string
   pincode: string
   is_default: boolean
+  // Present only when the customer chose a different billing address.
+  billing?: {
+    first_name?: string
+    last_name?: string
+    country?: string
+    phone?: string
+    line1?: string
+    line2?: string
+    city?: string
+    state?: string
+    pincode?: string
+  }
 }
 
 export interface Order {

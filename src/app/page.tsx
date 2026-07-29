@@ -103,7 +103,7 @@ export default async function HomePage({
 
       {/* Our Collections — all sarees, or filtered by selected category */}
       {allProducts.length > 0 && (
-        <section className="container mx-auto px-4 pt-8">
+        <section id="our-collections" className="container mx-auto px-4 pt-8 scroll-mt-[168px] md:scroll-mt-28">
           <div className="flex items-center justify-center gap-3 mb-8">
             <h2 className="text-3xl md:text-4xl font-bold text-center text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>
               {selectedName ? `${selectedName}` : 'Our Collection'}

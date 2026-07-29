@@ -7,8 +7,11 @@
 
 html, body {
   /* Safety net: nothing should ever cause horizontal scrolling/panning of the
-     page itself (e.g. narrow mobile grid columns with unbreakable content). */
-  overflow-x: hidden;
+     page itself (e.g. narrow mobile grid columns with unbreakable content).
+     Uses `clip` rather than `hidden` — `hidden` makes body/html a scroll
+     container on some mobile browsers, which breaks `position: sticky` on
+     the header. `clip` prevents the scroll/pan without that side effect. */
+  overflow-x: clip;
   max-width: 100%;
 }
 

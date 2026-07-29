@@ -282,7 +282,17 @@ function CategoryCard({ cat, idx, active }: { cat: Category; idx: number; active
   }
 
   return (
-    <Link href={`/?category=${cat.slug}`} scroll={false} className="group flex flex-col items-center flex-shrink-0 w-[33vw] max-w-[190px] md:w-[210px] md:max-w-none">
+    <Link
+      href={`/?category=${cat.slug}`}
+      scroll={false}
+      onClick={() => {
+        // Same-page filter change (scroll={false} keeps the current position) —
+        // nudge the viewport down to the filtered results instead of leaving
+        // the user stranded up at the category cards.
+        setTimeout(() => document.getElementById('our-collections')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+      }}
+      className="group flex flex-col items-center flex-shrink-0 w-[33vw] max-w-[190px] md:w-[210px] md:max-w-none"
+    >
       <div className={`relative w-full ${aspect} transition-[filter] duration-300 group-hover:[filter:drop-shadow(0_0_14px_rgba(194,24,91,0.55))] ${active ? '[filter:drop-shadow(0_0_14px_rgba(194,24,91,0.55))]' : ''}`}>
         {back}
         {image}
