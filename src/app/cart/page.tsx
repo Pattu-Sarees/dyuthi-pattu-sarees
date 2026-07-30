@@ -29,7 +29,7 @@ function SelectionHint() {
 }
 
 export default function CartPage() {
-  const { items, removeItem, removeItems, updateQuantity, clearCart, deselected, toggleSelected, selectedItems } = useCartStore()
+  const { items, removeItem, removeItems, updateQuantity, deselected, toggleSelected, selectedItems } = useCartStore()
   const wishlistAdd = useWishlistStore((s) => s.add)
   const [confirmRemove, setConfirmRemove] = useState<CartItem | null>(null)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
@@ -134,7 +134,7 @@ export default function CartPage() {
     <div className="container mx-auto px-4 py-8">
       <CheckoutBreadcrumb active="cart" />
       <div className="relative">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">My Cart ({items.length} items)</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">My Cart</h1>
         {showDesktopHint && (
           <div
             className="hidden lg:block absolute top-full left-1/2 -translate-x-1/2 z-50 whitespace-nowrap rounded-2xl px-5 py-3 text-sm font-semibold shadow-lg"
@@ -261,10 +261,6 @@ export default function CartPage() {
               </div>
             )
           })}
-
-          <button onClick={clearCart} className="text-sm text-red-500 hover:text-red-600 transition-colors">
-            Clear all items
-          </button>
         </div>
 
         {/* Summary */}
