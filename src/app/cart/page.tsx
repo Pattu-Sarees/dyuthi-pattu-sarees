@@ -12,7 +12,11 @@ import { useEffect, useState } from 'react'
 import CheckoutBreadcrumb from '@/components/checkout/CheckoutBreadcrumb'
 import { CartItem } from '@/types'
 import { createClient } from '@/lib/supabase/client'
-import ShareCartModal from '@/components/cart/ShareCartModal'
+import dynamic from 'next/dynamic'
+
+// Lazy-loaded: only pulled in when the shopper opens the share dialog, keeping
+// it out of the initial cart-page bundle.
+const ShareCartModal = dynamic(() => import('@/components/cart/ShareCartModal'))
 
 // Mobile-only hint, anchored right under whichever icon was clicked with
 // nothing selected. Desktop shows a top-center toast instead (see

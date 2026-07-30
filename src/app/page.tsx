@@ -77,11 +77,17 @@ export default async function HomePage({
   searchParams: Promise<{ category?: string }>
 }) {
   const { category: selectedCategory } = await searchParams
-  const { newArrivals, bestSellers, onSale } = await getProducts()
-  const categories = await getCategories()
-  const allProducts = await getAllProducts()
-  const testimonials = await getTestimonials()
-  const heroSlides = resolveHeroSlides((await getHomepageConfig()).hero?.data)
+  // Fire all storefront reads in parallel instead of awaiting them one-by-one
+  // (was a 5-deep request waterfall). getHomepageConfig() is React.cached, so
+  // this call and the one in the root layout share a single DB round-trip.
+  const [{ newArrivals, bestSellers, onSale }, categories, allProducts, testimonials, homeConfig] = await Promise.all([
+    getProducts(),
+    getCategories(),
+    getAllProducts(),
+    getTestimonials(),
+    getHomepageConfig(),
+  ])
+  const heroSlides = resolveHeroSlides(homeConfig.hero?.data)
 
   const collectionProducts = selectedCategory
     ? allProducts.filter((p) => p.category === selectedCategory)

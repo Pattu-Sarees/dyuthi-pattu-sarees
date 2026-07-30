@@ -10,11 +10,15 @@ import { PUBLIC_PRODUCT_COLUMNS } from '@/lib/public-product-columns'
 import { useWishlistStore } from '@/store/wishlist'
 import { buildWishlistEntries, parseWishKey, type WishlistEntry } from '@/lib/wishlist-resolve'
 import { fetchCollections, createCollection, addItemsToCollection, renameCollection, deleteCollection, type Collection } from '@/lib/collections'
+import dynamic from 'next/dynamic'
 import WishlistCard from '@/components/wishlist/WishlistCard'
-import ShareWishlistModal from '@/components/wishlist/ShareWishlistModal'
-import SaveToCollectionSheet from '@/components/wishlist/SaveToCollectionSheet'
-import CreateCollectionModal from '@/components/wishlist/CreateCollectionModal'
-import RenameCollectionModal from '@/components/wishlist/RenameCollectionModal'
+
+// Lazy-loaded — each dialog only loads when the user opens it, trimming the
+// wishlist page's initial JS.
+const ShareWishlistModal = dynamic(() => import('@/components/wishlist/ShareWishlistModal'))
+const SaveToCollectionSheet = dynamic(() => import('@/components/wishlist/SaveToCollectionSheet'))
+const CreateCollectionModal = dynamic(() => import('@/components/wishlist/CreateCollectionModal'))
+const RenameCollectionModal = dynamic(() => import('@/components/wishlist/RenameCollectionModal'))
 import type { Product } from '@/types'
 import { toast } from 'sonner'
 

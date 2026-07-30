@@ -20,6 +20,13 @@ interface Suggestion {
   imageIndex?: number
 }
 
+// Module-level cache of typeahead results, keyed by `scope|term`. Survives
+// component remounts (desktop/mobile boxes) for the session, so re-typing or
+// re-opening a recent query is instant and hits no network. Capped to keep
+// memory bounded.
+const suggestionCache = new Map<string, Suggestion[]>()
+const SUGGESTION_CACHE_MAX = 60
+
 // Bold the matched query words inside a suggestion name.
 function highlight(name: string, query: string) {
   const words = query.trim().toLowerCase().split(/\s+/).filter((w) => w.length >= 2)
@@ -111,11 +118,24 @@ export default function SearchBox({
       setLoading(false)
       return
     }
+    // Serve identical results from cache instantly (no network, no spinner).
+    const cacheKey = `${scope}|${term.toLowerCase()}`
+    const cached = suggestionCache.get(cacheKey)
+    if (cached) {
+      setItems(cached)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     const t = setTimeout(() => {
       fetch(`/api/search?query=${encodeURIComponent(term)}&limit=6${scope ? `&scope=${scope}` : ''}`)
         .then((r) => r.json())
-        .then((d) => setItems(((d.items as Suggestion[]) || []).slice(0, 6)))
+        .then((d) => {
+          const next = ((d.items as Suggestion[]) || []).slice(0, 6)
+          if (suggestionCache.size >= SUGGESTION_CACHE_MAX) suggestionCache.delete(suggestionCache.keys().next().value!)
+          suggestionCache.set(cacheKey, next)
+          setItems(next)
+        })
         .catch(() => setItems([]))
         .finally(() => setLoading(false))
     }, 300)

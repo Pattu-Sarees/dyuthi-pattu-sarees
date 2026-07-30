@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -11,9 +12,11 @@ import { createClient } from '@/lib/supabase/client'
 import { fetchCollections, createCollection, addItemsToCollection, type Collection } from '@/lib/collections'
 import { formatPrice, toTitleCase } from '@/lib/utils'
 import type { SharedCartEntry } from '@/lib/cart-share-resolve'
-import ShareCartModal from '@/components/cart/ShareCartModal'
-import SaveToCollectionSheet from '@/components/wishlist/SaveToCollectionSheet'
-import CreateCollectionModal from '@/components/wishlist/CreateCollectionModal'
+
+// Lazy-loaded — each only loads when its dialog is actually opened.
+const ShareCartModal = dynamic(() => import('@/components/cart/ShareCartModal'))
+const SaveToCollectionSheet = dynamic(() => import('@/components/wishlist/SaveToCollectionSheet'))
+const CreateCollectionModal = dynamic(() => import('@/components/wishlist/CreateCollectionModal'))
 
 // Possessive form: "Sainath" -> "Sainath's", "My" -> "My"
 function possessiveTitle(name: string) {
