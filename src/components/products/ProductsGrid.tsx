@@ -1,6 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
 import PaginatedProductsGrid from './PaginatedProductsGrid'
-import { fetchAllProducts, productsToItems, computeOnlyBadge } from '@/lib/products-query'
+import { productsToItems, computeOnlyBadge } from '@/lib/products-query'
+import { getListingProducts } from '@/lib/storefront-data'
 
 function Empty() {
   return (
@@ -18,11 +18,9 @@ export default async function ProductsGrid({
   searchParams: Promise<Record<string, string | string[]>>
 }) {
   const params = await searchParams
-  const supabase = await createClient()
 
-  // Fetch matching products (capped), flatten to display cards. The grid then
-  // reveals cards in batches on scroll (infinite scroll by item cards).
-  const products = await fetchAllProducts(supabase as never, params)
+  // Cached (anon) read — repeat navigations to a collection skip the DB.
+  const products = await getListingProducts(params)
   if (products.length === 0) return <Empty />
 
   const items = productsToItems(products, params)
