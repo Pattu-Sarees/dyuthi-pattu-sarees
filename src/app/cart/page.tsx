@@ -50,16 +50,18 @@ export default function CartPage() {
   // logged-in users, anonymous dedupe otherwise — see /api/cart/share).
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) return
-      setUserId(data.user.id)
+    // getSession() is local (no auth-server round-trip) — faster cart open.
+    supabase.auth.getSession().then(({ data }) => {
+      const authUser = data.session?.user
+      if (!authUser) return
+      setUserId(authUser.id)
       supabase
         .from('profiles')
         .select('full_name')
-        .eq('id', data.user.id)
+        .eq('id', authUser.id)
         .single()
         .then(({ data: profile }) => {
-          setOwnerName(profile?.full_name?.trim() || data.user!.email?.split('@')[0] || 'My')
+          setOwnerName(profile?.full_name?.trim() || authUser.email?.split('@')[0] || 'My')
         })
     })
   }, [])

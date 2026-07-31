@@ -49,8 +49,10 @@ export default function Navbar({
           setFirstName(properCase(first))
         })
     }
-    supabase.auth.getUser().then(({ data }) => {
-      const u = data.user as { id: string; email: string } | null
+    // getSession() reads the session locally (no auth-server round-trip), so the
+    // header hydrates instantly on every page instead of waiting on a network call.
+    supabase.auth.getSession().then(({ data }) => {
+      const u = (data.session?.user as { id: string; email: string } | null) ?? null
       setUser(u)
       loadName(u)
     })
@@ -60,7 +62,7 @@ export default function Navbar({
       loadName(u)
     })
     // Refresh the displayed name right after the account page saves it.
-    const onProfileUpdated = () => supabase.auth.getUser().then(({ data }) => loadName(data.user as { id: string; email: string } | null))
+    const onProfileUpdated = () => supabase.auth.getSession().then(({ data }) => loadName(data.session?.user as { id: string; email: string } | null))
     window.addEventListener('profile-updated', onProfileUpdated)
     return () => {
       subscription.unsubscribe()

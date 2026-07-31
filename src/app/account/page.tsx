@@ -19,14 +19,15 @@ export default function AccountPage() {
 
   useEffect(() => {
     setLoading(true)
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) { router.push('/login?redirect=/account'); return }
-      setUser(data.user as { id: string; email: string })
-      // Prefill Full Name from the email (letters only, proper-cased) when the
-      // profile has no name yet — the user can edit and save it.
-      const emailName = (data.user.email || '').split('@')[0].replace(/[^a-zA-Z]/g, '')
+    // getSession() reads the session LOCALLY (no network round-trip) — avoids the
+    // auth-server waterfall so the profile query fires immediately on mobile.
+    supabase.auth.getSession().then(({ data }) => {
+      const authUser = data.session?.user
+      if (!authUser) { router.push('/login?redirect=/account'); return }
+      setUser(authUser as { id: string; email: string })
+      const emailName = (authUser.email || '').split('@')[0].replace(/[^a-zA-Z]/g, '')
       const fallbackName = emailName ? emailName.charAt(0).toUpperCase() + emailName.slice(1).toLowerCase() : ''
-      supabase.from('profiles').select('*').eq('id', data.user.id).single()
+      supabase.from('profiles').select('*').eq('id', authUser.id).single()
         .then(({ data: profileData }) => {
           setProfile({ full_name: profileData?.full_name?.trim() || fallbackName, phone: profileData?.phone || '' })
           setLoading(false)

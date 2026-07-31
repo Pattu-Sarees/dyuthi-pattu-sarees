@@ -1,17 +1,24 @@
 import { cache } from 'react'
+import { unstable_cache } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { HOMEPAGE_SECTION_KEYS, type HomepageSection } from '@/types'
 
-// Fetch all homepage sections in display order. Safe to call from the
-// storefront — falls back to an empty list if the table doesn't exist yet.
-// Wrapped in React.cache so the layout and the home page (which both need it
-// in the same request) share a single DB round-trip instead of two.
-export const getHomepageSections = cache(async function getHomepageSections(): Promise<HomepageSection[]> {
-  const db = createAdminClient()
-  const { data, error } = await db.from('homepage_sections').select('*').order('sort_order', { ascending: true })
-  if (error) return []
-  return (data || []) as HomepageSection[]
-})
+// Cross-request cache (60s) of the homepage sections. This removes the DB
+// round-trip on EVERY navigation to Home (the "any page → home" delay). Admin
+// edits appear within 60s (or instantly if you call revalidateTag('homepage')).
+const getSectionsCached = unstable_cache(
+  async (): Promise<HomepageSection[]> => {
+    const db = createAdminClient()
+    const { data, error } = await db.from('homepage_sections').select('*').order('sort_order', { ascending: true })
+    if (error) return []
+    return (data || []) as HomepageSection[]
+  },
+  ['homepage-sections'],
+  { revalidate: 60, tags: ['homepage'] }
+)
+
+// React.cache still dedups within a single request (layout + page share it).
+export const getHomepageSections = cache(getSectionsCached)
 
 // Convenience map keyed by section key, for storefront components. Also cached
 // per-request so repeated callers reuse the same computed map.
