@@ -47,3 +47,6 @@ certificates
 # local artifacts (not for deploy)
 tools/*.mp4
 backups/
+test-results/
+playwright-report/
+playwright/.cache/

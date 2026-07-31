@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Playwright component tests are not part of the app build.
+    "tests-ct/**",
+    "playwright/**",
+    "playwright-ct.config.ts",
+    "test-results/**",
+    "playwright-report/**",
   ]),
 ]);
 

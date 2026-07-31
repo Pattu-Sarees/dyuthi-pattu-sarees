@@ -28,7 +28,7 @@ export default function AnnouncementBar() {
   const slide = SLIDES[index]
 
   return (
-    <div className="bg-[#B8860B] text-[#FFF8E7] text-sm md:text-base py-0.5 md:py-1 px-4 overflow-hidden">
+    <div className="bg-[#B8860B] text-[#FFF8E7] text-xs md:text-base py-0.5 md:py-1 px-2 md:px-4 overflow-hidden">
       <div className="relative max-w-3xl mx-auto flex items-center justify-center h-5 md:h-6">
         <button
           type="button"
@@ -41,7 +41,7 @@ export default function AnnouncementBar() {
 
         <span
           key={index}
-          className="animate-announce-slide flex items-center gap-2 font-medium tracking-wide text-center whitespace-nowrap px-8"
+          className="animate-announce-slide flex items-center gap-1.5 md:gap-2 font-medium tracking-wide text-center whitespace-nowrap px-6 md:px-8"
         >
           {slide.text} <span aria-hidden>{slide.symbol}</span>
         </span>

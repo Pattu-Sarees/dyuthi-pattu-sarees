@@ -214,7 +214,7 @@ export default function ProductCard({
   // Standard vertical card — used for grid views, and for mobile even when
   // the desktop list view is active.
   const gridCard = (
-    <div className="group relative bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-300 cursor-pointer h-full">
+    <div className="group relative bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-300 cursor-pointer h-full max-lg:flex max-lg:flex-col">
       {/* Image */}
       <div className="relative aspect-[9/10] bg-gray-100">
         <div className="absolute inset-0 overflow-hidden rounded-t-lg">
@@ -288,8 +288,9 @@ export default function ProductCard({
 
       {badgeBar}
 
-      {/* Info */}
-      <div className="p-3">
+      {/* Info — pinned to the bottom on mobile so name/price align across a row
+          even when some cards carry a BEST SELLER badge bar. */}
+      <div className="p-3 max-lg:mt-auto">
         <h3 className="text-gray-800 text-sm leading-tight line-clamp-2 mb-1.5 min-h-[2.5rem]">{toTitleCase(product.name)}</h3>
         <div className="flex items-baseline gap-2">
           <span className="text-base font-bold text-[#C2185B]">{formatPrice(product.price)}</span>
