@@ -71,7 +71,7 @@ export default function Footer({ data = FOOTER_DEFAULTS, logo = '/logo-v3.jpeg' 
 
       {/* Main footer */}
       <div className="bg-[#3a0d22] text-gray-300">
-        <div className="container mx-auto px-4 py-12">
+        <div className="container mx-auto px-4 py-12 max-lg:pt-5">
           <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8">
             {/* Brand */}
             <div className="lg:col-span-2">

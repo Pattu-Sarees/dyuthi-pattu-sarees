@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { SlidersHorizontal, ArrowUpDown, X, Check } from 'lucide-react'
 import ProductFilters from './ProductFilters'
@@ -17,10 +17,24 @@ const SORT_OPTIONS = [
 export default function MobileListingControls() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [sortOpen, setSortOpen] = useState(false)
+  const [inFooter, setInFooter] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const currentSort = searchParams.get('sort') || ''
+
+  // Hide the floating Filter/Sort bar once the footer scrolls into view —
+  // it doesn't belong over the footer.
+  useEffect(() => {
+    const footer = document.querySelector('footer')
+    if (!footer) return
+    const io = new IntersectionObserver(
+      ([entry]) => setInFooter(entry.isIntersecting),
+      { rootMargin: '0px 0px -8% 0px' }
+    )
+    io.observe(footer)
+    return () => io.disconnect()
+  }, [pathname])
 
   const applySort = (value: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -32,8 +46,13 @@ export default function MobileListingControls() {
 
   return (
     <div className="lg:hidden">
-      {/* Filter & Sort — fixed bottom navigation bar, centered. */}
-      <div className="fixed bottom-4 inset-x-0 z-40 flex justify-center px-4">
+      {/* Filter & Sort — fixed bottom navigation bar, centered.
+          Hidden (faded out) once the footer is in view. */}
+      <div
+        className={`fixed bottom-4 inset-x-0 z-40 flex justify-center px-4 transition-all duration-300 ${
+          inFooter ? 'opacity-0 translate-y-6 pointer-events-none' : 'opacity-100 translate-y-0'
+        }`}
+      >
         <div className="grid grid-cols-2 w-full max-w-[15rem] bg-[#B8860B] text-[#FFF8E7] rounded-full shadow-lg overflow-hidden">
           <button
             onClick={() => setFilterOpen(true)}
