@@ -72,15 +72,15 @@ export default function GlobalSearch() {
   const showRecent = q.trim().length === 0 && recent.length > 0
 
   return (
-    <div ref={boxRef} className="relative flex-1 max-w-md mx-auto block">
-      <div className="flex items-center gap-2 bg-[#FBF7F0] border border-[#ece3d6] rounded-full px-4 py-2">
-        <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
+    <div ref={boxRef} className="relative flex-1 min-w-0 max-w-md mx-auto block">
+      <div className="flex items-center gap-1.5 sm:gap-2 bg-[#FBF7F0] border border-[#ece3d6] rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2">
+        <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400 flex-shrink-0" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => setOpen(true)}
           placeholder="Search products, orders, customers…"
-          className="flex-1 bg-transparent text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none"
+          className="flex-1 min-w-0 bg-transparent text-xs sm:text-sm text-gray-700 placeholder:text-gray-400 placeholder:truncate focus:outline-none"
         />
         {loading ? <Loader2 className="h-4 w-4 text-gray-400 animate-spin" /> : q && <button onClick={() => setQ('')} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>}
       </div>

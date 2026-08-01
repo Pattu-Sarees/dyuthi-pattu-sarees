@@ -43,31 +43,25 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       {/* Top bar */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
         <div className="flex items-center h-16">
-          {/* Desktop: full logo + wordmark on white, matching the storefront header */}
-          <Link href="/admin" className="flex-shrink-0 hidden md:flex items-center gap-2 h-16 pl-4 pr-6">
-            <span className="relative flex-shrink-0 overflow-hidden rounded-md h-12 w-12">
+          {/* Full logo + wordmark on white, matching the storefront header (scaled down on mobile) */}
+          <Link href="/admin" className="flex-shrink-0 flex items-center gap-1.5 md:gap-2 h-16 pl-2 pr-2 md:pl-4 md:pr-6">
+            <span className="relative flex-shrink-0 overflow-hidden rounded-md h-9 w-9 md:h-12 md:w-12">
               <Image src="/logo-v3.jpeg" alt="Dyuthi Pattu Sarees" width={256} height={256} priority className="h-full w-full object-cover scale-[1.35]" />
             </span>
             <span className="leading-tight flex flex-col items-stretch w-fit">
-              <span className="block text-lg font-bold tracking-wide text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>
+              <span className="block text-[13px] md:text-lg font-bold tracking-wide text-[#4E1E24] whitespace-nowrap" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>
                 Dyuthi Pattu Sarees
               </span>
-              <span className="flex w-full items-center justify-center gap-1.5 text-[10px] tracking-wide text-[#A88C57]">
+              <span className="flex w-full items-center justify-center gap-1 md:gap-1.5 text-[7px] md:text-[10px] tracking-wide text-[#A88C57]">
                 <span aria-hidden className="h-px flex-1 min-w-0" style={{ background: 'linear-gradient(to right, transparent, #C9A227)' }} />
-                <span aria-hidden className="h-[4px] w-[4px] rotate-45 flex-shrink-0" style={{ backgroundColor: '#C9A227' }} />
+                <span aria-hidden className="h-[3px] w-[3px] md:h-[4px] md:w-[4px] rotate-45 flex-shrink-0" style={{ backgroundColor: '#C9A227' }} />
                 <span className="flex-shrink-0">Looms to Homes</span>
-                <span aria-hidden className="h-[4px] w-[4px] rotate-45 flex-shrink-0" style={{ backgroundColor: '#C9A227' }} />
+                <span aria-hidden className="h-[3px] w-[3px] md:h-[4px] md:w-[4px] rotate-45 flex-shrink-0" style={{ backgroundColor: '#C9A227' }} />
                 <span aria-hidden className="h-px flex-1 min-w-0" style={{ background: 'linear-gradient(to left, transparent, #C9A227)' }} />
               </span>
             </span>
           </Link>
-          {/* Mobile: compact icon only */}
-          <Link href="/admin" className="flex-shrink-0 md:hidden pl-3 pr-1">
-            <span className="relative flex-shrink-0 overflow-hidden rounded-md h-9 w-9 block">
-              <Image src="/logo-v3.jpeg" alt="Dyuthi Pattu Sarees" width={160} height={160} priority className="h-full w-full object-cover scale-[1.35]" />
-            </span>
-          </Link>
-          <div className="flex items-center justify-between gap-2 sm:gap-4 flex-1 px-2 sm:px-4">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-4 flex-1 px-1.5 sm:px-4 min-w-0">
             <GlobalSearch />
             <AdminHeaderActions email={user.email} name={user.user_metadata?.full_name} avatar={user.user_metadata?.avatar_url} />
           </div>

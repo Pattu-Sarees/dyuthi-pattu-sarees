@@ -64,7 +64,7 @@ function RankList({ title, icon, rows, unit }: { title: string; icon: React.Reac
                 {r.image && <Image src={r.image} alt={r.name} fill className="object-cover" sizes="40px" />}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-900 truncate">{r.name}</p>
+                <p className="text-sm font-medium text-[#AD1457] underline underline-offset-2 decoration-[#AD1457]/40 truncate">{r.name}</p>
                 <p className="text-[11px] text-gray-400 capitalize">{r.category}</p>
               </div>
               <span className="text-sm font-semibold text-[#AD1457] tabular-nums flex-shrink-0">{r.count} <span className="text-[11px] font-normal text-gray-400">{unit}</span></span>
