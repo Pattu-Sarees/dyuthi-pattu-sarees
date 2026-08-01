@@ -266,11 +266,17 @@ export default function AdminReviews() {
       ) : (
         <div className="space-y-3">
           {shown.map((t) => (
-            <div key={t.id} className="bg-white rounded-xl border border-gray-100 p-4">
+            <div key={t.id} className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4">
               <div className="flex items-start gap-3 flex-wrap">
-                <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#4E1E24] text-[#F4E5C2] flex items-center justify-center font-semibold">
-                  {(t.avatar_initial || t.customer_name.charAt(0)).toUpperCase()}
-                </div>
+                {(t.review_images?.[0] || t.proof_image) ? (
+                  <div className="relative h-12 w-12 flex-shrink-0 rounded-md overflow-hidden bg-gray-100">
+                    <Image src={(t.review_images?.[0] || t.proof_image) as string} alt={t.purchased_product || t.customer_name} fill className="object-cover" sizes="48px" />
+                  </div>
+                ) : (
+                  <div className="h-12 w-12 flex-shrink-0 rounded-md bg-[#4E1E24] text-[#F4E5C2] flex items-center justify-center font-semibold">
+                    {(t.avatar_initial || t.customer_name.charAt(0)).toUpperCase()}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto whitespace-nowrap sm:flex-wrap sm:gap-2">
                     <p className="font-semibold text-gray-900 flex-shrink-0">{t.customer_name}</p>

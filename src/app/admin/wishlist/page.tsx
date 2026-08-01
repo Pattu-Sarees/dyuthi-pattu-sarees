@@ -36,9 +36,9 @@ export default function AdminWishlistPage() {
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
-      <div className="flex items-center gap-1.5 text-gray-400 text-[11px] uppercase tracking-wide">{icon} {label}</div>
-      <p className="text-2xl font-bold text-[#4E1E24] tabular-nums mt-1">{value.toLocaleString('en-IN')}</p>
+    <div className="bg-white rounded-xl border border-gray-100 p-2.5 sm:p-4">
+      <div className="flex items-center gap-1 sm:gap-1.5 text-gray-400 text-[10px] sm:text-[11px] uppercase tracking-wide">{icon} {label}</div>
+      <p className="text-lg sm:text-2xl font-bold text-[#4E1E24] tabular-nums mt-0.5 sm:mt-1">{value.toLocaleString('en-IN')}</p>
     </div>
   )
 }
@@ -52,19 +52,23 @@ function RankList({ title, icon, rows, unit }: { title: string; icon: React.Reac
       ) : (
         <div className="space-y-2">
           {rows.map((r, i) => (
-            <div key={r.id} className="flex items-center gap-3">
+            <Link
+              key={r.id}
+              href={`/products/${r.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-1 hover:bg-rose-50/50 transition-colors"
+            >
               <span className="w-5 text-xs font-semibold text-gray-300 tabular-nums">{i + 1}</span>
-              <Link href={`/products/${r.id}`} target="_blank" rel="noopener noreferrer" className="relative h-10 w-10 flex-shrink-0 rounded-md overflow-hidden bg-gray-100">
+              <span className="relative h-10 w-10 flex-shrink-0 rounded-md overflow-hidden bg-gray-100 block">
                 {r.image && <Image src={r.image} alt={r.name} fill className="object-cover" sizes="40px" />}
-              </Link>
+              </span>
               <div className="min-w-0 flex-1">
-                <Link href={`/products/${r.id}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-gray-900 truncate hover:text-[#AD1457] hover:underline block">
-                  {r.name}
-                </Link>
+                <p className="text-sm font-medium text-gray-900 truncate">{r.name}</p>
                 <p className="text-[11px] text-gray-400 capitalize">{r.category}</p>
               </div>
-              <span className="text-sm font-semibold text-[#AD1457] tabular-nums">{r.count} <span className="text-[11px] font-normal text-gray-400">{unit}</span></span>
-            </div>
+              <span className="text-sm font-semibold text-[#AD1457] tabular-nums flex-shrink-0">{r.count} <span className="text-[11px] font-normal text-gray-400">{unit}</span></span>
+            </Link>
           ))}
         </div>
       )}

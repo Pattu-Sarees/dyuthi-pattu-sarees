@@ -32,9 +32,12 @@ export default function AdminSidebar() {
   const supabase = createClient()
   const [collapsed, setCollapsed] = useState(false)
 
-  // Default state from the admin's Appearance preference (after mount).
+  // Default state: collapsed on mobile; on desktop follow the admin's Appearance preference.
   useEffect(() => {
-    const id = setTimeout(() => setCollapsed(loadPrefs().appearance.sidebar === 'collapsed'), 0)
+    const id = setTimeout(() => {
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+      setCollapsed(isMobile || loadPrefs().appearance.sidebar === 'collapsed')
+    }, 0)
     return () => clearTimeout(id)
   }, [])
 

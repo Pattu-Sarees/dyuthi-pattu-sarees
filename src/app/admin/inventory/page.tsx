@@ -149,11 +149,11 @@ export default function AdminInventoryPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 mb-5">
+      <div className="flex items-center justify-between gap-3 mb-2 sm:mb-5">
         <h1 className="text-2xl md:text-3xl font-bold text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>Inventory</h1>
       </div>
 
-      <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-3 mb-4">
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2 sm:mb-4">
         <div className="flex flex-nowrap overflow-x-auto gap-1.5 sm:flex-wrap sm:gap-2.5">
           <Chip scheme="all" active={filter === 'all'} count={counts.all} onClick={() => { setFilter('all'); setPage(1) }}>All</Chip>
           <Chip scheme="in" active={filter === 'in'} count={counts.in} onClick={() => { setFilter('in'); setPage(1) }}>In Stock</Chip>
@@ -161,12 +161,12 @@ export default function AdminInventoryPage() {
           <Chip scheme="out" active={filter === 'out'} count={counts.out} onClick={() => { setFilter('out'); setPage(1) }}>Out Of Stock</Chip>
         </div>
         <div className="relative w-full sm:w-96 sm:ml-auto sm:flex-shrink-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
           <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             placeholder="Search by name, fabric, category, description..."
-            className="w-full h-10 pl-10 pr-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#AD1457] bg-white"
+            className="w-full h-9 sm:h-10 pl-8 sm:pl-10 pr-2 sm:pr-3 rounded-lg border border-gray-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#AD1457] bg-white"
           />
         </div>
       </div>

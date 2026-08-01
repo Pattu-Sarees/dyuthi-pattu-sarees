@@ -85,40 +85,42 @@ export default function AdminLeadsPage() {
       ) : (
         <div className="space-y-3">
           {filtered.map((l) => (
-            <div key={l.id} data-hl={l.id} className={`bg-white rounded-xl border border-gray-100 p-4 ${highlight === l.id ? HIGHLIGHT_RING : ''}`}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-gray-900">{l.name}</p>
-                    <span className="text-[10px] capitalize bg-rose-50 text-[#AD1457] px-2 py-0.5 rounded-full">{l.source}</span>
+            <div key={l.id} data-hl={l.id} className={`bg-white rounded-xl border border-gray-100 p-3 sm:p-4 overflow-x-auto md:overflow-visible ${highlight === l.id ? HIGHLIGHT_RING : ''}`}>
+              <div className="flex flex-nowrap md:block items-start gap-3 min-w-max md:min-w-0">
+                <div className="flex items-start justify-between gap-3 flex-shrink-0 md:flex-shrink">
+                  <div className="max-w-[240px] md:max-w-none md:min-w-0">
+                    <div className="flex items-center gap-2 flex-nowrap whitespace-nowrap md:flex-wrap">
+                      <p className="font-semibold text-gray-900">{l.name}</p>
+                      <span className="text-[10px] capitalize bg-rose-50 text-[#AD1457] px-2 py-0.5 rounded-full flex-shrink-0">{l.source}</span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-nowrap whitespace-nowrap md:flex-wrap">
+                      {l.phone && <a href={`tel:${l.phone}`} className="flex items-center gap-1 hover:text-[#AD1457]"><Phone className="h-3 w-3" /> {l.phone}</a>}
+                      {l.email && <a href={`mailto:${l.email}`} className="flex items-center gap-1 hover:text-[#AD1457]"><Mail className="h-3 w-3" /> {l.email}</a>}
+                      <span>{new Date(l.created_at).toLocaleDateString('en-IN')}</span>
+                    </div>
+                    {l.message && <p className="text-xs text-gray-600 mt-2 line-clamp-2">{l.message}</p>}
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-nowrap overflow-x-auto whitespace-nowrap md:flex-wrap">
-                    {l.phone && <a href={`tel:${l.phone}`} className="flex items-center gap-1 hover:text-[#AD1457]"><Phone className="h-3 w-3" /> {l.phone}</a>}
-                    {l.email && <a href={`mailto:${l.email}`} className="flex items-center gap-1 hover:text-[#AD1457]"><Mail className="h-3 w-3" /> {l.email}</a>}
-                    <span>{new Date(l.created_at).toLocaleDateString('en-IN')}</span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <select
+                      value={l.status}
+                      onChange={(e) => updateLead(l.id, { status: e.target.value as LeadStatus })}
+                      className={`text-xs font-medium rounded-full px-2.5 py-1.5 border-0 cursor-pointer capitalize ${STATUS_STYLES[l.status]}`}
+                    >
+                      {LEAD_STATUSES.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
+                    </select>
+                    <button onClick={() => deleteLead(l.id, l.name)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="h-4 w-4" /></button>
                   </div>
-                  {l.message && <p className="text-xs text-gray-600 mt-2 line-clamp-2">{l.message}</p>}
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <select
-                    value={l.status}
-                    onChange={(e) => updateLead(l.id, { status: e.target.value as LeadStatus })}
-                    className={`text-xs font-medium rounded-full px-2.5 py-1.5 border-0 cursor-pointer capitalize ${STATUS_STYLES[l.status]}`}
-                  >
-                    {LEAD_STATUSES.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
-                  </select>
-                  <button onClick={() => deleteLead(l.id, l.name)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="h-4 w-4" /></button>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-50">
-                <div>
-                  <label className="text-[11px] text-gray-400">Notes</label>
-                  <input defaultValue={l.notes || ''} onBlur={(e) => e.target.value !== (l.notes || '') && updateLead(l.id, { notes: e.target.value })} placeholder="Add a note…" className={input} />
-                </div>
-                <div>
-                  <label className="text-[11px] text-gray-400">Follow-up date</label>
-                  <input type="date" defaultValue={l.follow_up_date || ''} onChange={(e) => updateLead(l.id, { follow_up_date: e.target.value })} className={input} />
+                <div className="flex md:grid md:grid-cols-2 gap-3 flex-shrink-0 md:mt-3 md:pt-3 md:border-t md:border-gray-50">
+                  <div className="w-44 md:w-auto">
+                    <label className="text-[11px] text-gray-400">Notes</label>
+                    <input defaultValue={l.notes || ''} onBlur={(e) => e.target.value !== (l.notes || '') && updateLead(l.id, { notes: e.target.value })} placeholder="Add a note…" className={input} />
+                  </div>
+                  <div className="w-40 md:w-auto">
+                    <label className="text-[11px] text-gray-400">Follow-up date</label>
+                    <input type="date" defaultValue={l.follow_up_date || ''} onChange={(e) => updateLead(l.id, { follow_up_date: e.target.value })} className={input} />
+                  </div>
                 </div>
               </div>
             </div>

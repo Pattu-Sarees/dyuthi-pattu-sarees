@@ -107,22 +107,22 @@ export default function AdminProductsPage() {
         </Link>
       </div>
 
-      <div className="flex flex-row gap-2 mb-4">
+      <div className="flex flex-row gap-1.5 sm:gap-2 mb-3 sm:mb-4">
         <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
           <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             placeholder="Search by name, fabric, category, description..."
-            className="w-full h-10 pl-10 pr-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#AD1457] bg-white"
+            className="w-full h-9 sm:h-10 pl-8 sm:pl-10 pr-2 sm:pr-3 rounded-lg border border-gray-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#AD1457] bg-white"
           />
         </div>
-        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as 'all' | 'active' | 'inactive'); setPage(1) }} className="h-10 rounded-lg border border-gray-200 px-1.5 sm:px-3 text-xs sm:text-sm bg-white capitalize flex-shrink-0 max-w-[92px] sm:max-w-none">
+        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as 'all' | 'active' | 'inactive'); setPage(1) }} className="h-9 sm:h-10 rounded-lg border border-gray-200 px-1 sm:px-3 text-xs sm:text-sm bg-white capitalize flex-shrink-0 max-w-[72px] sm:max-w-none">
           <option value="all">All status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
-        <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }} className="h-10 rounded-lg border border-gray-200 px-1.5 sm:px-3 text-xs sm:text-sm bg-white capitalize flex-shrink-0 max-w-[92px] sm:max-w-none">
+        <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }} className="h-9 sm:h-10 rounded-lg border border-gray-200 px-1 sm:px-3 text-xs sm:text-sm bg-white capitalize flex-shrink-0 max-w-[72px] sm:max-w-none">
           <option value="all">All categories</option>
           {categories.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
         </select>
