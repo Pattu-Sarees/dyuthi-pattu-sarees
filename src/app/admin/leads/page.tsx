@@ -92,14 +92,14 @@ export default function AdminLeadsPage() {
                     <p className="font-semibold text-gray-900">{l.name}</p>
                     <span className="text-[10px] capitalize bg-rose-50 text-[#AD1457] px-2 py-0.5 rounded-full">{l.source}</span>
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-nowrap overflow-x-auto whitespace-nowrap sm:flex-wrap">
+                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-nowrap overflow-x-auto whitespace-nowrap md:flex-wrap">
                     {l.phone && <a href={`tel:${l.phone}`} className="flex items-center gap-1 hover:text-[#AD1457]"><Phone className="h-3 w-3" /> {l.phone}</a>}
                     {l.email && <a href={`mailto:${l.email}`} className="flex items-center gap-1 hover:text-[#AD1457]"><Mail className="h-3 w-3" /> {l.email}</a>}
                     <span>{new Date(l.created_at).toLocaleDateString('en-IN')}</span>
                   </div>
                   {l.message && <p className="text-xs text-gray-600 mt-2 line-clamp-2">{l.message}</p>}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <select
                     value={l.status}
                     onChange={(e) => updateLead(l.id, { status: e.target.value as LeadStatus })}

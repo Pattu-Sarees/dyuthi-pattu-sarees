@@ -230,11 +230,11 @@ export default function AdminOrdersPage() {
       ) : (
         <div className="space-y-3">
           {filtered.map((o) => (
-            <div key={o.id} data-hl={o.id} className={`bg-white rounded-xl border border-gray-100 px-4 py-2 ${highlight === o.id ? HIGHLIGHT_RING : ''}`}>
-              <div className="flex items-center justify-between gap-3">
+            <div key={o.id} data-hl={o.id} className={`bg-white rounded-xl border border-gray-100 px-4 py-2 overflow-x-auto md:overflow-visible ${highlight === o.id ? HIGHLIGHT_RING : ''}`}>
+              <div className="flex items-center justify-between gap-3 min-w-max md:min-w-0">
                 {/* Left: order info + items */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-nowrap overflow-x-auto whitespace-nowrap sm:flex-wrap">
+                <div className="flex-shrink-0 md:flex-1 md:min-w-0">
+                  <div className="flex items-center gap-2 flex-nowrap whitespace-nowrap md:flex-wrap">
                     <p className="font-semibold text-gray-900 text-sm flex-shrink-0">{o.order_number || o.id.slice(0, 8)}</p>
                     <span className="inline-flex items-center gap-1.5">
                       <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-[#5A0B2D] text-white text-[10px] font-semibold flex-shrink-0">{initials(o.customer_name)}</span>
@@ -245,7 +245,7 @@ export default function AdminOrdersPage() {
                     <SourceTag source={o.source} />
                   </div>
                   {o.items && o.items.length > 0 && (
-                    <div className="flex flex-nowrap overflow-x-auto sm:flex-wrap gap-2 mt-2">
+                    <div className="flex flex-nowrap md:flex-wrap gap-2 mt-2">
                       {(o.items as OrderItem[]).map((it) => (
                         <div key={it.id} className="flex items-center gap-2 bg-gray-50 rounded-md pl-1 pr-2.5 py-1 flex-shrink-0">
                           <button
@@ -265,7 +265,7 @@ export default function AdminOrdersPage() {
                 </div>
 
                 {/* Right: actions + statuses + price, vertically centered, inset from the edge */}
-                <div className="flex items-center gap-2 flex-wrap justify-end flex-shrink-0 sm:mr-10">
+                <div className="flex items-center gap-2 flex-nowrap md:flex-wrap justify-end flex-shrink-0 sm:mr-10">
                   <button onClick={() => setEditing(o)} className="p-1.5 text-gray-400 hover:text-[#AD1457] hover:bg-rose-50 rounded-lg" title="Edit"><Pencil className="h-4 w-4" /></button>
                   {o.status === 'delivered' && (
                     <div className="relative">

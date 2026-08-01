@@ -142,16 +142,16 @@ export default function AdminProductsPage() {
       ) : (
         <div className="space-y-2">
           {pageItems.map((p) => (
-            <div key={p.id} data-hl={p.id} className={`bg-white rounded-lg border border-gray-100 p-2.5 transition-shadow ${highlight === p.id ? HIGHLIGHT_RING : ''}`}>
-              <div className="flex items-center gap-3">
+            <div key={p.id} data-hl={p.id} className={`bg-white rounded-lg border border-gray-100 p-2.5 transition-shadow overflow-x-auto md:overflow-visible ${highlight === p.id ? HIGHLIGHT_RING : ''}`}>
+              <div className="flex items-center gap-3 min-w-max md:min-w-0">
                 <div className="relative w-11 h-14 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                   {p.images?.[0] ? (
                     <Image src={p.images[0]} alt={p.name} fill className="object-cover" sizes="44px" />
                   ) : <div className="w-full h-full flex items-center justify-center text-xl">🥻</div>}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 text-sm line-clamp-1">{p.name}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5 flex-nowrap overflow-x-auto whitespace-nowrap">
+                <div className="flex-shrink-0 md:flex-1 md:min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm md:line-clamp-1 whitespace-nowrap md:whitespace-normal">{p.name}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-nowrap whitespace-nowrap md:flex-wrap">
                     <span className="text-xs text-gray-500 capitalize">{p.category} • {p.fabric}</span>
                     <span className="text-sm font-bold text-[#AD1457]">{formatPrice(p.price)}</span>
                     <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">Stock: {p.stock_quantity}</span>
@@ -189,7 +189,7 @@ export default function AdminProductsPage() {
               </div>
 
               {p.color_variants?.length > 0 && (
-                <div className="flex flex-nowrap overflow-x-auto gap-1.5 mt-2 pt-2 border-t border-gray-50">
+                <div className="flex flex-nowrap min-w-max gap-1.5 mt-2 pt-2 border-t border-gray-50 md:flex-wrap md:min-w-0">
                   {p.color_variants.map((v, idx) => (
                     <div key={idx} className="flex items-center gap-1 bg-gray-50 rounded-full pl-1 pr-2 py-0.5 flex-shrink-0">
                       <div className="relative w-6 h-6 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">

@@ -227,7 +227,7 @@ export default function AdminInventoryPage() {
                       </div>
                       {/* Per-colour stock badges */}
                       {it.variants.length > 0 && (
-                        <div className="flex flex-nowrap overflow-x-auto gap-1 mt-1.5 max-w-[220px] sm:max-w-none sm:flex-wrap sm:gap-1.5">
+                        <div className="flex flex-nowrap gap-1 mt-1.5 md:flex-wrap md:gap-1.5">
                           {it.variants.map((v, idx) => {
                             const vOut = v.quantity <= 0
                             const vLow = !vOut && v.quantity <= LOW
