@@ -137,9 +137,11 @@ html.admin-reduce-motion *::after {
 
 /* Announcement bar — each message slides in from the right (right → left) */
 @keyframes announce-slide {
-  0% { opacity: 0; transform: translateX(120px); }
+  /* Fade + subtle rise (no horizontal shift) so the message stays exactly
+     centered in the bar at every point of the animation. */
+  0% { opacity: 0; transform: translateY(8px); }
   60% { opacity: 1; }
-  100% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 .animate-announce-slide {
   animation: announce-slide 0.7s ease-out;

@@ -15,7 +15,7 @@ export default function CollectionsGrid({ items, viewAllHref = '/products', only
       {!onlyBadge && (
         <div className="flex lg:hidden flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-[11px] text-gray-600">
           <span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 text-[#B8860B] fill-current" /> Best Seller</span>
-          <span className="inline-flex items-center gap-1"><Sparkles className="h-3.5 w-3.5 text-[#2E8B57]" /> New</span>
+          <span className="inline-flex items-center gap-1"><Sparkles className="h-3.5 w-3.5 text-[#2E8B57] fill-current" /> New</span>
           <span className="inline-flex items-center gap-1"><Flame className="h-3.5 w-3.5 text-[#C73B75] fill-current" /> On Sale</span>
         </div>
       )}

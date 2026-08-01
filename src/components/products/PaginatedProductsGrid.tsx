@@ -118,12 +118,19 @@ export default function PaginatedProductsGrid({
         </div>
       </div>
 
-      {/* Badge legend — mobile only. On mobile the cards show icon-only badges,
-          so this explains what each symbol means. */}
+      {/* Badge legend — mobile only. Cards show icon-only badges, so this explains
+          the symbols. On single-category pages (New/Best/Sale) only the relevant
+          one is shown. */}
       <div className="flex lg:hidden flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-[11px] text-gray-600">
-        <span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 text-[#B8860B] fill-current" /> Best Seller</span>
-        <span className="inline-flex items-center gap-1"><Sparkles className="h-3.5 w-3.5 text-[#2E8B57]" /> New</span>
-        <span className="inline-flex items-center gap-1"><Flame className="h-3.5 w-3.5 text-[#C73B75] fill-current" /> On Sale</span>
+        {(!onlyBadge || onlyBadge === 'best') && (
+          <span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 text-[#B8860B] fill-current" /> Best Seller</span>
+        )}
+        {(!onlyBadge || onlyBadge === 'new') && (
+          <span className="inline-flex items-center gap-1"><Sparkles className="h-3.5 w-3.5 text-[#2E8B57] fill-current" /> New</span>
+        )}
+        {(!onlyBadge || onlyBadge === 'sale') && (
+          <span className="inline-flex items-center gap-1"><Flame className="h-3.5 w-3.5 text-[#C73B75] fill-current" /> On Sale</span>
+        )}
       </div>
 
       <div className={`grid ${MOBILE_COL_CLASS[mobileCols]} ${DESKTOP_COL_CLASS[desktopCols]} gap-4 transition-opacity duration-300 ease-in-out ${changing ? 'opacity-50' : 'opacity-100'} ${DESKTOP_MAXW[desktopCols]}`}>

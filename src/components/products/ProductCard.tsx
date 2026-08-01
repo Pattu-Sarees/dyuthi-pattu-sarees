@@ -159,18 +159,18 @@ export default function ProductCard({
   const imageBadges = (
     <>
       {onlyBadge === 'best' && showBestSeller && (
-        <span className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 whitespace-nowrap rounded bg-[#B8860B] text-white text-[10px] font-bold px-2 py-1 tracking-wide shadow-sm">
-          <Star className="h-3 w-3 fill-current flex-shrink-0" /> BEST SELLER
+        <span className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 whitespace-nowrap rounded bg-[#B8860B] text-white text-[10px] font-bold px-2 py-1 tracking-wide shadow-sm" aria-label="Best Seller">
+          <Star className="h-3 w-3 fill-current flex-shrink-0" /> <span className="hidden lg:inline">BEST SELLER</span>
         </span>
       )}
       {onlyBadge === 'new' && showNew && (
-        <span className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 whitespace-nowrap rounded bg-[#2E8B57] text-white text-[10px] font-bold px-2 py-1 tracking-wide shadow-sm">
-          <Sparkles className="h-3 w-3 flex-shrink-0" /> NEW
+        <span className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 whitespace-nowrap rounded bg-[#2E8B57] text-white text-[10px] font-bold px-2 py-1 tracking-wide shadow-sm" aria-label="New">
+          <Sparkles className="h-3 w-3 fill-current flex-shrink-0" /> <span className="hidden lg:inline">NEW</span>
         </span>
       )}
       {onlyBadge === 'sale' && discount > 0 && (
-        <span className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 whitespace-nowrap rounded bg-[#C73B75] text-white text-[10px] font-bold px-2 py-1 tracking-wide shadow-sm">
-          <Flame className="h-3 w-3 fill-current flex-shrink-0" /> ON SALE
+        <span className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 whitespace-nowrap rounded bg-[#C73B75] text-white text-[10px] font-bold px-2 py-1 tracking-wide shadow-sm" aria-label="On Sale">
+          <Flame className="h-3 w-3 fill-current flex-shrink-0" /> <span className="hidden lg:inline">ON SALE</span>
         </span>
       )}
       {stock.level === 'low' && (
@@ -199,7 +199,7 @@ export default function ProductCard({
         )}
         {badgeNew && (
           <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#2E8B57] text-white text-[10px] font-bold px-1.5 py-1 tracking-wide max-lg:rounded" aria-label="New">
-            <Sparkles className="h-3 w-3 flex-shrink-0" /> <span className="hidden lg:inline">NEW</span>
+            <Sparkles className="h-3 w-3 fill-current flex-shrink-0" /> <span className="hidden lg:inline">NEW</span>
           </span>
         )}
         {badgeSale && (
