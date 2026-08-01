@@ -34,6 +34,7 @@ export interface Product {
   is_featured: boolean
   is_new_arrival: boolean
   is_best_seller: boolean
+  priority?: number | null
   status?: 'active' | 'inactive'
   sold_count?: number
   view_count?: number

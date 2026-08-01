@@ -67,7 +67,7 @@ export default function AdminReportsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 mb-5">
+      <div className="flex items-center justify-between gap-3 mb-2 sm:mb-5">
         <h1 className="text-2xl md:text-3xl font-bold text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>Reports</h1>
         <div className="flex gap-1.5 sm:gap-2 flex-shrink-0">
           <button onClick={() => exportFile('csv')} disabled={!result?.rows.length} className="inline-flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm font-medium border border-gray-200 bg-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg hover:border-[#AD1457] transition-colors disabled:opacity-40"><Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> CSV</button>
@@ -76,7 +76,7 @@ export default function AdminReportsPage() {
       </div>
 
       {/* Report type tabs */}
-      <div className="flex flex-nowrap overflow-x-auto sm:flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+      <div className="flex flex-nowrap overflow-x-auto sm:flex-wrap gap-1.5 sm:gap-2 pb-1.5 sm:pb-0 mb-3 sm:mb-4">
         {REPORTS.map((r) => (
           <button key={r.key} onClick={() => setType(r.key)} className={`text-xs sm:text-sm font-medium px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${type === r.key ? 'bg-[#AD1457] text-white border-[#AD1457]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#AD1457]'}`}>{r.label}</button>
         ))}

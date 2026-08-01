@@ -146,11 +146,11 @@ export default function Footer({ data = FOOTER_DEFAULTS, logo = '/logo-v3.jpeg' 
           {/* Mobile footer — accordions */}
           <div className="md:hidden">
             {/* Brand */}
-            <div className="mb-6">
-              <Link href="/" className="inline-block mb-4">
+            <div className="mb-5">
+              <Link href="/" className="inline-block mb-1 -ml-2">
                 <BrandLogo logo={logo} light />
               </Link>
-              <p className="text-sm text-gray-400 leading-relaxed mt-3">
+              <p className="text-sm text-gray-400 leading-relaxed mt-1">
                 {data.description}
               </p>
               <div className="mt-4">

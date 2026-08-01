@@ -266,6 +266,7 @@ export default function ProductForm({ product }: { product?: Product }) {
     code: product?.code || '',
     price: product?.price?.toString() || '',
     original_price: product?.original_price?.toString() || '',
+    priority: product?.priority?.toString() ?? '',
     category: product?.category || 'kanjivaram',
     fabric: product?.fabric || 'pure silk',
     region: product?.region || '',
@@ -403,6 +404,7 @@ export default function ProductForm({ product }: { product?: Product }) {
       ...form,
       price: Number(form.price),
       original_price: form.original_price ? Number(form.original_price) : null,
+      priority: form.priority.trim() !== '' ? Number(form.priority) : null,
       stock_quantity: clean.reduce((s, it) => s + it.quantity, 0),
       color: [],
       color_variants: clean,
@@ -553,6 +555,10 @@ export default function ProductForm({ product }: { product?: Product }) {
             <label className={label}>Original Price (₹)</label>
             <input type="number" value={form.original_price} onChange={(e) => set('original_price', e.target.value)} className={input} placeholder="3999" />
           </div>
+        </div>
+        <div>
+          <label className={label}>Priority <span className="text-gray-400">(optional — lower number shows first in admin list)</span></label>
+          <input type="number" min={0} value={form.priority} onChange={(e) => set('priority', e.target.value)} className={input} placeholder="e.g. 1" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>

@@ -154,7 +154,7 @@ export default function AdminInventoryPage() {
       </div>
 
       <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2 sm:mb-4">
-        <div className="flex flex-nowrap overflow-x-auto gap-1.5 sm:flex-wrap sm:gap-2.5">
+        <div className="flex flex-nowrap overflow-x-auto gap-1.5 pb-1.5 sm:pb-0 sm:flex-wrap sm:gap-2.5">
           <Chip scheme="all" active={filter === 'all'} count={counts.all} onClick={() => { setFilter('all'); setPage(1) }}>All</Chip>
           <Chip scheme="in" active={filter === 'in'} count={counts.in} onClick={() => { setFilter('in'); setPage(1) }}>In Stock</Chip>
           <Chip scheme="low" active={filter === 'low'} count={counts.low} onClick={() => { setFilter('low'); setPage(1) }}>Low Stock</Chip>

@@ -79,7 +79,13 @@ export default function AdminProductsPage() {
       (statusFilter === 'all' || (p.status ?? 'active') === statusFilter) &&
       (categoryFilter === 'all' || p.category === categoryFilter)
     )
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+    .sort((a, b) => {
+      // Priority first (lower number = higher up); products without a priority fall after.
+      const pa = a.priority ?? Number.POSITIVE_INFINITY
+      const pb = b.priority ?? Number.POSITIVE_INFINITY
+      if (pa !== pb) return pa - pb
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    })
 
   const pageCount = Math.ceil(filtered.length / PAGE_SIZE)
   const safePage = Math.min(page, Math.max(1, pageCount))
@@ -98,7 +104,7 @@ export default function AdminProductsPage() {
 
   return (
     <div>
-      <div className="flex flex-row items-center justify-between gap-3 mb-5">
+      <div className="flex flex-row items-center justify-between gap-3 mb-2 sm:mb-5">
         <h1 className="text-2xl md:text-3xl font-bold text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>Products</h1>
         <Link href="/admin/products/new" className="flex-shrink-0">
           <span className="inline-flex items-center justify-center gap-1.5 bg-[#AD1457] hover:bg-[#880E4F] text-white font-semibold text-xs px-2.5 py-1.5 sm:text-sm sm:px-3.5 sm:py-2 rounded-lg transition-colors whitespace-nowrap">
@@ -107,7 +113,7 @@ export default function AdminProductsPage() {
         </Link>
       </div>
 
-      <div className="flex flex-row gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+      <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2 mb-2 sm:mb-4">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
           <input
@@ -117,15 +123,17 @@ export default function AdminProductsPage() {
             className="w-full h-9 sm:h-10 pl-8 sm:pl-10 pr-2 sm:pr-3 rounded-lg border border-gray-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#AD1457] bg-white"
           />
         </div>
-        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as 'all' | 'active' | 'inactive'); setPage(1) }} className="h-9 sm:h-10 rounded-lg border border-gray-200 px-1 sm:px-3 text-xs sm:text-sm bg-white capitalize flex-shrink-0 max-w-[72px] sm:max-w-none">
-          <option value="all">All status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-        <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }} className="h-9 sm:h-10 rounded-lg border border-gray-200 px-1 sm:px-3 text-xs sm:text-sm bg-white capitalize flex-shrink-0 max-w-[72px] sm:max-w-none">
-          <option value="all">All categories</option>
-          {categories.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
-        </select>
+        <div className="flex gap-1.5 sm:gap-2 sm:contents">
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as 'all' | 'active' | 'inactive'); setPage(1) }} className="h-9 sm:h-10 rounded-lg border border-gray-200 px-1.5 sm:px-3 text-xs sm:text-sm bg-white capitalize flex-1 sm:flex-none sm:flex-shrink-0">
+            <option value="all">All status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }} className="h-9 sm:h-10 rounded-lg border border-gray-200 px-1.5 sm:px-3 text-xs sm:text-sm bg-white capitalize flex-1 sm:flex-none sm:flex-shrink-0">
+            <option value="all">All categories</option>
+            {categories.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
+          </select>
+        </div>
       </div>
 
       {!loading && filtered.length > 0 && (

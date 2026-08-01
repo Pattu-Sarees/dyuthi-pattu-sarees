@@ -23,5 +23,5 @@ export default function AdminMain({ children }: { children: React.ReactNode }) {
     return () => { mq.removeEventListener('change', apply); el.classList.remove('dark'); el.style.colorScheme = '' }
   }, [theme])
 
-  return <main className="flex-1 min-w-0 px-4 py-6">{children}</main>
+  return <main className="flex-1 min-w-0 px-3 sm:px-4 pt-2 pb-6 sm:py-6">{children}</main>
 }

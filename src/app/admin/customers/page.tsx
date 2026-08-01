@@ -31,7 +31,7 @@ export default function AdminCustomersPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 mb-5">
+      <div className="flex items-center justify-between gap-3 mb-2 sm:mb-5">
         <h1 className="text-2xl md:text-3xl font-bold text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>Customers</h1>
         <div className="text-right text-xs text-gray-500">
           <p><span className="font-semibold text-gray-800">{totals.count}</span> customers</p>

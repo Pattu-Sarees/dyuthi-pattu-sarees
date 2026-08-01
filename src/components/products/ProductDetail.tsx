@@ -302,7 +302,7 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
         <span className="text-gray-900 capitalize">{product.category}</span>
       </nav>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-10">
         {/* Images */}
         <div className="space-y-3 lg:col-span-2 lg:sticky lg:top-24 self-start">
           <div className="flex gap-3">
@@ -331,7 +331,8 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
               onMouseLeave={() => setZoom(null)}
               onTouchStart={!videoActive && zoomMode && displayedImage ? handleZoomTouch : undefined}
               onTouchMove={!videoActive && zoomMode && displayedImage ? handleZoomTouch : undefined}
-              onTouchEnd={() => setZoom(null)}
+              onTouchEnd={() => { setZoom(null); setZoomMode(false) }}
+              onTouchCancel={() => { setZoom(null); setZoomMode(false) }}
               onClick={() => !videoActive && !zoomMode && displayedImage && setPreview(true)}
             >
               {videoActive && product.video_url ? (
@@ -381,7 +382,7 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
                 </div>
               )}
               {discount > 0 && (
-                <Badge className="absolute top-4 left-4 bg-green-500 text-white border-0">{discount}% OFF</Badge>
+                <Badge className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-10 bg-green-500 text-white border-0 text-[10px] sm:text-xs px-1.5 py-0.5">{discount}% OFF</Badge>
               )}
 
               {slideCount > 1 && (
@@ -389,18 +390,18 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); goToSlide(currentSlide - 1) }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/90 shadow flex items-center justify-center text-gray-700 hover:bg-white hover:text-[#C2185B] transition-colors"
+                    className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 z-10 h-7 w-7 sm:h-10 sm:w-10 rounded-full bg-white/90 shadow flex items-center justify-center text-gray-700 hover:bg-white hover:text-[#C2185B] transition-colors"
                     aria-label="Previous"
                   >
-                    <ChevronLeft className="h-5 w-5" />
+                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); goToSlide(currentSlide + 1) }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-white/90 shadow flex items-center justify-center text-gray-700 hover:bg-white hover:text-[#C2185B] transition-colors"
+                    className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-10 h-7 w-7 sm:h-10 sm:w-10 rounded-full bg-white/90 shadow flex items-center justify-center text-gray-700 hover:bg-white hover:text-[#C2185B] transition-colors"
                     aria-label="Next"
                   >
-                    <ChevronRight className="h-5 w-5" />
+                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
                   <div className="absolute bottom-3 right-3 z-10 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full">
                     {currentSlide + 1} / {slideCount}
@@ -444,9 +445,9 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
           {hasVideo && (
             <button
               onClick={openVideoSlide}
-              className="inline-flex items-center gap-1.5 text-sm font-bold text-[#C2185B] hover:underline"
+              className="inline-flex items-center gap-1.5 text-base font-bold text-[#C2185B] underline underline-offset-2 hover:no-underline"
             >
-              <PlayCircle className="h-4 w-4" /> Watch Saree Video
+              <PlayCircle className="h-5 w-5" /> Watch Saree Video
             </button>
           )}
 

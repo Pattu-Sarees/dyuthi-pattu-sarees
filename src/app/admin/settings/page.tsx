@@ -58,7 +58,7 @@ export default function AdminSettingsPage() {
 
   return (
     <div className="max-w-2xl pb-24">
-      <div className="flex items-center justify-between gap-3 mb-5">
+      <div className="flex items-center justify-between gap-3 mb-2 sm:mb-5">
         <h1 className="text-2xl md:text-3xl font-bold text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>Settings</h1>
         {dirty && <span className="text-xs text-amber-600">Unsaved changes</span>}
       </div>

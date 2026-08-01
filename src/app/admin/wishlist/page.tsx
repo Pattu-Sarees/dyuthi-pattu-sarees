@@ -20,7 +20,7 @@ export default function AdminWishlistPage() {
     <div>
       <h1 className="text-2xl md:text-3xl font-bold text-[#4E1E24] mb-5" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>Wishlist Analytics</h1>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-2 sm:mb-5">
         <Stat icon={<Heart className="h-4 w-4" />} label="Total Wishlist Adds" value={data.totalAdds} />
         <Stat icon={<Heart className="h-4 w-4" />} label="Wishlisted Products" value={data.top.length} />
         <Stat icon={<Eye className="h-4 w-4" />} label="Viewed Products" value={data.mostViewed.length} />

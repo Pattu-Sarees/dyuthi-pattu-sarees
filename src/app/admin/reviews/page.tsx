@@ -244,7 +244,7 @@ export default function AdminReviews() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1.5 sm:gap-2 mb-4 flex-nowrap overflow-x-auto sm:flex-wrap">
+      <div className="flex gap-1.5 sm:gap-2 mb-3 sm:mb-4 flex-nowrap overflow-x-auto sm:flex-wrap pb-1.5 sm:pb-0">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -266,8 +266,8 @@ export default function AdminReviews() {
       ) : (
         <div className="space-y-3">
           {shown.map((t) => (
-            <div key={t.id} className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4">
-              <div className="flex items-start gap-3 flex-wrap">
+            <div key={t.id} className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 overflow-x-auto md:overflow-visible">
+              <div className="flex items-start gap-3 flex-nowrap min-w-max md:min-w-0 md:flex-wrap">
                 {(t.review_images?.[0] || t.proof_image) ? (
                   <div className="relative h-12 w-12 flex-shrink-0 rounded-md overflow-hidden bg-gray-100">
                     <Image src={(t.review_images?.[0] || t.proof_image) as string} alt={t.purchased_product || t.customer_name} fill className="object-cover" sizes="48px" />
@@ -277,8 +277,8 @@ export default function AdminReviews() {
                     {(t.avatar_initial || t.customer_name.charAt(0)).toUpperCase()}
                   </div>
                 )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto whitespace-nowrap sm:flex-wrap sm:gap-2">
+                <div className="flex-shrink-0 md:flex-1 md:min-w-0">
+                  <div className="flex items-center gap-1.5 flex-nowrap whitespace-nowrap md:flex-wrap md:gap-2">
                     <p className="font-semibold text-gray-900 flex-shrink-0">{t.customer_name}</p>
                     {t.location && <span className="text-xs text-gray-400">· {t.location}</span>}
                     <span className="flex">{Array.from({ length: t.rating }).map((_, k) => <Star key={k} className="h-3.5 w-3.5 text-[#D4AF37] fill-[#D4AF37]" />)}</span>
@@ -287,9 +287,9 @@ export default function AdminReviews() {
                     {t.is_verified_buyer && <span className="text-[10px] inline-flex items-center gap-0.5 bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded"><BadgeCheck className="h-3 w-3" /> Verified</span>}
                     {t.is_featured && <span className="text-[10px] inline-flex items-center gap-0.5 bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded"><Sparkles className="h-3 w-3" /> Featured</span>}
                   </div>
-                  {t.review_title && <p className="text-sm font-semibold text-gray-800 mt-1">{t.review_title}</p>}
-                  <p className={`text-sm text-gray-600 mt-0.5 ${expanded === t.id ? '' : 'line-clamp-2'}`}>{t.review_text}</p>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-400 flex-wrap">
+                  {t.review_title && <p className="text-sm font-semibold text-gray-800 mt-1 whitespace-nowrap md:whitespace-normal">{t.review_title}</p>}
+                  <p className={`text-sm text-gray-600 mt-0.5 whitespace-nowrap md:whitespace-normal ${expanded === t.id ? '' : 'md:line-clamp-2'}`}>{t.review_text}</p>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-400 flex-nowrap whitespace-nowrap md:flex-wrap">
                     {t.purchased_product && <span className="text-[#7A2E39]">Purchased: {t.purchased_product}</span>}
                     {t.created_at && <span>{new Date(t.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
                   </div>

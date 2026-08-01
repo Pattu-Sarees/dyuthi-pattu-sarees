@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
     code: body.code ? String(body.code).trim() : null,
     price: Number(body.price),
     original_price: body.original_price ? Number(body.original_price) : null,
+    priority: body.priority != null && body.priority !== '' ? Number(body.priority) : null,
     images: body.images || [],
     category: body.category,
     fabric: body.fabric || '',
