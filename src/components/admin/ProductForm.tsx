@@ -585,10 +585,10 @@ export default function ProductForm({ product }: { product?: Product }) {
             value={form.video_watermark}
             onChange={(e) => set('video_watermark', e.target.value)}
             className={input}
-            placeholder="www.srhandlooms.com"
+            placeholder="www.dyuthipattusarees.com"
           />
           <p className="text-xs text-gray-400 mt-1">
-            Usually leave blank — videos are already watermarked before upload. Only fill this (e.g. www.srhandlooms.com) as a fallback if you uploaded a video without a burned-in watermark.
+            Usually leave blank — videos are already watermarked before upload. Only fill this (e.g. www.dyuthipattusarees.com) as a fallback if you uploaded a video without a burned-in watermark.
           </p>
         </div>
         <div>
@@ -598,7 +598,7 @@ export default function ProductForm({ product }: { product?: Product }) {
             value={form.video_url}
             onChange={(e) => set('video_url', e.target.value)}
             className={input}
-            placeholder="Paste video link — e.g. https://videos.srhandlooms.com/gadwal.mp4 or a YouTube link"
+            placeholder="Paste video link — e.g. https://videos.dyuthipattusarees.com/gadwal.mp4 or a YouTube link"
           />
           <p className="text-xs text-gray-400 mt-1">
             Upload the compressed MP4 to Cloudflare R2 (or paste a YouTube link) and put the public URL here. Shown as a player on the product page. Leave blank for no video.

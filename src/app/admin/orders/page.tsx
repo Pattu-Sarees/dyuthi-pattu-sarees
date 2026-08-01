@@ -171,7 +171,7 @@ export default function AdminOrdersPage() {
   // Always send the live-site link — WhatsApp/email need the public URL,
   // and localhost links aren't clickable for customers anyway.
   const reviewLink = (o: Order) => {
-    const origin = window.location.hostname === 'localhost' ? 'https://www.srhandlooms.com' : window.location.origin
+    const origin = window.location.hostname === 'localhost' ? 'https://www.dyuthipattusarees.com' : window.location.origin
     return `${origin}/review/${o.id}`
   }
   const reviewMessage = (o: Order) =>

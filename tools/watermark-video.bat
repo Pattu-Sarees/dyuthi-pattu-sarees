@@ -2,7 +2,7 @@
 REM ============================================================
 REM  Dyuthi Pattu Sarees - Video Watermark Tool
 REM  Drag one or more .mp4 videos onto this file (or pass paths
-REM  in the terminal). Burns "www.srhandlooms.com" permanently
+REM  in the terminal). Burns "www.dyuthipattusarees.com" permanently
 REM  into each video - CENTERED and slightly TILTED - and saves
 REM  a new copy next to the original as  <name>_wm.mp4
 REM  Upload the *_wm.mp4 files to Cloudflare R2.
@@ -10,7 +10,7 @@ REM ============================================================
 setlocal enabledelayedexpansion
 
 REM ---- Settings (edit these to taste) ----
-set "WATERMARK=www.srhandlooms.com"
+set "WATERMARK=www.dyuthipattusarees.com"
 set "FONT=C\:/Windows/Fonts/arial.ttf"
 set "ANGLE=-10"
 set "SIZEDIV=13"

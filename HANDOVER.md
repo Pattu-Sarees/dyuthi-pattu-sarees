@@ -112,7 +112,7 @@ A premium, heritage-focused handloom saree store that sources **directly from ma
 | **Storage** | Supabase Storage bucket `product-images` (public) |
 | **State** | Zustand (cart, persisted to localStorage) |
 | **Payments** | Razorpay (online: UPI/cards/netbanking) + Cash on Delivery |
-| **Email (OTP)** | Resend SMTP connected to Supabase (sender `alerts@srhandlooms.com`) |
+| **Email (OTP)** | Resend SMTP connected to Supabase (sender `alerts@dyuthipattusarees.com`) |
 | **Image cropping** | `react-easy-crop` (admin uploads) |
 | **Hosting** | Vercel (auto-deploy on push to `main`) |
 

@@ -102,7 +102,7 @@ Set in `.env.local` (local) and **Vercel → Settings → Environment Variables*
 - **Auth → Email OTP length:** 6 digits. **Expiry:** 15 min (900s).
 - **SMTP (Auth → SMTP Settings):** **Custom SMTP via Resend**
   - Host `smtp.resend.com`, Port `465`, User `resend`, Password = Resend API key
-  - Sender `alerts@srhandlooms.com` (verified Resend domain)
+  - Sender `alerts@dyuthipattusarees.com` (verified Resend domain)
 - **Storage:** bucket **`product-images`** (public). Auto-created on first admin upload via `/api/admin/upload` (service role).
 - **RLS:** enabled on all tables. Public can SELECT products/reviews/categories; users see own profiles/orders; writes go through the **service-role** client in admin APIs (bypasses RLS).
 - **Grants:** after schema `DROP/CREATE`, standard grants were re-applied so `service_role` (and `anon`/`authenticated`) have table privileges. If you ever see `permission denied for table …`, run:
