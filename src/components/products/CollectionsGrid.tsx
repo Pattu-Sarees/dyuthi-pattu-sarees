@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Star, Sparkles, Flame } from 'lucide-react'
 import ProductCard from './ProductCard'
 import { DisplayItem } from './displayItems'
 
@@ -9,6 +10,15 @@ export default function CollectionsGrid({ items, viewAllHref = '/products', only
 
   return (
     <div>
+      {/* Badge legend — mobile only, shown for mixed listings where cards carry
+          icon-only badges. */}
+      {!onlyBadge && (
+        <div className="flex lg:hidden flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-[11px] text-gray-600">
+          <span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 text-[#B8860B] fill-current" /> Best Seller</span>
+          <span className="inline-flex items-center gap-1"><Sparkles className="h-3.5 w-3.5 text-[#2E8B57]" /> New</span>
+          <span className="inline-flex items-center gap-1"><Flame className="h-3.5 w-3.5 text-[#C73B75] fill-current" /> On Sale</span>
+        </div>
+      )}
       {/* flex-wrap + justify-center so a partial last row (e.g. 3 of 5) centers
           instead of hugging the left. Widths match the old 2/3/5-column grid. */}
       <div className="flex flex-wrap justify-center gap-4">

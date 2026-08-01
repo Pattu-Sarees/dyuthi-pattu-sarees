@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Menu } from 'lucide-react'
+import { Menu, Star, Sparkles, Flame } from 'lucide-react'
 import ProductCard from './ProductCard'
 import { DisplayItem } from './displayItems'
 
@@ -116,6 +116,14 @@ export default function PaginatedProductsGrid({
             <ToggleButton key={n} active={desktopCols === n} label={`${n} per row`} onClick={() => setView({ desktop: n })}><ColumnIcon count={n} /></ToggleButton>
           ))}
         </div>
+      </div>
+
+      {/* Badge legend — mobile only. On mobile the cards show icon-only badges,
+          so this explains what each symbol means. */}
+      <div className="flex lg:hidden flex-wrap items-center gap-x-3 gap-y-1 mb-3 text-[11px] text-gray-600">
+        <span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 text-[#B8860B] fill-current" /> Best Seller</span>
+        <span className="inline-flex items-center gap-1"><Sparkles className="h-3.5 w-3.5 text-[#2E8B57]" /> New</span>
+        <span className="inline-flex items-center gap-1"><Flame className="h-3.5 w-3.5 text-[#C73B75] fill-current" /> On Sale</span>
       </div>
 
       <div className={`grid ${MOBILE_COL_CLASS[mobileCols]} ${DESKTOP_COL_CLASS[desktopCols]} gap-4 transition-opacity duration-300 ease-in-out ${changing ? 'opacity-50' : 'opacity-100'} ${DESKTOP_MAXW[desktopCols]}`}>

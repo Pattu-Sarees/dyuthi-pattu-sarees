@@ -191,20 +191,20 @@ export default function ProductCard({
     const badgeSale = discount > 0
     if (!badgeBest && !badgeNew && !badgeSale) return null
     return (
-      <div className="flex flex-wrap max-w-full gap-y-0.5">
+      <div className="flex flex-wrap max-w-full gap-y-0.5 max-lg:gap-x-1">
         {badgeBest && (
-          <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#B8860B] text-white text-[9px] md:text-[10px] font-bold px-1.5 py-1 tracking-wide">
-            <Star className="h-3 w-3 fill-current flex-shrink-0" /> BEST SELLER
+          <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#B8860B] text-white text-[10px] font-bold px-1.5 py-1 tracking-wide max-lg:rounded" aria-label="Best Seller">
+            <Star className="h-3 w-3 fill-current flex-shrink-0" /> <span className="hidden lg:inline">BEST SELLER</span>
           </span>
         )}
         {badgeNew && (
-          <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#2E8B57] text-white text-[9px] md:text-[10px] font-bold px-1.5 py-1 tracking-wide">
-            <Sparkles className="h-3 w-3 flex-shrink-0" /> NEW
+          <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#2E8B57] text-white text-[10px] font-bold px-1.5 py-1 tracking-wide max-lg:rounded" aria-label="New">
+            <Sparkles className="h-3 w-3 flex-shrink-0" /> <span className="hidden lg:inline">NEW</span>
           </span>
         )}
         {badgeSale && (
-          <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#C73B75] text-white text-[9px] md:text-[10px] font-bold px-1.5 py-1 tracking-wide">
-            <Flame className="h-3 w-3 fill-current flex-shrink-0" /> ON SALE
+          <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#C73B75] text-white text-[10px] font-bold px-1.5 py-1 tracking-wide max-lg:rounded" aria-label="On Sale">
+            <Flame className="h-3 w-3 fill-current flex-shrink-0" /> <span className="hidden lg:inline">ON SALE</span>
           </span>
         )}
       </div>
