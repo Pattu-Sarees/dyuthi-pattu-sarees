@@ -237,9 +237,9 @@ export default function ProductCard({
         <button
           onClick={handleWishlist}
           aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-          className="absolute top-2.5 right-2.5 p-2 bg-white rounded-full shadow-sm hover:bg-gray-50 transition-colors"
+          className="absolute top-2.5 right-2.5 max-lg:top-2 max-lg:right-2 p-2 max-lg:p-1.5 bg-white rounded-full shadow-sm hover:bg-gray-50 transition-colors"
         >
-          <Heart className={`h-4 w-4 transition-colors ${heartBurst ? 'animate-heart' : ''} ${mounted && wishlisted ? 'text-[#AD1457] fill-[#AD1457]' : 'text-[#4E1E24]'}`} />
+          <Heart className={`h-4 w-4 max-lg:h-3.5 max-lg:w-3.5 transition-colors ${heartBurst ? 'animate-heart' : ''} ${mounted && wishlisted ? 'text-[#AD1457] fill-[#AD1457]' : 'text-[#4E1E24]'}`} />
           {heartBurst && (
             <span className="pointer-events-none absolute inset-0">
               {BURST_DOTS.map((d, i) => (
@@ -259,12 +259,12 @@ export default function ProductCard({
             ref={btnRef}
             onClick={(e) => handleAddToCart(e, btnRef)}
             aria-label="Add to bag"
-            className="group/add absolute bottom-2.5 right-2.5 flex items-center bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors p-2.5"
+            className="group/add absolute bottom-2.5 right-2.5 max-lg:bottom-2 max-lg:right-2 flex items-center bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors p-2.5 max-lg:p-2"
           >
             {justAdded ? (
-              <Check className="h-4 w-4 text-[#4E1E24] animate-pop" />
+              <Check className="h-4 w-4 max-lg:h-3.5 max-lg:w-3.5 text-[#4E1E24] animate-pop" />
             ) : (
-              <ShoppingBag className="h-4 w-4 text-[#4E1E24]" />
+              <ShoppingBag className="h-4 w-4 max-lg:h-3.5 max-lg:w-3.5 text-[#4E1E24]" />
             )}
             {burst && (
               <span className="pointer-events-none absolute inset-0">
@@ -291,7 +291,7 @@ export default function ProductCard({
       {/* Info — pinned to the bottom on mobile so name/price align across a row
           even when some cards carry a BEST SELLER badge bar. */}
       <div className="p-3 max-lg:mt-auto">
-        <h3 className="text-gray-800 text-sm leading-tight line-clamp-2 mb-1.5 min-h-[2.5rem]">{toTitleCase(product.name)}</h3>
+        <h3 className="text-gray-800 text-sm leading-tight line-clamp-2 mb-1 max-lg:mb-1 min-h-[2.5rem] max-lg:min-h-0">{toTitleCase(product.name)}</h3>
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <span className="text-sm md:text-base font-bold text-[#C2185B]">{formatPrice(product.price)}</span>
           {product.original_price && (
