@@ -12,7 +12,7 @@ import { Loader2, Upload, Trash2, ImagePlus, ChevronDown, Search } from 'lucide-
 import { PRODUCT_CATEGORIES } from '@/lib/categories'
 
 const CATEGORIES = PRODUCT_CATEGORIES
-const FABRICS = ['pure silk', 'blended silk', 'cotton', 'soft silk', 'linen']
+const FABRICS = ['pure silk', 'blended silk', 'cotton', 'soft silk', 'linen', 'sico', 'pattu']
 
 // Swatch palette for the per-variant colour selector — light, dark & blended shades.
 const SAREE_COLORS: { name: string; hex: string }[] = [
