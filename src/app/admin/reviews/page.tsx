@@ -162,7 +162,7 @@ export default function AdminReviews() {
         <h1 className="text-2xl font-bold text-gray-900">Reviews</h1>
         <button
           onClick={() => { setForm({ ...empty }); setShowForm((v) => !v) }}
-          className="inline-flex items-center gap-1.5 bg-[#C2185B] hover:bg-[#a01049] text-white text-sm font-semibold px-3.5 py-2 rounded-lg"
+          className="inline-flex items-center gap-1.5 bg-[#C2185B] hover:bg-[#a01049] text-white text-xs px-2.5 py-1.5 sm:text-sm sm:px-3.5 sm:py-2 font-semibold rounded-lg whitespace-nowrap flex-shrink-0"
         >
           {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />} {showForm ? 'Close' : 'Add review'}
         </button>
@@ -244,12 +244,12 @@ export default function AdminReviews() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-4 flex-wrap">
+      <div className="flex gap-1.5 sm:gap-2 mb-4 flex-nowrap overflow-x-auto sm:flex-wrap">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
               tab === t.key ? 'bg-[#4E1E24] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
           >
@@ -272,8 +272,8 @@ export default function AdminReviews() {
                   {(t.avatar_initial || t.customer_name.charAt(0)).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-gray-900">{t.customer_name}</p>
+                  <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto whitespace-nowrap sm:flex-wrap sm:gap-2">
+                    <p className="font-semibold text-gray-900 flex-shrink-0">{t.customer_name}</p>
                     {t.location && <span className="text-xs text-gray-400">· {t.location}</span>}
                     <span className="flex">{Array.from({ length: t.rating }).map((_, k) => <Star key={k} className="h-3.5 w-3.5 text-[#D4AF37] fill-[#D4AF37]" />)}</span>
                     <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{t.review_source}</span>

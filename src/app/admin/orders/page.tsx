@@ -85,10 +85,10 @@ function OrderChip({ meta, label, count, active, onClick }: { meta?: { border: s
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-full border pl-4 pr-1.5 py-1 text-sm capitalize transition-colors ${border} ${activeSolid ? 'bg-[#4E1E24] border-transparent text-white font-medium' : active ? `${pill} font-medium` : 'bg-white text-gray-900 font-normal'}`}
+      className={`inline-flex items-center gap-1 sm:gap-2 rounded-full border pl-2.5 pr-1 py-0.5 sm:pl-4 sm:pr-1.5 sm:py-1 text-xs sm:text-sm capitalize whitespace-nowrap transition-colors ${border} ${activeSolid ? 'bg-[#4E1E24] border-transparent text-white font-medium' : active ? `${pill} font-medium` : 'bg-white text-gray-900 font-normal'}`}
     >
       {label}
-      <span className={`inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-xs font-bold text-white ${activeSolid ? 'bg-white/25' : badge}`}>{count}</span>
+      <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] sm:min-w-[22px] sm:h-[22px] px-1 sm:px-1.5 rounded-full text-[10px] sm:text-xs font-bold text-white ${activeSolid ? 'bg-white/25' : badge}`}>{count}</span>
     </button>
   )
 }
@@ -208,12 +208,12 @@ export default function AdminOrdersPage() {
     <div>
       <div className="flex items-center justify-between gap-3 mb-5">
         <h1 className="text-2xl md:text-3xl font-bold text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>Orders</h1>
-        <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 bg-[#AD1457] hover:bg-[#880E4F] text-white font-semibold text-sm px-3.5 py-2 rounded-lg transition-colors">
+        <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 bg-[#AD1457] hover:bg-[#880E4F] text-white font-semibold text-xs px-2.5 py-1.5 sm:text-sm sm:px-3.5 sm:py-2 rounded-lg transition-colors whitespace-nowrap flex-shrink-0">
           <Plus className="h-4 w-4" /> Create Order
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2.5 mb-4">
+      <div className="flex flex-wrap gap-1.5 sm:gap-2.5 mb-4">
         <OrderChip label="All" count={orders.length} active={filter === 'all'} onClick={() => setFilter('all')} />
         {ADMIN_ORDER_STATUSES.map((s) => (
           <OrderChip key={s} meta={STATUS_META[s]} label={s} count={orders.filter((o) => o.status === s).length} active={filter === s} onClick={() => setFilter(s)} />
@@ -234,8 +234,8 @@ export default function AdminOrdersPage() {
               <div className="flex items-center justify-between gap-3">
                 {/* Left: order info + items */}
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-gray-900 text-sm">{o.order_number || o.id.slice(0, 8)}</p>
+                  <div className="flex items-center gap-2 flex-nowrap overflow-x-auto whitespace-nowrap sm:flex-wrap">
+                    <p className="font-semibold text-gray-900 text-sm flex-shrink-0">{o.order_number || o.id.slice(0, 8)}</p>
                     <span className="inline-flex items-center gap-1.5">
                       <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-[#5A0B2D] text-white text-[10px] font-semibold flex-shrink-0">{initials(o.customer_name)}</span>
                       <span className="text-sm font-bold text-[#5A0B2D]">{titleCase(o.customer_name)}</span>
@@ -245,9 +245,9 @@ export default function AdminOrdersPage() {
                     <SourceTag source={o.source} />
                   </div>
                   {o.items && o.items.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
+                    <div className="flex flex-nowrap overflow-x-auto sm:flex-wrap gap-2 mt-2">
                       {(o.items as OrderItem[]).map((it) => (
-                        <div key={it.id} className="flex items-center gap-2 bg-gray-50 rounded-md pl-1 pr-2.5 py-1">
+                        <div key={it.id} className="flex items-center gap-2 bg-gray-50 rounded-md pl-1 pr-2.5 py-1 flex-shrink-0">
                           <button
                             type="button"
                             onClick={() => it.product_image && setPreviewImg(it.product_image)}

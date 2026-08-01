@@ -54,7 +54,7 @@ export default function AdminVendorsPage() {
     <div>
       <div className="flex items-center justify-between gap-3 mb-5">
         <h1 className="text-2xl md:text-3xl font-bold text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>Vendors</h1>
-        <button onClick={openAdd} className="inline-flex items-center gap-1.5 bg-[#AD1457] hover:bg-[#880E4F] text-white font-semibold text-sm px-3.5 py-2 rounded-lg transition-colors">
+        <button onClick={openAdd} className="inline-flex items-center gap-1.5 bg-[#AD1457] hover:bg-[#880E4F] text-white font-semibold text-xs px-2.5 py-1.5 sm:text-sm sm:px-3.5 sm:py-2 rounded-lg transition-colors whitespace-nowrap flex-shrink-0">
           <Plus className="h-4 w-4" /> New Vendor
         </button>
       </div>

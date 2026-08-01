@@ -62,12 +62,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </span>
           </Link>
           {/* Mobile: compact icon only */}
-          <Link href="/admin" className="flex-shrink-0 md:hidden px-4">
-            <span className="relative flex-shrink-0 overflow-hidden rounded-md h-10 w-10 block">
+          <Link href="/admin" className="flex-shrink-0 md:hidden pl-3 pr-1">
+            <span className="relative flex-shrink-0 overflow-hidden rounded-md h-9 w-9 block">
               <Image src="/logo-v3.jpeg" alt="Dyuthi Pattu Sarees" width={160} height={160} priority className="h-full w-full object-cover scale-[1.35]" />
             </span>
           </Link>
-          <div className="flex items-center justify-between gap-4 flex-1 px-4">
+          <div className="flex items-center justify-between gap-2 sm:gap-4 flex-1 px-2 sm:px-4">
             <GlobalSearch />
             <AdminHeaderActions email={user.email} name={user.user_metadata?.full_name} avatar={user.user_metadata?.avatar_url} />
           </div>

@@ -72,7 +72,7 @@ export default function GlobalSearch() {
   const showRecent = q.trim().length === 0 && recent.length > 0
 
   return (
-    <div ref={boxRef} className="relative flex-1 max-w-md mx-auto hidden md:block">
+    <div ref={boxRef} className="relative flex-1 max-w-md mx-auto block">
       <div className="flex items-center gap-2 bg-[#FBF7F0] border border-[#ece3d6] rounded-full px-4 py-2">
         <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
         <input

@@ -153,8 +153,8 @@ export default function AdminInventoryPage() {
         <h1 className="text-2xl md:text-3xl font-bold text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>Inventory</h1>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-        <div className="flex flex-wrap gap-2.5">
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-3 mb-4">
+        <div className="flex flex-nowrap overflow-x-auto gap-1.5 sm:flex-wrap sm:gap-2.5">
           <Chip scheme="all" active={filter === 'all'} count={counts.all} onClick={() => { setFilter('all'); setPage(1) }}>All</Chip>
           <Chip scheme="in" active={filter === 'in'} count={counts.in} onClick={() => { setFilter('in'); setPage(1) }}>In Stock</Chip>
           <Chip scheme="low" active={filter === 'low'} count={counts.low} onClick={() => { setFilter('low'); setPage(1) }}>Low Stock</Chip>
@@ -227,7 +227,7 @@ export default function AdminInventoryPage() {
                       </div>
                       {/* Per-colour stock badges */}
                       {it.variants.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        <div className="flex flex-nowrap overflow-x-auto gap-1 mt-1.5 max-w-[220px] sm:max-w-none sm:flex-wrap sm:gap-1.5">
                           {it.variants.map((v, idx) => {
                             const vOut = v.quantity <= 0
                             const vLow = !vOut && v.quantity <= LOW
@@ -241,7 +241,7 @@ export default function AdminInventoryPage() {
                             return (
                               <span
                                 key={v.image}
-                                className={`inline-flex items-center gap-1 rounded-full border pl-1 pr-2 py-0.5 text-[11px] ${cls}`}
+                                className={`inline-flex items-center gap-0.5 sm:gap-1 rounded-full border pl-0.5 pr-1.5 sm:pl-1 sm:pr-2 py-0.5 text-[10px] sm:text-[11px] whitespace-nowrap flex-shrink-0 ${cls}`}
                                 title={vOut ? 'Out of stock' : vLow ? 'Low stock' : 'In stock'}
                               >
                                 <span className="relative h-4 w-4 rounded-full overflow-hidden bg-gray-200">
@@ -610,10 +610,10 @@ function Chip({ scheme, active, count, onClick, children }: { scheme: 'all' | 'i
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded-full border pl-4 pr-1.5 py-1 text-sm font-normal transition-colors ${s.border} ${activeAll ? 'bg-[#4E1E24] border-transparent text-white' : `text-gray-900 ${active ? s.activeBg : 'bg-white'}`}`}
+      className={`inline-flex items-center gap-1 sm:gap-2 rounded-full border pl-2.5 pr-1 py-0.5 sm:pl-4 sm:pr-1.5 sm:py-1 text-xs sm:text-sm font-normal whitespace-nowrap flex-shrink-0 transition-colors ${s.border} ${activeAll ? 'bg-[#4E1E24] border-transparent text-white' : `text-gray-900 ${active ? s.activeBg : 'bg-white'}`}`}
     >
       {children}
-      <span className={`inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-white text-xs font-bold ${activeAll ? 'bg-white/25' : s.badge}`}>{count}</span>
+      <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] sm:min-w-[22px] sm:h-[22px] px-1 sm:px-1.5 rounded-full text-white text-[10px] sm:text-xs font-bold ${activeAll ? 'bg-white/25' : s.badge}`}>{count}</span>
     </button>
   )
 }

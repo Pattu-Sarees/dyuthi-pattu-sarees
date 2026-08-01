@@ -62,13 +62,13 @@ export default function AdminLeadsPage() {
     <div>
       <div className="flex items-center justify-between gap-3 mb-5">
         <h1 className="text-2xl md:text-3xl font-bold text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>Leads</h1>
-        <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 bg-[#AD1457] hover:bg-[#880E4F] text-white font-semibold text-sm px-3.5 py-2 rounded-lg transition-colors">
+        <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 bg-[#AD1457] hover:bg-[#880E4F] text-white font-semibold text-xs px-2.5 py-1.5 sm:text-sm sm:px-3.5 sm:py-2 rounded-lg transition-colors whitespace-nowrap flex-shrink-0">
           <Plus className="h-4 w-4" /> Add Lead
         </button>
       </div>
 
       {/* Filter chips */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-nowrap overflow-x-auto sm:flex-wrap gap-1.5 sm:gap-2 mb-4">
         <Chip active={filter === 'all'} onClick={() => setFilter('all')}>All {leads.length}</Chip>
         {LEAD_STATUSES.map((s) => (
           <Chip key={s} active={filter === s} onClick={() => setFilter(s)}>{s} {counts[s] || 0}</Chip>
@@ -92,7 +92,7 @@ export default function AdminLeadsPage() {
                     <p className="font-semibold text-gray-900">{l.name}</p>
                     <span className="text-[10px] capitalize bg-rose-50 text-[#AD1457] px-2 py-0.5 rounded-full">{l.source}</span>
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-nowrap overflow-x-auto whitespace-nowrap sm:flex-wrap">
                     {l.phone && <a href={`tel:${l.phone}`} className="flex items-center gap-1 hover:text-[#AD1457]"><Phone className="h-3 w-3" /> {l.phone}</a>}
                     {l.email && <a href={`mailto:${l.email}`} className="flex items-center gap-1 hover:text-[#AD1457]"><Mail className="h-3 w-3" /> {l.email}</a>}
                     <span>{new Date(l.created_at).toLocaleDateString('en-IN')}</span>
@@ -163,7 +163,7 @@ export default function AdminLeadsPage() {
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className={`text-xs font-medium capitalize px-3 py-1.5 rounded-full border transition-colors ${active ? 'bg-[#AD1457] text-white border-[#AD1457]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#AD1457]'}`}>
+    <button onClick={onClick} className={`text-[11px] sm:text-xs font-medium capitalize px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border whitespace-nowrap flex-shrink-0 transition-colors ${active ? 'bg-[#AD1457] text-white border-[#AD1457]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#AD1457]'}`}>
       {children}
     </button>
   )

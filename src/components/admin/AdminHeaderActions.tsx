@@ -66,7 +66,7 @@ export default function AdminHeaderActions({ email, name, avatar }: { email?: st
   const ref = useOutside(() => setOpen(null))
 
   return (
-    <div className="flex items-center gap-3 flex-shrink-0 ml-auto" ref={ref}>
+    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto" ref={ref}>
       {/* Notification bell */}
       <div className="relative">
         <button onClick={() => setOpen(open === 'bell' ? null : 'bell')} className="relative text-gray-500 hover:text-[#AD1457]" aria-label="Notifications">
@@ -103,7 +103,7 @@ export default function AdminHeaderActions({ email, name, avatar }: { email?: st
       </div>
 
       {/* Help menu */}
-      <div className="relative hidden sm:block">
+      <div className="relative block">
         <button onClick={() => setOpen(open === 'help' ? null : 'help')} className="text-gray-500 hover:text-[#AD1457]" aria-label="Help"><HelpCircle className="h-5 w-5" /></button>
         {open === 'help' && (
           <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-gray-100 shadow-xl overflow-hidden z-50 py-1">
