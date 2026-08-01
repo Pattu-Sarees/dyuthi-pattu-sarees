@@ -191,19 +191,19 @@ export default function ProductCard({
     const badgeSale = discount > 0
     if (!badgeBest && !badgeNew && !badgeSale) return null
     return (
-      <div className="flex w-fit max-w-full overflow-hidden">
+      <div className="flex flex-wrap max-w-full gap-y-0.5">
         {badgeBest && (
-          <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#B8860B] text-white text-[10px] font-bold px-2 py-1 tracking-wide">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#B8860B] text-white text-[9px] md:text-[10px] font-bold px-1.5 py-1 tracking-wide">
             <Star className="h-3 w-3 fill-current flex-shrink-0" /> BEST SELLER
           </span>
         )}
         {badgeNew && (
-          <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#2E8B57] text-white text-[10px] font-bold px-2 py-1 tracking-wide">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#2E8B57] text-white text-[9px] md:text-[10px] font-bold px-1.5 py-1 tracking-wide">
             <Sparkles className="h-3 w-3 flex-shrink-0" /> NEW
           </span>
         )}
         {badgeSale && (
-          <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#C73B75] text-white text-[10px] font-bold px-2 py-1 tracking-wide">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap bg-[#C73B75] text-white text-[9px] md:text-[10px] font-bold px-1.5 py-1 tracking-wide">
             <Flame className="h-3 w-3 fill-current flex-shrink-0" /> ON SALE
           </span>
         )}
@@ -292,8 +292,8 @@ export default function ProductCard({
           even when some cards carry a BEST SELLER badge bar. */}
       <div className="p-3 max-lg:mt-auto">
         <h3 className="text-gray-800 text-sm leading-tight line-clamp-2 mb-1.5 min-h-[2.5rem]">{toTitleCase(product.name)}</h3>
-        <div className="flex items-baseline gap-2">
-          <span className="text-base font-bold text-[#C2185B]">{formatPrice(product.price)}</span>
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="text-sm md:text-base font-bold text-[#C2185B]">{formatPrice(product.price)}</span>
           {product.original_price && (
             <span className="text-xs text-gray-400 line-through">{formatPrice(product.original_price)}</span>
           )}
