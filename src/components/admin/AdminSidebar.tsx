@@ -48,7 +48,7 @@ export default function AdminSidebar() {
   }
 
   return (
-    <aside className={cn('flex-shrink-0 bg-[#3a0d22] h-[calc(100vh-4rem)] overflow-y-auto sticky top-16 hidden md:flex flex-col p-3 transition-[width]', collapsed ? 'w-16' : 'w-56')}>
+    <aside className={cn('flex-shrink-0 bg-[#3a0d22] h-[calc(100vh-4rem)] overflow-y-auto sticky top-16 flex flex-col p-3 transition-[width]', collapsed ? 'w-16' : 'w-56')}>
       <button
         onClick={() => setCollapsed((c) => !c)}
         className="self-end mb-1 p-1.5 rounded-lg text-[#E8DCC7] hover:bg-white/10 transition-colors"
