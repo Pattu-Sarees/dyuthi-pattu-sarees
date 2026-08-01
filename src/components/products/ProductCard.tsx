@@ -26,6 +26,7 @@ export default function ProductCard({
   isBestSeller,
   onlyBadge,
   variant = 'grid',
+  dense = false,
 }: {
   product: Product
   image?: string
@@ -36,6 +37,8 @@ export default function ProductCard({
   // 'list' renders as a wide horizontal row on desktop (lg+) when the 1-per-row
   // list view is selected; it always falls back to the normal card on mobile.
   variant?: 'grid' | 'list'
+  // dense = 3-per-row mobile grid → smaller name/price so the image is bigger.
+  dense?: boolean
 }) {
   // Per-item flags when provided (each photo can differ), else product-level rollup.
   const showNew = isNewArrival ?? product.is_new_arrival
@@ -291,11 +294,11 @@ export default function ProductCard({
       {/* Info — pinned to the bottom on mobile so name/price align across a row
           even when some cards carry a BEST SELLER badge bar. */}
       <div className="p-3 max-lg:mt-auto">
-        <h3 className="text-gray-800 text-sm leading-tight line-clamp-2 mb-1 max-lg:mb-1 min-h-[2.5rem] max-lg:min-h-0">{toTitleCase(product.name)}</h3>
+        <h3 className={`text-gray-800 leading-tight line-clamp-2 mb-1 min-h-[2.5rem] max-lg:min-h-0 ${dense ? 'text-xs md:text-sm' : 'text-sm'}`}>{toTitleCase(product.name)}</h3>
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span className="text-sm md:text-base font-bold text-[#C2185B]">{formatPrice(product.price)}</span>
+          <span className={`font-bold text-[#C2185B] md:text-base ${dense ? 'text-xs' : 'text-sm'}`}>{formatPrice(product.price)}</span>
           {product.original_price && (
-            <span className="text-xs text-gray-400 line-through">{formatPrice(product.original_price)}</span>
+            <span className={`text-gray-400 line-through ${dense ? 'text-[10px] md:text-xs' : 'text-xs'}`}>{formatPrice(product.original_price)}</span>
           )}
         </div>
       </div>

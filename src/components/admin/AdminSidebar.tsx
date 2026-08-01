@@ -48,7 +48,7 @@ export default function AdminSidebar() {
   }
 
   return (
-    <aside className={cn('flex-shrink-0 bg-[#3a0d22] h-[calc(100vh-4rem)] overflow-y-auto sticky top-16 flex flex-col p-3 transition-[width]', collapsed ? 'w-16' : 'w-56')}>
+    <aside className={cn('flex-shrink-0 bg-[#3a0d22] h-[calc(100vh-4rem)] overflow-y-auto sticky top-16 flex flex-col p-2 md:p-3 transition-[width]', collapsed ? 'w-12 md:w-16' : 'w-44 md:w-56')}>
       <button
         onClick={() => setCollapsed((c) => !c)}
         className="self-end mb-1 p-1.5 rounded-lg text-[#E8DCC7] hover:bg-white/10 transition-colors"
@@ -65,8 +65,8 @@ export default function AdminSidebar() {
               href={n.href}
               title={collapsed ? n.label : undefined}
               className={cn(
-                'flex items-center gap-3 rounded-lg text-sm transition-colors',
-                collapsed ? 'justify-center px-2 py-2.5' : 'px-3.5 py-2',
+                'flex items-center gap-2.5 md:gap-3 rounded-lg text-[13px] md:text-sm transition-colors',
+                collapsed ? 'justify-center px-2 py-2.5' : 'px-2.5 py-1.5 md:px-3.5 md:py-2',
                 active ? 'bg-[#F4E5C2] text-[#4E1E24] font-semibold' : 'text-[#E8DCC7] hover:bg-white/10'
               )}
             >
@@ -78,7 +78,7 @@ export default function AdminSidebar() {
       <button
         onClick={handleLogout}
         title={collapsed ? 'Logout' : undefined}
-        className={cn('mt-auto flex items-center gap-3 rounded-lg text-sm text-[#E8DCC7] hover:bg-white/10 transition-colors', collapsed ? 'justify-center px-2 py-2.5' : 'px-3.5 py-2.5')}
+        className={cn('mt-auto flex items-center gap-2.5 md:gap-3 rounded-lg text-[13px] md:text-sm text-[#E8DCC7] hover:bg-white/10 transition-colors', collapsed ? 'justify-center px-2 py-2.5' : 'px-2.5 py-2 md:px-3.5 md:py-2.5')}
       >
         <LogOut className="h-4 w-4 flex-shrink-0" /> {!collapsed && 'Logout'}
       </button>

@@ -126,7 +126,7 @@ export default function AdminReportsPage() {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wide text-gray-400 border-b border-gray-100">
                 {result.columns.map((c) => <th key={c} className="py-3 px-4 font-medium whitespace-nowrap">{c}</th>)}

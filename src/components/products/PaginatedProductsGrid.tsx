@@ -136,7 +136,7 @@ export default function PaginatedProductsGrid({
       <div className={`grid ${MOBILE_COL_CLASS[mobileCols]} ${DESKTOP_COL_CLASS[desktopCols]} gap-4 transition-opacity duration-300 ease-in-out ${changing ? 'opacity-50' : 'opacity-100'} ${DESKTOP_MAXW[desktopCols]}`}>
         {shown.map((item) => (
           <div key={item.key} className="min-w-0 animate-card-in">
-            <ProductCard product={item.product} image={item.image} imageIndex={item.imageIndex} isNewArrival={item.isNewArrival} isBestSeller={item.isBestSeller} onlyBadge={onlyBadge} variant={isListView ? 'list' : 'grid'} />
+            <ProductCard product={item.product} image={item.image} imageIndex={item.imageIndex} isNewArrival={item.isNewArrival} isBestSeller={item.isBestSeller} onlyBadge={onlyBadge} variant={isListView ? 'list' : 'grid'} dense={mobileCols === 3} />
           </div>
         ))}
       </div>

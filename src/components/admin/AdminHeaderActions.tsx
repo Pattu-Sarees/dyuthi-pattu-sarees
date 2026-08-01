@@ -66,7 +66,7 @@ export default function AdminHeaderActions({ email, name, avatar }: { email?: st
   const ref = useOutside(() => setOpen(null))
 
   return (
-    <div className="flex items-center gap-3 flex-shrink-0" ref={ref}>
+    <div className="flex items-center gap-3 flex-shrink-0 ml-auto" ref={ref}>
       {/* Notification bell */}
       <div className="relative">
         <button onClick={() => setOpen(open === 'bell' ? null : 'bell')} className="relative text-gray-500 hover:text-[#AD1457]" aria-label="Notifications">

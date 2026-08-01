@@ -231,23 +231,38 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
     return () => document.removeEventListener('keydown', onKey)
   }, [preview])
 
-  // Clicking anywhere outside the image stops zoom mode and brings the magnifier back
+  // Clicking/tapping anywhere outside the image stops zoom mode and brings the magnifier back
   useEffect(() => {
     if (!zoomMode) return
-    const onDown = (e: MouseEvent) => {
+    const onDown = (e: MouseEvent | TouchEvent) => {
       if (imageBoxRef.current && !imageBoxRef.current.contains(e.target as Node)) {
         setZoomMode(false)
         setZoom(null)
       }
     }
     document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
+    document.addEventListener('touchstart', onDown)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('touchstart', onDown)
+    }
   }, [zoomMode])
   const handleZoomMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
     setZoom({
       x: ((e.clientX - rect.left) / rect.width) * 100,
       y: ((e.clientY - rect.top) / rect.height) * 100,
+    })
+  }
+  // Touch equivalent of the cursor-following zoom (mobile): pan while a finger is
+  // down, and return to normal when the finger lifts.
+  const handleZoomTouch = (e: React.TouchEvent<HTMLDivElement>) => {
+    const t = e.touches[0]
+    if (!t) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    setZoom({
+      x: ((t.clientX - rect.left) / rect.width) * 100,
+      y: ((t.clientY - rect.top) / rect.height) * 100,
     })
   }
   const [showReviewForm, setShowReviewForm] = useState(false)
@@ -311,9 +326,12 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
 
             <div
               ref={imageBoxRef}
-              className={`relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100 group flex-1 ${videoActive ? '' : zoomMode ? 'cursor-zoom-in' : 'cursor-pointer'}`}
+              className={`relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100 group flex-1 ${videoActive ? '' : zoomMode ? 'cursor-zoom-in touch-none' : 'cursor-pointer'}`}
               onMouseMove={!videoActive && zoomMode && displayedImage ? handleZoomMove : undefined}
               onMouseLeave={() => setZoom(null)}
+              onTouchStart={!videoActive && zoomMode && displayedImage ? handleZoomTouch : undefined}
+              onTouchMove={!videoActive && zoomMode && displayedImage ? handleZoomTouch : undefined}
+              onTouchEnd={() => setZoom(null)}
               onClick={() => !videoActive && !zoomMode && displayedImage && setPreview(true)}
             >
               {videoActive && product.video_url ? (
