@@ -29,6 +29,9 @@ const nextConfig: NextConfig = {
     deviceSizes: [360, 640, 750, 828, 1080, 1200, 1920],
     imageSizes: [80, 128, 256, 384],
   },
+  // Native/wasm image libs used only on the server (upload route). Keeps them
+  // out of the client bundle and lets Next load their binaries correctly.
+  serverExternalPackages: ['sharp', 'heic-convert'],
   // Tree-shake the icon barrel so only the icons actually used ship to the client.
   experimental: {
     optimizePackageImports: ['lucide-react'],

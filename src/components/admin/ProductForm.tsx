@@ -8,7 +8,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Product, InventoryItem, Vendor } from '@/types'
 import { toast } from 'sonner'
-import { Loader2, Upload, Trash2, ImagePlus, ChevronDown, Search } from 'lucide-react'
+import { Loader2, Upload, Trash2, ImagePlus, ChevronDown, Search, X } from 'lucide-react'
 import { PRODUCT_CATEGORIES } from '@/lib/categories'
 
 const CATEGORIES = PRODUCT_CATEGORIES
@@ -164,7 +164,9 @@ function ColorSwatchSelect({
 
 // A row in the form. `isNew` marks photos/colours added during this edit —
 // their quantity is editable (first-time stock entry). Existing rows are locked.
-type Row = InventoryItem & { isNew?: boolean }
+// `tempId`/`pending` track an optimistic row whose photo is still uploading in
+// the background (shown instantly via a local preview, swapped for the real URL).
+type Row = InventoryItem & { isNew?: boolean; tempId?: string; pending?: boolean }
 
 // Handle old data shapes gracefully
 function normalise(variants?: Array<Partial<InventoryItem> & { image?: string; images?: string[] }>): Row[] {
@@ -258,7 +260,10 @@ export default function ProductForm({ product }: { product?: Product }) {
   const router = useRouter()
   const isEdit = !!product
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  // Number of photos still uploading in the background. `uploading` (derived)
+  // keeps existing JSX working and gates Save until all uploads finish.
+  const [pendingCount, setPendingCount] = useState(0)
+  const uploading = pendingCount > 0
 
   const [form, setForm] = useState({
     name: product?.name || '',
@@ -290,6 +295,8 @@ export default function ProductForm({ product }: { product?: Product }) {
       .catch(() => {})
   }, [])
   const [items, setItems] = useState<Row[]>(normalise(product?.color_variants))
+  // Row index pending delete confirmation (parent variant/photo).
+  const [confirmDeleteRow, setConfirmDeleteRow] = useState<number | null>(null)
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -310,26 +317,63 @@ export default function ProductForm({ product }: { product?: Product }) {
     : items.reduce((s, it) => s + (Number(it.quantity) || 0), 0)
   const stockChanged = isEdit && totalStock !== currentStock
 
-  const handleAddPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddPhotos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    if (files.length === 0) return
-    setUploading(true)
-    const newRows: Row[] = []
-    for (const file of files) {
-      const fd = new FormData()
-      fd.append('file', file)
-      try {
-        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-        const json = await res.json()
-        if (json.url) newRows.push({ image: json.url, quantity: 1, isNew: true })
-        else toast.error(json.error || 'Upload failed')
-      } catch {
-        toast.error('Upload failed')
-      }
-    }
-    if (newRows.length) setItems((prev) => [...prev, ...newRows])
-    setUploading(false)
     e.target.value = ''
+    if (files.length === 0) return
+
+    // Show each photo instantly with a local preview, then upload+convert in the
+    // background and swap in the real URL when ready. HEIC conversion is slow
+    // server-side, but the admin never waits for it.
+    const staged = files.map((file) => {
+      const id =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random()}`
+      // Browsers can't render HEIC, so don't make a (broken) preview for it —
+      // show a loading tile instead. JPG/PNG get an instant real preview.
+      const heic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)
+      return { file, tempId: id, preview: heic ? `pending:${id}` : URL.createObjectURL(file) }
+    })
+
+    setItems((prev) => [
+      ...prev,
+      ...staged.map((s) => ({
+        image: s.preview,
+        quantity: 1,
+        isNew: true,
+        tempId: s.tempId,
+        pending: true,
+      })),
+    ])
+    setPendingCount((c) => c + staged.length)
+
+    for (const s of staged) {
+      const fd = new FormData()
+      fd.append('file', s.file)
+      fetch('/api/admin/upload', { method: 'POST', body: fd })
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.url) {
+            setItems((prev) =>
+              prev.map((it) =>
+                it.tempId === s.tempId ? { ...it, image: json.url, pending: false } : it
+              )
+            )
+          } else {
+            toast.error(json.error || 'Upload failed')
+            setItems((prev) => prev.filter((it) => it.tempId !== s.tempId))
+          }
+        })
+        .catch(() => {
+          toast.error('Upload failed')
+          setItems((prev) => prev.filter((it) => it.tempId !== s.tempId))
+        })
+        .finally(() => {
+          if (s.preview.startsWith('blob:')) URL.revokeObjectURL(s.preview)
+          setPendingCount((c) => c - 1)
+        })
+    }
   }
 
   const setQty = (i: number, qty: number) =>
@@ -362,29 +406,70 @@ export default function ProductForm({ product }: { product?: Product }) {
   }
 
   // Extra angle shots for one row — uploaded like main photos but stored on the row.
-  const handleAddAngles = async (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddAngles = (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    if (files.length === 0) return
-    setUploading(true)
-    const urls: string[] = []
-    for (const file of files) {
-      const fd = new FormData()
-      fd.append('file', file)
-      try {
-        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-        const json = await res.json()
-        if (json.url) urls.push(json.url)
-        else toast.error(json.error || 'Upload failed')
-      } catch {
-        toast.error('Upload failed')
-      }
-    }
-    if (urls.length) {
-      setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, additional_images: [...(it.additional_images || []), ...urls] } : it)))
-      toast.success(`${urls.length} additional photo${urls.length > 1 ? 's' : ''} added`)
-    }
-    setUploading(false)
     e.target.value = ''
+    if (files.length === 0) return
+
+    const staged = files.map((file) => {
+      const heic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)
+      const id =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random()}`
+      return { file, preview: heic ? `pending:${id}` : URL.createObjectURL(file) }
+    })
+
+    // Show previews on the row immediately, swap each for its real URL when done.
+    setItems((prev) =>
+      prev.map((it, idx) =>
+        idx === i
+          ? { ...it, additional_images: [...(it.additional_images || []), ...staged.map((s) => s.preview)] }
+          : it
+      )
+    )
+    setPendingCount((c) => c + staged.length)
+
+    for (const s of staged) {
+      const fd = new FormData()
+      fd.append('file', s.file)
+      fetch('/api/admin/upload', { method: 'POST', body: fd })
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.url) {
+            setItems((prev) =>
+              prev.map((it, idx) =>
+                idx === i
+                  ? { ...it, additional_images: (it.additional_images || []).map((u) => (u === s.preview ? json.url : u)) }
+                  : it
+              )
+            )
+          } else {
+            toast.error(json.error || 'Upload failed')
+            setItems((prev) =>
+              prev.map((it, idx) =>
+                idx === i
+                  ? { ...it, additional_images: (it.additional_images || []).filter((u) => u !== s.preview) }
+                  : it
+              )
+            )
+          }
+        })
+        .catch(() => {
+          toast.error('Upload failed')
+          setItems((prev) =>
+            prev.map((it, idx) =>
+              idx === i
+                ? { ...it, additional_images: (it.additional_images || []).filter((u) => u !== s.preview) }
+                : it
+            )
+          )
+        })
+        .finally(() => {
+          if (s.preview.startsWith('blob:')) URL.revokeObjectURL(s.preview)
+          setPendingCount((c) => c - 1)
+        })
+    }
   }
 
   const removeAngle = (i: number, url: string) =>
@@ -396,7 +481,12 @@ export default function ProductForm({ product }: { product?: Product }) {
     e.preventDefault()
     if (!form.name || !form.price) { toast.error('Name and price are required'); return }
     if (!form.vendor_id) { toast.error('Vendor is required — select one in the Procurement section'); return }
-    const clean = items.filter((it) => it.image).map((it) => ({ image: it.image, quantity: Number(it.quantity) || 0, color: it.color || '', is_new_arrival: !!it.is_new_arrival, is_best_seller: !!it.is_best_seller, additional_images: it.additional_images || [] }))
+    if (uploading || items.some((it) => it.pending)) { toast.error('Please wait — photos are still uploading'); return }
+    // Guard: never persist a local blob: preview URL (only real uploaded URLs).
+    const isTemp = (u: string) => u.startsWith('blob:') || u.startsWith('pending:')
+    const clean = items
+      .filter((it) => it.image && !isTemp(it.image))
+      .map((it) => ({ image: it.image, quantity: Number(it.quantity) || 0, color: it.color || '', is_new_arrival: !!it.is_new_arrival, is_best_seller: !!it.is_best_seller, additional_images: (it.additional_images || []).filter((u) => !isTemp(u)) }))
     if (clean.length === 0) { toast.error('Add at least one photo'); return }
 
     setSaving(true)
@@ -460,10 +550,24 @@ export default function ProductForm({ product }: { product?: Product }) {
         {items.length > 0 && (
           <div className="space-y-2 mb-4">
             {items.map((it, i) => (
-              <div key={i} className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-gray-50 rounded-lg p-2.5">
+              <div key={i} className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-gray-50 rounded-lg p-2.5">
                 <span className="w-6 text-center text-sm font-bold text-gray-500 flex-shrink-0">{i + 1}</span>
                 <div className="relative w-14 h-16 rounded-md overflow-hidden border border-gray-200 flex-shrink-0">
-                  <Image src={it.image} alt={`Item ${i + 1}`} fill className="object-cover" sizes="56px" />
+                  {it.pending ? (
+                    it.image.startsWith('blob:') ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={it.image} alt={`Item ${i + 1}`} className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <div className="absolute inset-0 bg-gray-100" />
+                    )
+                  ) : (
+                    <Image src={it.image} alt={`Item ${i + 1}`} fill className="object-cover" sizes="56px" />
+                  )}
+                  {it.pending && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <Loader2 className="h-4 w-4 animate-spin text-white" />
+                    </div>
+                  )}
                 </div>
                 {!isEdit || it.isNew ? (
                   <div className="flex items-center gap-2">
@@ -473,7 +577,7 @@ export default function ProductForm({ product }: { product?: Product }) {
                       min={0}
                       value={it.quantity}
                       onChange={(e) => setQty(i, Number(e.target.value))}
-                      className="w-20 h-9 px-2 text-center rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]"
+                      className="w-14 h-9 px-2 text-center rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]"
                     />
                   </div>
                 ) : (
@@ -494,26 +598,40 @@ export default function ProductForm({ product }: { product?: Product }) {
                   <input type="checkbox" checked={!!it.is_best_seller} onChange={(e) => toggleFlag(i, 'is_best_seller', e.target.checked)} className="h-4 w-4 accent-[#C2185B]" />
                   <span className="text-xs text-gray-600">Best Seller</span>
                 </label>
-                <label className="text-xs font-medium text-[#AD1457] hover:underline cursor-pointer">
-                  Add Additional Photos
-                  <input type="file" accept="image/*" multiple onChange={(e) => handleAddAngles(i, e)} className="hidden" disabled={uploading} />
-                </label>
-                <button type="button" onClick={() => removeRow(i)} className="ml-auto p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg flex-shrink-0">
+                <button type="button" onClick={() => setConfirmDeleteRow(i)} title="Delete item" className="ml-auto p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg flex-shrink-0">
                   <Trash2 className="h-4 w-4" />
                 </button>
+                <label className="text-xs font-medium text-[#AD1457] hover:underline cursor-pointer">
+                  Add Additional Photos
+                  <input type="file" accept="image/*,.heic,.heif" multiple onChange={(e) => handleAddAngles(i, e)} className="hidden" disabled={saving} />
+                </label>
                 {(it.additional_images?.length || 0) > 0 && (
                   <div className="w-full flex flex-wrap items-center gap-2 pl-10">
                     <span className="text-[11px] text-gray-400">Angles:</span>
                     {it.additional_images!.map((url) => (
                       <div key={url} className="relative w-10 h-12 rounded-md overflow-hidden border border-gray-200 group/angle">
-                        <Image src={url} alt="Additional angle" fill className="object-cover" sizes="40px" />
+                        {url.startsWith('blob:') || url.startsWith('pending:') ? (
+                          <>
+                            {url.startsWith('blob:') ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={url} alt="Additional angle" className="absolute inset-0 w-full h-full object-cover" />
+                            ) : (
+                              <div className="absolute inset-0 bg-gray-100" />
+                            )}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
+                            </div>
+                          </>
+                        ) : (
+                          <Image src={url} alt="Additional angle" fill className="object-cover" sizes="40px" />
+                        )}
                         <button
                           type="button"
                           onClick={() => removeAngle(i, url)}
-                          className="absolute inset-0 hidden group-hover/angle:flex items-center justify-center bg-black/50 text-white"
+                          className="absolute top-0.5 right-0.5 h-4 w-4 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-red-600"
                           title="Remove"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <X className="h-2.5 w-2.5" />
                         </button>
                       </div>
                     ))}
@@ -527,8 +645,37 @@ export default function ProductForm({ product }: { product?: Product }) {
         <label className="inline-flex items-center gap-2 cursor-pointer bg-[#C2185B] hover:bg-[#a01049] text-white font-medium text-sm px-4 py-2.5 rounded-lg transition-colors">
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
           {uploading ? 'Uploading…' : 'Add photos'}
-          <input type="file" accept="image/*" multiple capture="environment" onChange={handleAddPhotos} className="hidden" disabled={uploading} />
+          <input type="file" accept="image/*,.heic,.heif" multiple capture="environment" onChange={handleAddPhotos} className="hidden" disabled={saving} />
         </label>
+
+        {/* Delete-item confirmation popup (parent variant/photo). */}
+        {confirmDeleteRow !== null && (
+          <div
+            className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4"
+            onClick={(e) => e.target === e.currentTarget && setConfirmDeleteRow(null)}
+          >
+            <div role="dialog" aria-label="Delete item" className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6">
+              <p className="text-base font-semibold text-gray-900">Do you want to delete the item?</p>
+              <p className="text-sm text-gray-500 mt-1">This removes this photo/variant from the product.</p>
+              <div className="flex justify-end gap-3 mt-5">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteRow(null)}
+                  className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { removeRow(confirmDeleteRow); setConfirmDeleteRow(null) }}
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700"
+                >
+                  Yes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Details */}
@@ -608,6 +755,9 @@ export default function ProductForm({ product }: { product?: Product }) {
           />
           <p className="text-xs text-gray-400 mt-1">
             Upload the compressed MP4 to Cloudflare R2 (or paste a YouTube link) and put the public URL here. Shown as a player on the product page. Leave blank for no video.
+          </p>
+          <p className="text-xs text-amber-600 mt-1">
+            Keep videos under ~5&nbsp;MB for fast playback — 720–1080p, ≤20&nbsp;seconds. Larger files load slowly on mobile.
           </p>
         </div>
       </div>

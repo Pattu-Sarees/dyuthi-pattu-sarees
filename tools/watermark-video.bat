@@ -59,7 +59,13 @@ ffmpeg -y -i "!IN!" -filter_complex "[0:v]!SCALEEXPR![v];color=c=black@0:s=16x16
 if errorlevel 1 (
   echo  [!] Failed on "!IN!"
 ) else (
-  echo  Done  -^>  "!OUT!"
+  for %%A in ("!OUT!") do set "OUTSIZE=%%~zA"
+  set /a "OUTMB=!OUTSIZE!/1048576"
+  echo  Done  -^>  "!OUT!"  ^(!OUTMB! MB^)
+  if !OUTSIZE! GTR 5242880 (
+    echo  [!] WARNING: !OUTMB! MB is over 5 MB - this may load slowly on mobile.
+    echo      Raise CRF to 30-32 in the Settings block above and re-run for a smaller file.
+  )
 )
 shift
 goto loop
