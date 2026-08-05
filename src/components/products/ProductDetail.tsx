@@ -455,7 +455,7 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
           {/* Watch Saree Video — jumps the gallery to the inline video slide */}
           {hasVideo && (
             <button
-              onClick={openVideoSlide}
+              onClick={() => openVideoSlide(0)}
               className="inline-flex items-center gap-1.5 text-base font-bold text-[#C2185B] underline underline-offset-2 hover:no-underline"
             >
               <PlayCircle className="h-5 w-5" /> Watch Saree Video
