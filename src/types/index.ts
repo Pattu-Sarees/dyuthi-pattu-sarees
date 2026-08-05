@@ -42,16 +42,29 @@ export interface Product {
   slug?: string | null
   // Opening video (R2 / YouTube URL); shown on the product page
   video_url?: string | null
+  video_urls?: string[] | null // one or more videos (video_url = the first)
   // On-site watermark text overlaid on the video (defaults to the website URL)
   video_watermark?: string | null
   // Procurement (vendor master lives in the vendors table)
   vendor_id?: string | null
+  vendor_ids?: string[] | null
+  procurements?: ProcurementEntry[] | null // per-vendor procurement records
   purchase_cost?: number | null
   purchase_date?: string | null
   invoice_number?: string | null
   procurement_notes?: string | null
   created_at: string
   updated_at: string
+}
+
+// One procurement record — a product can be sourced from several vendors, each
+// with its own cost, date, invoice and notes.
+export interface ProcurementEntry {
+  vendor_id: string
+  purchase_cost?: number | null
+  purchase_date?: string | null
+  invoice_number?: string | null
+  notes?: string | null
 }
 
 export interface Vendor {

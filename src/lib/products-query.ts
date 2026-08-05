@@ -61,7 +61,12 @@ function applyFilters(query: Query, params: Params, mode: 'search_text' | 'fallb
     case 'name_desc': query = query.order('name', { ascending: false }); break
     case 'date_asc': query = query.order('created_at', { ascending: true }); break
     case 'date_desc': query = query.order('created_at', { ascending: false }); break
-    default: query = query.order('created_at', { ascending: false })
+    // Default: manual Priority (lowest number first), products without a
+    // priority fall to the end, then newest first as a tiebreaker.
+    default:
+      query = query
+        .order('priority', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: false })
   }
   return query
 }

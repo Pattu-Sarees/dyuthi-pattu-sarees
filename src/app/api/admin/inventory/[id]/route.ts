@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdminEmail } from '@/lib/admin'
@@ -101,6 +102,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       await afterAdjust(newQ)
     }
 
+    revalidateTag('products') // refresh storefront stock/availability immediately
     return NextResponse.json({ stock_quantity: newTotal, in_stock: newTotal > 0, variantImage, variantQty: newQ, unchanged: delta === 0 })
   }
 

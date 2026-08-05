@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdminEmail } from '@/lib/admin'
 import { logActivity } from '@/lib/notify-server'
+import { sanitizeProcurements } from '@/lib/procurement'
 
 async function requireAdmin() {
   const supabase = await createClient()
@@ -80,13 +82,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     is_new_arrival: variants.some((v: { is_new_arrival?: boolean }) => !!v.is_new_arrival),
     is_best_seller: variants.some((v: { is_best_seller?: boolean }) => !!v.is_best_seller),
     ...(body.status === 'active' || body.status === 'inactive' ? { status: body.status } : {}),
-    // Procurement
-    vendor_id: body.vendor_id || null,
+    // Procurement (per-vendor records + backward-compatible flat fields)
+    procurements: sanitizeProcurements(body.procurements),
+    vendor_ids: Array.isArray(body.vendor_ids) ? body.vendor_ids.filter((v: unknown) => typeof v === 'string') : [],
+    vendor_id: (Array.isArray(body.vendor_ids) && body.vendor_ids[0]) || body.vendor_id || null,
     purchase_cost: body.purchase_cost != null && body.purchase_cost !== '' ? Number(body.purchase_cost) : null,
     purchase_date: body.purchase_date || null,
     invoice_number: body.invoice_number || null,
     procurement_notes: body.procurement_notes || null,
-    video_url: body.video_url || null,
+    video_urls: Array.isArray(body.video_urls) ? body.video_urls.filter((u: unknown) => typeof u === 'string' && u.trim()).map((u: string) => u.trim()) : [],
+    video_url: (Array.isArray(body.video_urls) && body.video_urls.find((u: unknown) => typeof u === 'string' && u.trim())?.trim()) || body.video_url || null,
     video_watermark: body.video_watermark || null,
     updated_at: new Date().toISOString(),
   }
@@ -109,6 +114,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   await logActivity(admin, { adminEmail: user.email ?? null, action: 'product_updated', entity: 'product', entityId: id, detail: data.name })
+  revalidateTag('products') // refresh the storefront cache immediately
   return NextResponse.json({ product: data })
 }
 
@@ -125,6 +131,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const admin = createAdminClient()
   const { data, error } = await admin.from('products').update(patch).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidateTag('products')
   return NextResponse.json({ product: data })
 }
 
@@ -136,5 +143,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const admin = createAdminClient()
   const { error } = await admin.from('products').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidateTag('products')
   return NextResponse.json({ success: true })
 }

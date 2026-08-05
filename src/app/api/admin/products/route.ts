@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdminEmail } from '@/lib/admin'
 import { logActivity } from '@/lib/notify-server'
+import { sanitizeProcurements } from '@/lib/procurement'
 
 async function requireAdmin() {
   const supabase = await createClient()
@@ -64,13 +66,16 @@ export async function POST(req: NextRequest) {
     is_best_seller: anyBestSeller,
     status: body.status === 'inactive' ? 'inactive' : 'active',
     slug: (body.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-    // Procurement
-    vendor_id: body.vendor_id || null,
+    // Procurement (per-vendor records + backward-compatible flat fields)
+    procurements: sanitizeProcurements(body.procurements),
+    vendor_ids: Array.isArray(body.vendor_ids) ? body.vendor_ids.filter((v: unknown) => typeof v === 'string') : [],
+    vendor_id: (Array.isArray(body.vendor_ids) && body.vendor_ids[0]) || body.vendor_id || null,
     purchase_cost: body.purchase_cost != null && body.purchase_cost !== '' ? Number(body.purchase_cost) : null,
     purchase_date: body.purchase_date || null,
     invoice_number: body.invoice_number || null,
     procurement_notes: body.procurement_notes || null,
-    video_url: body.video_url || null,
+    video_urls: Array.isArray(body.video_urls) ? body.video_urls.filter((u: unknown) => typeof u === 'string' && u.trim()).map((u: string) => u.trim()) : [],
+    video_url: (Array.isArray(body.video_urls) && body.video_urls.find((u: unknown) => typeof u === 'string' && u.trim())?.trim()) || body.video_url || null,
     video_watermark: body.video_watermark || null,
   }
 
@@ -81,5 +86,6 @@ export async function POST(req: NextRequest) {
   const { data, error } = await admin.from('products').insert(payload).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   await logActivity(admin, { adminEmail: user.email ?? null, action: 'product_created', entity: 'product', entityId: data.id, detail: data.name })
+  revalidateTag('products') // refresh the storefront cache immediately
   return NextResponse.json({ product: data })
 }

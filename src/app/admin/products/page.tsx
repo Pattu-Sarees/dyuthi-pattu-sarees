@@ -59,6 +59,7 @@ export default function AdminProductsPage() {
   const matchesSearch = (p: Product) => {
     if (!term) return true
     const haystack = [
+      p.code,
       p.name,
       p.description,
       p.fabric,
@@ -80,10 +81,15 @@ export default function AdminProductsPage() {
       (categoryFilter === 'all' || p.category === categoryFilter)
     )
     .sort((a, b) => {
-      // Priority first (lower number = higher up); products without a priority fall after.
-      const pa = a.priority ?? Number.POSITIVE_INFINITY
-      const pb = b.priority ?? Number.POSITIVE_INFINITY
-      if (pa !== pb) return pa - pb
+      // Sort by the trailing number of the Product ID (XX-XX-XXXX → last digits),
+      // ascending: 1, 2, 3 … Products without a numbered code fall to the end.
+      const seqOf = (code?: string | null) => {
+        const m = (code || '').match(/(\d+)(?!.*\d)/) // last run of digits
+        return m ? parseInt(m[1], 10) : Number.POSITIVE_INFINITY
+      }
+      const na = seqOf(a.code)
+      const nb = seqOf(b.code)
+      if (na !== nb) return na - nb
       return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
     })
 
@@ -158,6 +164,9 @@ export default function AdminProductsPage() {
                   ) : <div className="w-full h-full flex items-center justify-center text-xl">🥻</div>}
                 </div>
                 <div className="flex-shrink-0 md:flex-1 md:min-w-0">
+                  {p.code && (
+                    <p className="text-[11px] font-mono font-semibold text-[#AD1457] tracking-wide">ID: {p.code}</p>
+                  )}
                   <p className="font-semibold text-gray-900 text-sm md:line-clamp-1 whitespace-nowrap md:whitespace-normal">{p.name}</p>
                   <div className="flex items-center gap-1.5 mt-0.5 flex-nowrap whitespace-nowrap md:flex-wrap">
                     <span className="text-xs text-gray-500 capitalize">{p.category} • {p.fabric}</span>

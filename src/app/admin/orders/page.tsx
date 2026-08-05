@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Order, OrderItem, OrderStatus, PaymentStatus, ADMIN_ORDER_STATUSES, PAYMENT_STATUSES, Product, ORDER_SOURCES, ORDER_SOURCE_LABELS, MANUAL_ORDER_SOURCES, isOnlineSource } from '@/types'
+import NavigationGuard from '@/components/NavigationGuard'
 import { formatPrice, isValidEmail } from '@/lib/utils'
 import { Loader2, Plus, Trash2, X, ShoppingCart, Phone, Eye, Save, Clock, CheckCircle2, Package, Truck, XCircle, CalendarClock, Pencil, RotateCcw, Star } from 'lucide-react'
 import { toast } from 'sonner'
@@ -315,6 +316,8 @@ export default function AdminOrdersPage() {
         </div>
       )}
 
+      {/* Confirm before leaving while adding/editing an order. */}
+      <NavigationGuard enabled={showAdd || !!editing} />
       {showAdd && <CreateOrderModal products={products} onClose={() => setShowAdd(false)} onCreated={() => { setShowAdd(false); load() }} />}
       {editing && <EditOrderModal order={editing} products={products} onClose={() => setEditing(null)} onSaved={(o) => { replaceOrder(o); setEditing(null) }} />}
       {viewing && <ViewOrderModal order={viewing} onClose={() => setViewing(null)} />}

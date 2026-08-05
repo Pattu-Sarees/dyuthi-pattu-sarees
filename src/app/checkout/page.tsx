@@ -11,6 +11,8 @@ import { toast } from 'sonner'
 import { Loader2, Search, MoreVertical, ShieldCheck } from 'lucide-react'
 import Image from 'next/image'
 import CheckoutBreadcrumb from '@/components/checkout/CheckoutBreadcrumb'
+import NavigationGuard from '@/components/NavigationGuard'
+import { useFormDraft, clearFormDraft } from '@/lib/useFormDraft'
 
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
@@ -49,6 +51,17 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState<AddressForm>(EMPTY_ADDRESS)
   const [billingSame, setBillingSame] = useState(true)
   const [billing, setBilling] = useState<AddressForm>(EMPTY_ADDRESS)
+
+  // Keep the address the user typed for 10 min so a refresh doesn't wipe it.
+  useFormDraft('draft:checkout:address', address, setAddress)
+  useFormDraft('draft:checkout:billing', billing, setBilling)
+
+  // Only guard the leave-page once the delivery form is fully filled in
+  // (and the billing address too, when it differs) — nothing to lose before that.
+  const isAddressComplete = (a: AddressForm) =>
+    !!(a.firstName.trim() && a.lastName.trim() && a.line1.trim() && a.city.trim()
+      && a.state.trim() && a.pincode.trim() && a.phone.trim())
+  const detailsComplete = isAddressComplete(address) && (billingSame || isAddressComplete(billing))
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -166,6 +179,8 @@ export default function CheckoutPage() {
     // Only remove the items that were actually ordered — anything the user
     // left unselected on the Cart page stays there untouched.
     removeItems(items.map((i) => i.key))
+    clearFormDraft('draft:checkout:address')
+    clearFormDraft('draft:checkout:billing')
     toast.success('Order placed successfully!')
     router.push(`/orders/${orderId}`)
   }
@@ -179,6 +194,8 @@ export default function CheckoutPage() {
 
   return (
     <div className="bg-[#FFFDF7] min-h-screen">
+    {/* Confirm before leaving the delivery/payment step — only once details are filled. */}
+    <NavigationGuard enabled={detailsComplete} />
     <div className="container mx-auto px-4 py-6 md:py-8">
       <div className="max-w-5xl mx-auto">
         <CheckoutBreadcrumb active="delivery" />
