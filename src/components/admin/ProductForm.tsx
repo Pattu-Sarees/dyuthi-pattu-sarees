@@ -4,15 +4,17 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { blendFromName } from '@/lib/color-blend'
 import { toTitleCase } from '@/lib/utils'
+import { useFormDraft, clearFormDraft } from '@/lib/useFormDraft'
+import NavigationGuard from '@/components/NavigationGuard'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Product, InventoryItem, Vendor } from '@/types'
 import { toast } from 'sonner'
-import { Loader2, Upload, Trash2, ImagePlus, ChevronDown, Search, X } from 'lucide-react'
+import { Loader2, Upload, Trash2, ImagePlus, ChevronDown, Search, X, GripVertical } from 'lucide-react'
 import { PRODUCT_CATEGORIES } from '@/lib/categories'
 
 const CATEGORIES = PRODUCT_CATEGORIES
-const FABRICS = ['pure silk', 'blended silk', 'cotton', 'soft silk', 'linen', 'sico', 'pattu']
+const FABRICS = ['silk', 'pure silk', 'blended silk', 'cotton', 'soft silk', 'linen', 'sico', 'pattu']
 
 // Swatch palette for the per-variant colour selector — light, dark & blended shades.
 const SAREE_COLORS: { name: string; hex: string }[] = [
@@ -85,10 +87,22 @@ function ColorSwatchSelect({
   value: string
   onChange: (name: string) => void
   palette: Swatch[]
-  onAddCustom: (name: string) => Promise<void> | void
+  onAddCustom: (name: string, hex?: string) => Promise<void> | void
 }) {
   const [open, setOpen] = useState(false)
   const [custom, setCustom] = useState('')
+  const [notice, setNotice] = useState('') // "already exists" info message
+  const [customHex, setCustomHex] = useState('') // exact colour — empty until entered/picked
+  const [hexText, setHexText] = useState('')     // editable/pasteable hex text field (empty = show placeholder)
+
+  // Normalise anything the admin types or PASTES ("b76e79", "#B76E79", " #b76e79 ",
+  // or a 3-digit "#f0a") into a valid 6-digit hex, and keep the picker in sync.
+  const onHexText = (raw: string) => {
+    setHexText(raw)
+    let v = raw.trim().replace(/^#*/, '')
+    if (/^[0-9a-fA-F]{3}$/.test(v)) v = v.split('').map((ch) => ch + ch).join('') // #f0a -> #ff00aa
+    if (/^[0-9a-fA-F]{6}$/.test(v)) setCustomHex('#' + v.toLowerCase())
+  }
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!open) return
@@ -108,22 +122,35 @@ function ColorSwatchSelect({
   const applyCustom = async () => {
     const c = toTitleCase(custom.trim()) // always store custom colours in Title Case
     if (!c) return
-    await onAddCustom(c)
+    // Don't create a duplicate: if the name already exists in the palette,
+    // tell the admin and just select the existing swatch instead of adding.
+    const existing = palette.find((p) => p.name.trim().toLowerCase() === c.toLowerCase())
+    if (existing) {
+      setNotice(`"${existing.name}" already exists — select it from the palette above.`)
+      onChange(toTitleCase(existing.name))
+      setCustom('')
+      return
+    }
+    await onAddCustom(c, customHex) // save the EXACT picked colour, not a name-guess
     onChange(c)
     setCustom('')
+    setHexText('')
+    setCustomHex('')
+    setNotice('')
     setOpen(false)
   }
+  const hexValid = /^#[0-9a-fA-F]{6}$/.test(customHex)
 
   return (
     <div className="relative" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:border-[#C2185B] hover:text-[#C2185B]"
+        className="inline-flex items-center gap-1 h-9 px-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:border-[#C2185B] hover:text-[#C2185B]"
       >
-        <SwatchDot hex={hexOf(value)} className="h-4 w-4" />
-        <span>{value || 'Color'}</span>
-        <ChevronDown className="h-3.5 w-3.5" />
+        <SwatchDot hex={hexOf(value)} className="h-4 w-4 flex-shrink-0" />
+        <span className="truncate max-w-[72px]">{value || 'Color'}</span>
+        <ChevronDown className="h-3.5 w-3.5 flex-shrink-0" />
       </button>
       {open && (
         <div className="absolute z-30 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-100 p-2">
@@ -133,23 +160,48 @@ function ColorSwatchSelect({
                 type="button"
                 key={c.name}
                 title={c.name}
-                onClick={() => { onChange(c.name); setOpen(false) }}
+                onClick={() => { onChange(toTitleCase(c.name)); setOpen(false) }}
                 className={`rounded-full ${(value || '').toLowerCase() === c.name.toLowerCase() ? 'ring-2 ring-offset-1 ring-[#C2185B]' : ''}`}
               >
                 <SwatchDot hex={c.hex} className="h-7 w-7" />
               </button>
             ))}
           </div>
-          {/* Custom colour — blends by name (e.g. "blueish pink") and saves for reuse */}
-          <div className="mt-2 flex items-center gap-1.5 border-t border-gray-100 pt-2">
-            <input
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCustom() } }}
-              placeholder="Custom colour…"
-              className="flex-1 h-8 px-2 rounded-md border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#C2185B]"
-            />
-            <button type="button" onClick={applyCustom} className="h-8 px-2.5 rounded-md bg-[#C2185B] text-white text-xs font-medium hover:bg-[#a01049]">Add</button>
+          {/* Custom colour — paste/type the EXACT hex (or pick it) + name it. Saved for reuse. */}
+          <div className="mt-2 border-t border-gray-100 pt-2 space-y-1.5">
+            {/* Hex row — text field is primary so a copied "#b76e79" can be pasted. */}
+            <div className="flex items-center gap-1.5">
+              <input
+                type="color"
+                value={hexValid ? customHex : '#b76e79'}
+                onChange={(e) => { setCustomHex(e.target.value); setHexText(e.target.value) }}
+                title="Or pick the exact colour"
+                className="h-8 w-9 flex-shrink-0 rounded border border-gray-200 cursor-pointer p-0.5 bg-white"
+              />
+              <input
+                value={hexText}
+                onChange={(e) => onHexText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCustom() } }}
+                placeholder="#B76E79"
+                autoComplete="off"
+                spellCheck={false}
+                className="flex-1 min-w-0 h-8 px-2 rounded-md border border-gray-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#C2185B]"
+              />
+            </div>
+            {/* Name row */}
+            <div className="flex items-center gap-1.5">
+              <input
+                value={custom}
+                onChange={(e) => { setCustom(e.target.value); if (notice) setNotice('') }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyCustom() } }}
+                placeholder="Colour name (e.g. Dusty Pink)"
+                className="flex-1 min-w-0 h-8 px-2 rounded-md border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#C2185B]"
+              />
+              <button type="button" onClick={applyCustom} disabled={!custom.trim() || !hexValid} className="h-8 px-2.5 flex-shrink-0 rounded-md bg-[#C2185B] text-white text-xs font-medium hover:bg-[#a01049] disabled:opacity-40 disabled:cursor-not-allowed">Add</button>
+            </div>
+            {notice
+              ? <p className="text-[10px] text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-1">{notice}</p>
+              : <p className="text-[10px] text-gray-400">Paste or type the hex code (e.g. <span className="font-mono">#B76E79</span>) — or pick it on the left — then name it. Saved for reuse.</p>}
           </div>
           {value && (
             <button type="button" onClick={() => { onChange(''); setOpen(false) }} className="mt-1.5 w-full text-xs text-gray-500 hover:text-red-600 py-1">
@@ -184,11 +236,11 @@ function normalise(variants?: Array<Partial<InventoryItem> & { image?: string; i
   })
 }
 
-// Searchable vendor dropdown — stays usable as the vendor list grows.
-function VendorSelect({ vendors, value, onChange }: {
+// Single searchable vendor picker — used once per procurement row.
+function VendorPicker({ vendors, value, onChange }: {
   vendors: Vendor[]
   value: string
-  onChange: (vendor: Vendor | null) => void
+  onChange: (vendor: Vendor) => void
 }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -256,6 +308,35 @@ function VendorSelect({ vendors, value, onChange }: {
   )
 }
 
+// One editable procurement row in the form (string-typed for inputs).
+type ProcRow = { vendor_id: string; purchase_cost: string; purchase_date: string; invoice_number: string; notes: string }
+const EMPTY_PROC: ProcRow = { vendor_id: '', purchase_cost: '', purchase_date: '', invoice_number: '', notes: '' }
+
+// Seed the procurement rows from a product: prefer the new per-vendor records,
+// fall back to the older single/multi-vendor shape, else one blank row.
+function initProcurements(p?: Product): ProcRow[] {
+  if (p?.procurements && p.procurements.length) {
+    return p.procurements.map((e) => ({
+      vendor_id: e.vendor_id || '',
+      purchase_cost: e.purchase_cost != null ? String(e.purchase_cost) : '',
+      purchase_date: e.purchase_date || '',
+      invoice_number: e.invoice_number || '',
+      notes: e.notes || '',
+    }))
+  }
+  const ids = p?.vendor_ids?.length ? p.vendor_ids : (p?.vendor_id ? [p.vendor_id] : [])
+  if (ids.length) {
+    return ids.map((id, i) => ({
+      vendor_id: id,
+      purchase_cost: i === 0 && p?.purchase_cost != null ? String(p.purchase_cost) : '',
+      purchase_date: i === 0 ? (p?.purchase_date || '') : '',
+      invoice_number: i === 0 ? (p?.invoice_number || '') : '',
+      notes: i === 0 ? (p?.procurement_notes || '') : '',
+    }))
+  }
+  return [{ ...EMPTY_PROC }]
+}
+
 export default function ProductForm({ product }: { product?: Product }) {
   const router = useRouter()
   const isEdit = !!product
@@ -277,14 +358,16 @@ export default function ProductForm({ product }: { product?: Product }) {
     region: product?.region || '',
     occasion: product?.occasion?.join(', ') || '',
     status: product?.status ?? 'active',
-    vendor_id: product?.vendor_id || '',
-    purchase_cost: product?.purchase_cost?.toString() || '',
-    purchase_date: product?.purchase_date || '',
-    invoice_number: product?.invoice_number || '',
-    procurement_notes: product?.procurement_notes || '',
+    procurements: initProcurements(product) as ProcRow[],
     video_watermark: product?.video_watermark ?? '',
-    video_url: product?.video_url || '',
+    video_urls: (product?.video_urls?.length
+      ? product.video_urls
+      : (product?.video_url ? [product.video_url] : [''])) as string[],
   })
+  const MAX_VIDEOS = 2
+  // Hold the typed product details for 10 min so a refresh doesn't wipe them.
+  const draftKey = `draft:product:${product?.id ?? 'new'}`
+  useFormDraft(draftKey, form, setForm)
   const [vendors, setVendors] = useState<Vendor[]>([])
 
   // Active vendors for the procurement dropdown
@@ -299,6 +382,22 @@ export default function ProductForm({ product }: { product?: Product }) {
   const [confirmDeleteRow, setConfirmDeleteRow] = useState<number | null>(null)
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }))
+
+  // Per-vendor procurement row helpers.
+  const setProc = (i: number, patch: Partial<ProcRow>) =>
+    setForm((f) => ({ ...f, procurements: f.procurements.map((r, idx) => (idx === i ? { ...r, ...patch } : r)) }))
+  const addProc = () =>
+    setForm((f) => ({ ...f, procurements: [...f.procurements, { ...EMPTY_PROC }] }))
+  const removeProc = (i: number) =>
+    setForm((f) => ({ ...f, procurements: f.procurements.length > 1 ? f.procurements.filter((_, idx) => idx !== i) : f.procurements }))
+
+  // Product video links (usually one, up to MAX_VIDEOS).
+  const setVideo = (i: number, url: string) =>
+    setForm((f) => ({ ...f, video_urls: f.video_urls.map((u, idx) => (idx === i ? url : u)) }))
+  const addVideo = () =>
+    setForm((f) => (f.video_urls.length >= MAX_VIDEOS ? f : { ...f, video_urls: [...f.video_urls, ''] }))
+  const removeVideo = (i: number) =>
+    setForm((f) => ({ ...f, video_urls: f.video_urls.length > 1 ? f.video_urls.filter((_, idx) => idx !== i) : [''] }))
 
   // Pieces being added via brand-new colour rows in this edit session.
   const addedQty = items.reduce((s, it) => s + (it.isNew ? Number(it.quantity) || 0 : 0), 0)
@@ -390,18 +489,36 @@ export default function ProductForm({ product }: { product?: Product }) {
   useEffect(() => {
     fetch('/api/admin/colors').then((r) => r.json()).then((d) => setCustomColors(d.colors || [])).catch(() => {})
   }, [])
-  const palette = useMemo<{ name: string; hex: string | null }[]>(
-    () => [...(SAREE_COLORS as { name: string; hex: string | null }[]), ...customColors],
-    [customColors]
-  )
-  const addCustomColor = async (name: string) => {
-    if (palette.some((c) => c.name.toLowerCase() === name.toLowerCase())) return
-    const hex = blendFromName(name) // string | null (null → "✕" swatch)
-    setCustomColors((prev) => [...prev, { name, hex }])
+  // Merge built-in + custom colours, de-duplicated by name (case-insensitive) so
+  // the palette never shows the same colour twice.
+  const palette = useMemo<{ name: string; hex: string | null }[]>(() => {
+    const seen = new Set<string>()
+    const out: { name: string; hex: string | null }[] = []
+    for (const c of [...(SAREE_COLORS as { name: string; hex: string | null }[]), ...customColors]) {
+      const key = c.name.trim().toLowerCase()
+      if (!key || seen.has(key)) continue
+      seen.add(key)
+      out.push(c)
+    }
+    return out
+  }, [customColors])
+  const addCustomColor = async (name: string, hex?: string) => {
+    const lower = name.toLowerCase()
+    // Don't shadow a built-in colour with a custom duplicate.
+    if ((SAREE_COLORS as { name: string }[]).some((c) => c.name.toLowerCase() === lower)) return
+    // Use the EXACT hex the admin picked; fall back to a name-blend only if none given.
+    const finalHex = hex && /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : blendFromName(name)
+    // Add if new, OR update the hex if this custom colour already exists (lets the
+    // admin correct a previously wrong swatch). The API upserts by name.
+    setCustomColors((prev) =>
+      prev.some((c) => c.name.toLowerCase() === lower)
+        ? prev.map((c) => (c.name.toLowerCase() === lower ? { name, hex: finalHex } : c))
+        : [...prev, { name, hex: finalHex }]
+    )
     fetch('/api/admin/colors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, hex }),
+      body: JSON.stringify({ name, hex: finalHex }),
     }).catch(() => {})
   }
 
@@ -477,10 +594,24 @@ export default function ProductForm({ product }: { product?: Product }) {
 
   const removeRow = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i))
 
+  // Drag-and-drop reordering of the variant/photo rows. The saved order becomes
+  // the product's image/variant order (first = main photo shown on the storefront).
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const moveItem = (from: number, to: number) => {
+    if (from === to) return
+    setItems((prev) => {
+      const next = [...prev]
+      const [m] = next.splice(from, 1)
+      next.splice(to, 0, m)
+      return next
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name || !form.price) { toast.error('Name and price are required'); return }
-    if (!form.vendor_id) { toast.error('Vendor is required — select one in the Procurement section'); return }
+    const procRows = form.procurements.filter((r) => r.vendor_id)
+    if (!procRows.length) { toast.error('Vendor is required — select at least one in the Procurement section'); return }
     if (uploading || items.some((it) => it.pending)) { toast.error('Please wait — photos are still uploading'); return }
     // Guard: never persist a local blob: preview URL (only real uploaded URLs).
     const isTemp = (u: string) => u.startsWith('blob:') || u.startsWith('pending:')
@@ -500,13 +631,24 @@ export default function ProductForm({ product }: { product?: Product }) {
       color_variants: clean,
       occasion: form.occasion.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean),
       images: clean.map((it) => it.image),
-      vendor_id: form.vendor_id || null,
-      purchase_cost: form.purchase_cost ? Number(form.purchase_cost) : null,
-      purchase_date: form.purchase_date || null,
-      invoice_number: form.invoice_number.trim() || null,
-      procurement_notes: form.procurement_notes.trim() || null,
+      // Per-vendor procurement records (cleaned).
+      procurements: procRows.map((r) => ({
+        vendor_id: r.vendor_id,
+        purchase_cost: r.purchase_cost.trim() !== '' ? Number(r.purchase_cost) : null,
+        purchase_date: r.purchase_date || null,
+        invoice_number: r.invoice_number.trim() || null,
+        notes: r.notes.trim() || null,
+      })),
+      // Backward-compatible flat fields from the first (primary) vendor.
+      vendor_ids: Array.from(new Set(procRows.map((r) => r.vendor_id))),
+      vendor_id: procRows[0].vendor_id,
+      purchase_cost: procRows[0].purchase_cost.trim() !== '' ? Number(procRows[0].purchase_cost) : null,
+      purchase_date: procRows[0].purchase_date || null,
+      invoice_number: procRows[0].invoice_number.trim() || null,
+      procurement_notes: procRows[0].notes.trim() || null,
       video_watermark: form.video_watermark.trim() || null,
-      video_url: form.video_url.trim() || null,
+      video_urls: form.video_urls.map((u) => u.trim()).filter(Boolean),
+      video_url: (form.video_urls.map((u) => u.trim()).filter(Boolean)[0]) || null, // first (backward compat)
     }
 
     const url = isEdit ? `/api/admin/products/${product!.id}` : '/api/admin/products'
@@ -519,7 +661,8 @@ export default function ProductForm({ product }: { product?: Product }) {
 
     if (res.ok) {
       toast.success(isEdit ? 'Product updated!' : 'Product added!')
-      router.push('/admin')
+      clearFormDraft(draftKey) // saved — drop the recovery draft
+      router.push('/admin/products') // back to the Products list, not the dashboard
       router.refresh()
     } else {
       const { error } = await res.json()
@@ -532,6 +675,8 @@ export default function ProductForm({ product }: { product?: Product }) {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6 pb-10">
+      {/* Confirm before leaving the add/edit product screen with unsaved work. */}
+      <NavigationGuard />
       {/* Inventory */}
       <div className="bg-white rounded-xl border border-gray-100 p-5">
         <div className="flex items-center justify-between mb-1">
@@ -550,7 +695,23 @@ export default function ProductForm({ product }: { product?: Product }) {
         {items.length > 0 && (
           <div className="space-y-2 mb-4">
             {items.map((it, i) => (
-              <div key={i} className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-gray-50 rounded-lg p-2.5">
+              <div
+                key={i}
+                className="flex flex-wrap items-center gap-x-2 gap-y-2 bg-gray-50 rounded-lg p-2.5"
+                onDragOver={(e) => { if (dragIndex !== null) e.preventDefault() }}
+                onDrop={() => { if (dragIndex !== null) { moveItem(dragIndex, i); setDragIndex(null) } }}
+              >
+                <button
+                  type="button"
+                  draggable
+                  onDragStart={() => setDragIndex(i)}
+                  onDragEnd={() => setDragIndex(null)}
+                  title="Drag to reorder"
+                  aria-label="Drag to reorder"
+                  className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 flex-shrink-0 -ml-1"
+                >
+                  <GripVertical className="h-4 w-4" />
+                </button>
                 <span className="w-6 text-center text-sm font-bold text-gray-500 flex-shrink-0">{i + 1}</span>
                 <div className="relative w-14 h-16 rounded-md overflow-hidden border border-gray-200 flex-shrink-0">
                   {it.pending ? (
@@ -746,67 +907,109 @@ export default function ProductForm({ product }: { product?: Product }) {
         </div>
         <div>
           <label className={label}>Product Video <span className="text-gray-400 font-normal">(optional — opening video)</span></label>
-          <input
-            type="url"
-            value={form.video_url}
-            onChange={(e) => set('video_url', e.target.value)}
-            className={input}
-            placeholder="Paste video link — e.g. https://videos.dyuthipattusarees.com/gadwal.mp4 or a YouTube link"
-          />
+          <div className="space-y-2">
+            {form.video_urls.map((url, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setVideo(i, e.target.value)}
+                  className={`${input} flex-1 min-w-0`}
+                  placeholder={i === 0 ? 'Paste video link — e.g. https://videos.dyuthipattusarees.com/gadwal.mp4 or a YouTube link' : 'Second video link (optional)'}
+                />
+                {form.video_urls.length > 1 && (
+                  <button type="button" onClick={() => removeVideo(i)} className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600" title="Remove this video">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {form.video_urls.length < MAX_VIDEOS && (
+            <button type="button" onClick={addVideo} className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-[#C2185B] hover:text-[#a01049]">
+              <ImagePlus className="h-4 w-4" /> Add another video
+            </button>
+          )}
           <p className="text-xs text-gray-400 mt-1">
             Upload the compressed MP4 to Cloudflare R2 (or paste a YouTube link) and put the public URL here. Shown as a player on the product page. Leave blank for no video.
           </p>
           <p className="text-xs text-amber-600 mt-1">
-            Keep videos under ~5&nbsp;MB for fast playback — 720–1080p, ≤20&nbsp;seconds. Larger files load slowly on mobile.
+            Keep each video under ~5&nbsp;MB for fast playback — 720–1080p, ≤20&nbsp;seconds. Add a second video only when needed; more videos slow the page on mobile (max {MAX_VIDEOS}).
           </p>
         </div>
       </div>
 
-      {/* Procurement */}
+      {/* Procurement — one set of fields per vendor. Most products have a single
+          vendor (shown by default); add more only when the same design was
+          bought from different sellers. */}
       <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
-        <h2 className="font-semibold text-gray-900">Procurement</h2>
-        <div>
-          <label className={label}>Vendor Name *</label>
-          <VendorSelect
-            vendors={vendors}
-            value={form.vendor_id}
-            onChange={(vendor) => {
-              setForm((f) => ({
-                ...f,
-                vendor_id: vendor?.id || '',
-                // Auto-fill Procurement Notes from the vendor master (still editable)
-                procurement_notes: vendor?.notes || f.procurement_notes,
-              }))
-            }}
-          />
-          <p className="text-xs text-gray-400 mt-1">
-            Only active vendors are listed. Manage them in <Link href="/admin/vendors" className="text-[#AD1457] hover:underline">Vendors</Link>.
-          </p>
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-gray-900">Procurement</h2>
+          <p className="text-xs text-gray-400">Only active vendors are listed — manage them in <Link href="/admin/vendors" className="text-[#AD1457] hover:underline">Vendors</Link>.</p>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={label}>Purchase Cost (₹)</label>
-            <input type="number" min={0} step="0.01" value={form.purchase_cost} onChange={(e) => set('purchase_cost', e.target.value)} className={input} placeholder="1500" />
+
+        {form.procurements.map((row, i) => (
+          <div key={i} className="rounded-xl border border-gray-200 p-4 space-y-3 relative">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#AD1457]">
+                {i === 0 ? 'Primary vendor' : `Vendor ${i + 1}`}
+              </span>
+              {form.procurements.length > 1 && (
+                <button type="button" onClick={() => removeProc(i)} className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-600">
+                  <Trash2 className="h-3.5 w-3.5" /> Remove
+                </button>
+              )}
+            </div>
+
+            <div>
+              <label className={label}>Vendor Name {i === 0 && '*'}</label>
+              <VendorPicker
+                vendors={vendors}
+                value={row.vendor_id}
+                onChange={(vendor) => setProc(i, {
+                  vendor_id: vendor.id,
+                  // Auto-fill this row's notes from the vendor master if still empty.
+                  notes: row.notes.trim() ? row.notes : (vendor.notes || ''),
+                })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={label}>Purchase Cost (₹)</label>
+                <input type="number" min={0} step="0.01" value={row.purchase_cost} onChange={(e) => setProc(i, { purchase_cost: e.target.value })} className={input} placeholder="1500" />
+              </div>
+              <div>
+                <label className={label}>Purchase Date</label>
+                <input type="date" value={row.purchase_date} onChange={(e) => setProc(i, { purchase_date: e.target.value })} className={input} />
+              </div>
+            </div>
+
+            <div>
+              <label className={label}>Bill / Invoice Number</label>
+              <input value={row.invoice_number} onChange={(e) => setProc(i, { invoice_number: e.target.value })} className={input} placeholder="e.g. INV-2026-0142" />
+            </div>
+
+            <div>
+              <label className={label}>Procurement Notes</label>
+              <textarea
+                value={row.notes}
+                onChange={(e) => setProc(i, { notes: e.target.value })}
+                rows={2}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]"
+                placeholder="Auto-fills from the vendor's notes — edit freely"
+              />
+            </div>
           </div>
-          <div>
-            <label className={label}>Purchase Date</label>
-            <input type="date" value={form.purchase_date} onChange={(e) => set('purchase_date', e.target.value)} className={input} />
-          </div>
-        </div>
-        <div>
-          <label className={label}>Bill / Invoice Number</label>
-          <input value={form.invoice_number} onChange={(e) => set('invoice_number', e.target.value)} className={input} placeholder="e.g. INV-2026-0142" />
-        </div>
-        <div>
-          <label className={label}>Procurement Notes</label>
-          <textarea
-            value={form.procurement_notes}
-            onChange={(e) => set('procurement_notes', e.target.value)}
-            rows={3}
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]"
-            placeholder="Auto-fills from the vendor's notes — edit freely"
-          />
-        </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={addProc}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#C2185B] hover:text-[#a01049]"
+        >
+          <ImagePlus className="h-4 w-4" /> Add another vendor
+        </button>
       </div>
 
       {/* Flags */}
@@ -825,7 +1028,7 @@ export default function ProductForm({ product }: { product?: Product }) {
       {/* Sticky submit */}
       <div className="sticky bottom-0 bg-gray-50 pt-3 -mx-4 px-4 pb-4 border-t border-gray-100">
         <div className="flex gap-3 max-w-2xl mx-auto">
-          <button type="button" onClick={() => router.push('/admin')} className="px-5 h-12 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-colors">
+          <button type="button" onClick={() => router.push('/admin/products')} className="px-5 h-12 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-colors">
             Cancel
           </button>
           <button type="submit" disabled={saving || uploading} className="flex-1 h-12 rounded-lg bg-[#C2185B] hover:bg-[#a01049] text-white font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
