@@ -86,6 +86,6 @@ export async function POST(req: NextRequest) {
   const { data, error } = await admin.from('products').insert(payload).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   await logActivity(admin, { adminEmail: user.email ?? null, action: 'product_created', entity: 'product', entityId: data.id, detail: data.name })
-  revalidateTag('products') // refresh the storefront cache immediately
+  revalidateTag('products', 'max') // refresh the storefront cache immediately
   return NextResponse.json({ product: data })
 }

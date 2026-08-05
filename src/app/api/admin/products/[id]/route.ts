@@ -114,7 +114,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   await logActivity(admin, { adminEmail: user.email ?? null, action: 'product_updated', entity: 'product', entityId: id, detail: data.name })
-  revalidateTag('products') // refresh the storefront cache immediately
+  revalidateTag('products', 'max') // refresh the storefront cache immediately
   return NextResponse.json({ product: data })
 }
 
@@ -131,7 +131,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const admin = createAdminClient()
   const { data, error } = await admin.from('products').update(patch).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  revalidateTag('products')
+  revalidateTag('products', 'max')
   return NextResponse.json({ product: data })
 }
 
@@ -143,6 +143,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const admin = createAdminClient()
   const { error } = await admin.from('products').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  revalidateTag('products')
+  revalidateTag('products', 'max')
   return NextResponse.json({ success: true })
 }

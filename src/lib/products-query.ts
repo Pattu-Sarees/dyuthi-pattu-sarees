@@ -19,7 +19,7 @@ type Query = {
 }
 
 /** Apply the same filters/sort the listing has always used (kept in parity). */
-function applyFilters(query: Query, params: Params, mode: 'search_text' | 'fallback'): Query {
+function applyFilters(query: Query, params: Params, mode: 'search_text' | 'fallback', skipPriority = false): Query {
   const search = params.search as string
   if (mode === 'search_text') {
     const pattern = searchTextPattern(search)
@@ -61,12 +61,17 @@ function applyFilters(query: Query, params: Params, mode: 'search_text' | 'fallb
     case 'name_desc': query = query.order('name', { ascending: false }); break
     case 'date_asc': query = query.order('created_at', { ascending: true }); break
     case 'date_desc': query = query.order('created_at', { ascending: false }); break
-    // Default: manual Priority (lowest number first), products without a
-    // priority fall to the end, then newest first as a tiebreaker.
-    default:
-      query = query
-        .order('priority', { ascending: true, nullsFirst: false })
-        .order('created_at', { ascending: false })
+    // Default: manual Priority (lowest number first) — but ONLY on the plain
+    // "All Collections" listing. The New Arrivals / Best Sellers / On Sale rails
+    // keep their newest-first order. Products without a priority fall to the end,
+    // then newest first as a tiebreaker. `skipPriority` also avoids ordering by
+    // priority if that column hasn't been added to the DB yet.
+    default: {
+      const isSpecialRail =
+        params.is_new_arrival === 'true' || params.is_best_seller === 'true' || params.on_sale === 'true'
+      if (!skipPriority && !isSpecialRail) query = query.order('priority', { ascending: true, nullsFirst: false })
+      query = query.order('created_at', { ascending: false })
+    }
   }
   return query
 }
@@ -77,10 +82,14 @@ export async function fetchAllProducts(
   params: Params,
   cap = 200
 ): Promise<Product[]> {
-  const run = (mode: 'search_text' | 'fallback') =>
-    applyFilters(supabase.from('products').select(PUBLIC_PRODUCT_COLUMNS), params, mode).range(0, cap - 1)
+  const run = (mode: 'search_text' | 'fallback', skipPriority = false) =>
+    applyFilters(supabase.from('products').select(PUBLIC_PRODUCT_COLUMNS), params, mode, skipPriority).range(0, cap - 1)
   let res = await run('search_text')
   if (res.error && normalizeSearch(params.search as string)) res = await run('fallback')
+  // If ordering failed (e.g. the `priority` column hasn't been added yet),
+  // retry without priority so the storefront never goes blank.
+  if (res.error) res = await run('search_text', true)
+  if (res.error && normalizeSearch(params.search as string)) res = await run('fallback', true)
   if (res.error) return []
   return (res.data as Product[]) || []
 }

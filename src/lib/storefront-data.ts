@@ -66,10 +66,7 @@ export function getCollectionProducts(category?: string) {
   return unstable_cache(
     async () => {
       const db = createAnonClient()
-      let q = db.from('products').select(PUBLIC_PRODUCT_COLUMNS)
-        .order('priority', { ascending: true, nullsFirst: false })
-        .order('created_at', { ascending: false })
-        .limit(60)
+      let q = db.from('products').select(PUBLIC_PRODUCT_COLUMNS).order('created_at', { ascending: false }).limit(60)
       if (category) q = q.eq('category', category)
       const { data, error } = await q
       if (error) return []
