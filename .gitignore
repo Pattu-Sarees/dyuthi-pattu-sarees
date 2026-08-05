@@ -50,3 +50,6 @@ backups/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# temporary type-check config
+tsc-check.tmp.json

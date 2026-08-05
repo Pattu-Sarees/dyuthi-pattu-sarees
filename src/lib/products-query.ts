@@ -14,7 +14,7 @@ type Query = {
   gt: (c: string, v: number) => Query
   eq: (c: string, v: unknown) => Query
   not: (c: string, op: string, v: unknown) => Query
-  order: (c: string, o: { ascending: boolean }) => Query
+  order: (c: string, o: { ascending: boolean; nullsFirst?: boolean }) => Query
   range: (from: number, to: number) => Promise<{ data: unknown; error: unknown; count: number | null }>
 }
 
