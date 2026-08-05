@@ -200,20 +200,27 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
   const goToImage = (idx: number) => { setSelectedImage(idx); setSelectedAngle(0) }
 
   // Gallery slides = images + (video as the LAST slide, played inline).
-  const [videoActive, setVideoActive] = useState(false)
-  const hasVideo = !!product.video_url
+  // A product can have one or more videos (usually one). Fall back to the
+  // legacy single `video_url`. `activeVideo` is the index of the playing video,
+  // or null when an image is showing.
+  const videos = ((product.video_urls && product.video_urls.length
+    ? product.video_urls
+    : (product.video_url ? [product.video_url] : []))).filter(Boolean) as string[]
+  const [activeVideo, setActiveVideo] = useState<number | null>(null)
+  const videoActive = activeVideo !== null
+  const hasVideo = videos.length > 0
   const imgCount = product.images?.length || 0
-  const slideCount = imgCount + (hasVideo ? 1 : 0)
-  const currentSlide = videoActive ? imgCount : selectedImage
+  const slideCount = imgCount + videos.length
+  const currentSlide = activeVideo !== null ? imgCount + activeVideo : selectedImage
   const goToSlide = (idx: number) => {
     if (slideCount === 0) return
     const i = ((idx % slideCount) + slideCount) % slideCount
-    if (hasVideo && i === imgCount) setVideoActive(true)
-    else { setVideoActive(false); goToImage(i) }
+    if (i >= imgCount) setActiveVideo(i - imgCount)
+    else { setActiveVideo(null); goToImage(i) }
   }
-  // "Watch Saree Video" → jump the gallery to the video slide and scroll it into view.
-  const openVideoSlide = () => {
-    setVideoActive(true)
+  // "Watch Saree Video" → jump the gallery to a video slide and scroll into view.
+  const openVideoSlide = (n = 0) => {
+    setActiveVideo(n)
     setTimeout(() => imageBoxRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 0)
   }
 
@@ -335,19 +342,19 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
               onTouchCancel={() => { setZoom(null); setZoomMode(false) }}
               onClick={() => !videoActive && !zoomMode && displayedImage && setPreview(true)}
             >
-              {videoActive && product.video_url ? (
-                /* Video plays inline as the last gallery slide */
+              {videoActive && videos[activeVideo!] ? (
+                /* Video plays inline as a gallery slide */
                 <div className="absolute inset-0 flex items-center justify-center bg-black" onClick={(e) => e.stopPropagation()}>
-                  {youTubeEmbed(product.video_url) ? (
+                  {youTubeEmbed(videos[activeVideo!]) ? (
                     <iframe
-                      src={`${youTubeEmbed(product.video_url)!}?autoplay=1`}
-                      title={`${product.name} video`}
+                      src={`${youTubeEmbed(videos[activeVideo!])!}?autoplay=1`}
+                      title={`${product.name} video ${activeVideo! + 1}`}
                       className="absolute inset-0 h-full w-full"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />
                   ) : (
-                    <VideoPlayer src={product.video_url} title={`${product.name} video`} watermark={product.video_watermark || undefined} fill />
+                    <VideoPlayer key={activeVideo} src={videos[activeVideo!]} title={`${product.name} video ${activeVideo! + 1}`} watermark={product.video_watermark || undefined} fill />
                   )}
                 </div>
               ) : displayedImage ? (
@@ -403,7 +410,7 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
                   >
                     <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
-                  <div className="absolute bottom-3 right-3 z-10 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                  <div className={`absolute right-3 z-10 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full ${videoActive ? 'bottom-14' : 'bottom-3'}`}>
                     {currentSlide + 1} / {slideCount}
                   </div>
                 </>
@@ -423,21 +430,25 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
                   <Image src={img} alt="" fill className="object-cover" sizes="64px" />
                 </button>
               ))}
-              {/* Video as the LAST gallery item — plays inline in the gallery on tap */}
-              {hasVideo && (
+              {/* Videos as the LAST gallery items — each plays inline on tap */}
+              {videos.map((_, n) => (
                 <button
-                  onClick={() => goToSlide(imgCount)}
-                  aria-label="Watch saree video"
+                  key={`vid-${n}`}
+                  onClick={() => goToSlide(imgCount + n)}
+                  aria-label={`Watch saree video ${n + 1}`}
                   className={`relative flex-shrink-0 w-16 h-20 rounded-lg overflow-hidden border-2 bg-black transition-colors ${
-                    videoActive ? 'border-rose-600' : 'border-transparent'
+                    activeVideo === n ? 'border-rose-600' : 'border-transparent'
                   }`}
                 >
                   {product.images?.[0] && <Image src={product.images[0]} alt="" fill className="object-cover opacity-50" sizes="64px" />}
                   <span className="absolute inset-0 flex items-center justify-center">
                     <PlayCircle className="h-7 w-7 text-white drop-shadow" />
                   </span>
+                  {videos.length > 1 && (
+                    <span className="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-[9px] font-semibold px-1 rounded">{n + 1}</span>
+                  )}
                 </button>
-              )}
+              ))}
             </div>
           )}
 

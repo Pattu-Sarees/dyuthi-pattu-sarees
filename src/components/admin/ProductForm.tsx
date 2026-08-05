@@ -399,6 +399,10 @@ export default function ProductForm({ product }: { product?: Product }) {
   const removeVideo = (i: number) =>
     setForm((f) => ({ ...f, video_urls: f.video_urls.length > 1 ? f.video_urls.filter((_, idx) => idx !== i) : [''] }))
 
+  // Which rows have their "Additional Photos" (Angles) panel expanded.
+  const [openAngles, setOpenAngles] = useState<Record<number, boolean>>({})
+  const toggleAngles = (i: number) => setOpenAngles((p) => ({ ...p, [i]: !p[i] }))
+
   // Pieces being added via brand-new colour rows in this edit session.
   const addedQty = items.reduce((s, it) => s + (it.isNew ? Number(it.quantity) || 0 : 0), 0)
   // Pieces removed by deleting existing rows (their original DB quantity).
@@ -759,45 +763,62 @@ export default function ProductForm({ product }: { product?: Product }) {
                   <input type="checkbox" checked={!!it.is_best_seller} onChange={(e) => toggleFlag(i, 'is_best_seller', e.target.checked)} className="h-4 w-4 accent-[#C2185B]" />
                   <span className="text-xs text-gray-600">Best Seller</span>
                 </label>
+                {/* Delete icon — always last on the flags row */}
                 <button type="button" onClick={() => setConfirmDeleteRow(i)} title="Delete item" className="ml-auto p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg flex-shrink-0">
                   <Trash2 className="h-4 w-4" />
                 </button>
-                <label className="text-xs font-medium text-[#AD1457] hover:underline cursor-pointer">
-                  Add Additional Photos
-                  <input type="file" accept="image/*,.heic,.heif" multiple onChange={(e) => handleAddAngles(i, e)} className="hidden" disabled={saving} />
-                </label>
-                {(it.additional_images?.length || 0) > 0 && (
-                  <div className="w-full flex flex-wrap items-center gap-2 pl-10">
-                    <span className="text-[11px] text-gray-400">Angles:</span>
-                    {it.additional_images!.map((url) => (
-                      <div key={url} className="relative w-10 h-12 rounded-md overflow-hidden border border-gray-200 group/angle">
-                        {url.startsWith('blob:') || url.startsWith('pending:') ? (
-                          <>
-                            {url.startsWith('blob:') ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={url} alt="Additional angle" className="absolute inset-0 w-full h-full object-cover" />
-                            ) : (
-                              <div className="absolute inset-0 bg-gray-100" />
-                            )}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                              <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
-                            </div>
-                          </>
-                        ) : (
-                          <Image src={url} alt="Additional angle" fill className="object-cover" sizes="40px" />
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removeAngle(i, url)}
-                          className="absolute top-0.5 right-0.5 h-4 w-4 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-red-600"
-                          title="Remove"
-                        >
-                          <X className="h-2.5 w-2.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+
+                {/* Additional photos ("Angles") — on its own line, collapsed until clicked */}
+                <div className="w-full pl-10">
+                  <button
+                    type="button"
+                    onClick={() => toggleAngles(i)}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-[#AD1457] hover:underline"
+                  >
+                    <ImagePlus className="h-3.5 w-3.5" />
+                    Add Additional Photos
+                    {(it.additional_images?.length || 0) > 0 && <span className="text-gray-400">({it.additional_images!.length})</span>}
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${(openAngles[i] ?? (it.additional_images?.length || 0) > 0) ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {(openAngles[i] ?? (it.additional_images?.length || 0) > 0) && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] text-gray-400">Angles:</span>
+                      {(it.additional_images || []).map((url) => (
+                        <div key={url} className="relative w-10 h-12 rounded-md overflow-hidden border border-gray-200 group/angle">
+                          {url.startsWith('blob:') || url.startsWith('pending:') ? (
+                            <>
+                              {url.startsWith('blob:') ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={url} alt="Additional angle" className="absolute inset-0 w-full h-full object-cover" />
+                              ) : (
+                                <div className="absolute inset-0 bg-gray-100" />
+                              )}
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
+                              </div>
+                            </>
+                          ) : (
+                            <Image src={url} alt="Additional angle" fill className="object-cover" sizes="40px" />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeAngle(i, url)}
+                            className="absolute top-0.5 right-0.5 h-4 w-4 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-red-600"
+                            title="Remove"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                      {/* Upload more angle photos */}
+                      <label className="inline-flex items-center gap-1 w-10 h-12 justify-center rounded-md border border-dashed border-gray-300 text-[#AD1457] hover:bg-rose-50 cursor-pointer" title="Upload angle photos">
+                        <ImagePlus className="h-4 w-4" />
+                        <input type="file" accept="image/*,.heic,.heif" multiple onChange={(e) => handleAddAngles(i, e)} className="hidden" disabled={saving} />
+                      </label>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>

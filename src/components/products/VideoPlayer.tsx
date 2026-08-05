@@ -71,7 +71,7 @@ export default function VideoPlayer({ src, title, label, watermark, fill = false
           <PlayCircle className="h-4 w-4 text-[#C2185B]" /> {label}
         </button>
       )}
-    <div ref={wrapRef} className={`productVideoWrap relative rounded-xl overflow-hidden bg-black group/vid ${fill ? 'w-full h-full' : 'w-fit max-w-full'}`}>
+    <div ref={wrapRef} className={`productVideoWrap relative rounded-xl overflow-hidden bg-black group/vid ${fill ? 'w-full h-full flex items-center justify-center' : 'w-fit max-w-full'}`}>
       {/* Close (X) — only in fullscreen, easy exit on mobile */}
       {isFullscreen && (
         <button
@@ -98,7 +98,12 @@ export default function VideoPlayer({ src, title, label, watermark, fill = false
         onEnded={() => setPlaying(false)}
         onContextMenu={(e) => e.preventDefault()}
         style={fill ? undefined : (ratio ? { aspectRatio: String(ratio) } : undefined)}
-        className={fill ? 'absolute inset-0 h-full w-full object-cover cursor-pointer' : 'block max-h-[80vh] w-auto max-w-full cursor-pointer'}
+        className={fill
+          ? (isFullscreen
+              // Fullscreen: keep the whole frame, centred (no left crop, no stretch).
+              ? 'max-h-full max-w-full h-auto w-auto object-contain cursor-pointer'
+              : 'absolute inset-0 h-full w-full object-cover cursor-pointer')
+          : 'block max-h-[80vh] w-auto max-w-full cursor-pointer'}
       />
 
       {/* Watermark overlay — centered, large; promotes the brand and rides along on screen-recordings */}
