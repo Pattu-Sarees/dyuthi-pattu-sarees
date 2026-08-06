@@ -1,18 +1,40 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/store/cart'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { formatPrice, toTitleCase } from '@/lib/utils'
 import { toast } from 'sonner'
-import { Loader2, Search, MoreVertical, ShieldCheck } from 'lucide-react'
+import { Loader2, MoreVertical, ShieldCheck, LogOut, HelpCircle, X } from 'lucide-react'
+import Link from 'next/link'
 import Image from 'next/image'
 import CheckoutBreadcrumb from '@/components/checkout/CheckoutBreadcrumb'
+import FloatingInput from '@/components/checkout/FloatingInput'
+import AddressAutocomplete from '@/components/checkout/AddressAutocomplete'
+import PhoneField from '@/components/admin/PhoneField'
 import NavigationGuard from '@/components/NavigationGuard'
 import { useFormDraft, clearFormDraft } from '@/lib/useFormDraft'
+
+// ---- Field validation for the delivery form ----
+const NAME_RE = /^[A-Za-z][A-Za-z .'-]{1,}$/   // letters, needs ≥2 chars, no digits
+const PIN_RE = /^[1-9][0-9]{5}$/               // 6-digit Indian PIN, not starting 0
+
+function validateAddress(a: {
+  firstName: string; lastName: string; line1: string; city: string; state: string; pincode: string; phone: string
+}, opts: { phone?: boolean } = { phone: true }): Record<string, string> {
+  const e: Record<string, string> = {}
+  if (!NAME_RE.test(a.firstName.trim())) e.firstName = 'Enter a valid first name'
+  if (!NAME_RE.test(a.lastName.trim())) e.lastName = 'Enter a valid last name'
+  if (a.line1.trim().length < 5) e.line1 = 'Enter your full address'
+  if (!NAME_RE.test(a.city.trim())) e.city = 'Enter a valid city'
+  if (!a.state.trim()) e.state = 'Select a state'
+  if (!PIN_RE.test(a.pincode.trim())) e.pincode = 'Enter a valid 6-digit PIN code'
+  // Phone is a full international number (e.g. +91XXXXXXXXXX) from PhoneField.
+  if (opts.phone !== false && a.phone.replace(/\D/g, '').length < 10) e.phone = 'Enter a valid mobile number'
+  return e
+}
 
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
@@ -51,10 +73,33 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState<AddressForm>(EMPTY_ADDRESS)
   const [billingSame, setBillingSame] = useState(true)
   const [billing, setBilling] = useState<AddressForm>(EMPTY_ADDRESS)
+  const [submitted, setSubmitted] = useState(false) // show errors after a Pay attempt
+  const [menuOpen, setMenuOpen] = useState(false)    // account (three-dots) menu
+  const [showShipping, setShowShipping] = useState(false) // shipping & return policy popup
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close the account menu on outside click.
+  useEffect(() => {
+    if (!menuOpen) return
+    const onClick = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false) }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [menuOpen])
+
+  const signOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+  }
 
   // Keep the address the user typed for 10 min so a refresh doesn't wipe it.
   useFormDraft('draft:checkout:address', address, setAddress)
   useFormDraft('draft:checkout:billing', billing, setBilling)
+
+  // Live validation errors (only surfaced after a Pay attempt).
+  const addressErrors = validateAddress(address)
+  const billingErrors = billingSame ? {} : validateAddress(billing, { phone: false })
+  const errFor = (f: string) => (submitted ? addressErrors[f] : undefined)
+  const billErrFor = (f: string) => (submitted ? billingErrors[f] : undefined)
 
   // Only guard the leave-page once the delivery form is fully filled in
   // (and the billing address too, when it differs) — nothing to lose before that.
@@ -75,15 +120,22 @@ export default function CheckoutPage() {
   const shipping = subtotal >= 999 ? 0 : 99
   const total = subtotal + shipping
 
-  const handleChange = (field: keyof AddressForm, value: string) => setAddress((prev) => ({ ...prev, [field]: value }))
-  const handleBillingChange = (field: keyof AddressForm, value: string) => setBilling((prev) => ({ ...prev, [field]: value }))
+  // Names → letters only (no digits/symbols); PIN → digits only.
+  const clean = (field: keyof AddressForm, value: string) => {
+    if (field === 'firstName' || field === 'lastName') return value.replace(/[^A-Za-z .'-]/g, '')
+    if (field === 'pincode') return value.replace(/\D/g, '')
+    return value
+  }
+  const handleChange = (field: keyof AddressForm, value: string) => setAddress((prev) => ({ ...prev, [field]: clean(field, value) }))
+  const handleBillingChange = (field: keyof AddressForm, value: string) => setBilling((prev) => ({ ...prev, [field]: clean(field, value) }))
 
-  const isAddressValid = !!(address.firstName && address.lastName && address.phone && address.line1 && address.city && address.state && address.pincode)
-  const isBillingValid = billingSame || !!(billing.firstName && billing.lastName && billing.line1 && billing.city && billing.state && billing.pincode)
+  const isAddressValid = Object.keys(addressErrors).length === 0
+  const isBillingValid = Object.keys(billingErrors).length === 0
 
   const placeOrder = async () => {
-    if (!isAddressValid) { toast.error('Please fill all delivery address fields'); return }
-    if (!isBillingValid) { toast.error('Please fill all billing address fields'); return }
+    setSubmitted(true)
+    if (!isAddressValid) { toast.error('Please correct the highlighted delivery fields'); return }
+    if (!isBillingValid) { toast.error('Please correct the highlighted billing fields'); return }
     if (items.length === 0) { toast.error('No items selected'); return }
     setLoading(true)
 
@@ -190,12 +242,37 @@ export default function CheckoutPage() {
     return null
   }
 
-  const inputClass = 'h-11'
-
   return (
     <div className="bg-[#FFFDF7] min-h-screen">
     {/* Confirm before leaving the delivery/payment step — only once details are filled. */}
     <NavigationGuard enabled={detailsComplete} />
+
+    {/* Shipping & Return Policy popup */}
+    {showShipping && (
+      <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/50" onClick={() => setShowShipping(false)} />
+        <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl bg-white shadow-xl">
+          <div className="sticky top-0 flex items-center justify-between bg-white px-5 py-3 border-b border-gray-100">
+            <h3 className="font-bold text-gray-900">Shipping &amp; Return Policy</h3>
+            <button type="button" onClick={() => setShowShipping(false)} aria-label="Close" className="p-1 text-gray-400 hover:text-gray-700">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="px-5 py-4 text-sm text-gray-700 leading-relaxed space-y-3">
+            <p><span className="font-semibold text-[#4E1E24]">Dispatch:</span> Orders are inspected and dispatched within 1–3 business days of confirmation.</p>
+            <p><span className="font-semibold text-[#4E1E24]">Delivery:</span> Within India typically 3–5 business days after dispatch; international 7–15 business days. Timelines are estimates and may vary with courier, weather, or customs.</p>
+            <p><span className="font-semibold text-[#4E1E24]">Charges:</span> Any shipping charge is shown at checkout before payment — no hidden fees. Free-shipping offers appear on site with their terms.</p>
+            <p><span className="font-semibold text-[#4E1E24]">Tracking:</span> Once dispatched, a tracking link is shared via email / SMS / WhatsApp.</p>
+            <p><span className="font-semibold text-[#4E1E24]">Damaged / wrong item:</span> Contact us within 48 hours of delivery with unboxing photos/video for a resolution.</p>
+            <p className="pt-1">
+              Full details:{' '}
+              <Link href="/shipping-policy" className="font-semibold text-[#C2185B] hover:text-[#a01049]">Shipping Policy</Link>{' '}·{' '}
+              <Link href="/refund-policy" className="font-semibold text-[#C2185B] hover:text-[#a01049]">Refund &amp; Return Policy</Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
     <div className="container mx-auto px-4 py-6 md:py-8">
       <div className="max-w-5xl mx-auto">
         <CheckoutBreadcrumb active="delivery" />
@@ -211,9 +288,18 @@ export default function CheckoutPage() {
                 {(user.email || '?').charAt(0).toUpperCase()}
               </span>
               <span className="text-sm text-gray-800 truncate flex-1">{user.email}</span>
-              <button type="button" aria-label="Account options" className="p-1 text-gray-400 hover:text-gray-600">
-                <MoreVertical className="h-4 w-4" />
-              </button>
+              <div className="relative" ref={menuRef}>
+                <button type="button" aria-label="Account options" onClick={() => setMenuOpen((o) => !o)} className="p-1 text-gray-400 hover:text-gray-600">
+                  <MoreVertical className="h-4 w-4" />
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 mt-1 w-28 rounded-md border border-gray-200 bg-white shadow-lg py-0.5 z-20">
+                    <button type="button" onClick={signOut} className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
+                      <LogOut className="h-3.5 w-3.5" /> Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -233,34 +319,59 @@ export default function CheckoutPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Input className={inputClass} value={address.firstName} onChange={(e) => handleChange('firstName', e.target.value)} placeholder="First name" />
-                <Input className={inputClass} value={address.lastName} onChange={(e) => handleChange('lastName', e.target.value)} placeholder="Last name" />
+                <FloatingInput label="First name" value={address.firstName} onChange={(v) => handleChange('firstName', v)} error={errFor('firstName')} autoComplete="given-name" />
+                <FloatingInput label="Last name" value={address.lastName} onChange={(v) => handleChange('lastName', v)} error={errFor('lastName')} autoComplete="family-name" />
               </div>
 
-              <div className="relative">
-                <Input className={`${inputClass} pr-9`} value={address.line1} onChange={(e) => handleChange('line1', e.target.value)} placeholder="Address" />
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-              </div>
+              <AddressAutocomplete
+                label="Address"
+                value={address.line1}
+                onChange={(v) => handleChange('line1', v)}
+                onSelect={({ line1, city, state, pincode }) => setAddress((prev) => ({
+                  ...prev,
+                  line1: line1 || prev.line1,
+                  city: city || prev.city,
+                  state: state || prev.state,
+                  pincode: pincode || prev.pincode,
+                }))}
+                error={errFor('line1')}
+              />
 
-              <Input className={inputClass} value={address.line2} onChange={(e) => handleChange('line2', e.target.value)} placeholder="Apartment, suite, etc. (optional)" />
+              <FloatingInput label="Apartment, suite, etc. (optional)" value={address.line2} onChange={(v) => handleChange('line2', v)} autoComplete="address-line2" />
 
               <div className="grid grid-cols-3 gap-3">
-                <Input className={inputClass} value={address.city} onChange={(e) => handleChange('city', e.target.value)} placeholder="City" />
+                <FloatingInput label="City" value={address.city} onChange={(v) => handleChange('city', v)} error={errFor('city')} autoComplete="address-level2" />
                 <div>
-                  <label className="block text-[10px] font-medium text-gray-500 mb-1">State</label>
-                  <select
-                    value={address.state}
-                    onChange={(e) => handleChange('state', e.target.value)}
-                    className="h-11 w-full rounded-md border border-gray-200 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
-                  >
-                    <option value="">Select</option>
-                    {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={address.state}
+                      onChange={(e) => handleChange('state', e.target.value)}
+                      className={`peer h-12 w-full rounded-md border bg-white px-2 pt-4 pb-1 text-sm text-gray-900 focus:outline-none focus:ring-2 ${errFor('state') ? 'border-red-400 focus:ring-red-300' : 'border-gray-300 focus:ring-rose-500'}`}
+                    >
+                      <option value="">Select</option>
+                      {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <label className="pointer-events-none absolute left-2 top-1.5 text-[10px] text-gray-400">State</label>
+                  </div>
+                  {errFor('state') && <p className="mt-1 text-xs text-red-600">{errFor('state')}</p>}
                 </div>
-                <Input className={inputClass} value={address.pincode} onChange={(e) => handleChange('pincode', e.target.value)} placeholder="PIN code" maxLength={6} />
+                <FloatingInput label="PIN code" value={address.pincode} onChange={(v) => handleChange('pincode', v)} error={errFor('pincode')} inputMode="numeric" maxLength={6} autoComplete="postal-code" placeholderHint="######" staticLabel />
               </div>
 
-              <Input className={inputClass} value={address.phone} onChange={(e) => handleChange('phone', e.target.value)} placeholder="Phone" type="tel" />
+              <div>
+                <label className="flex items-center gap-1 text-xs font-medium text-gray-500 mb-1">
+                  Mobile number
+                  <span className="relative group inline-flex">
+                    <HelpCircle className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-44 rounded-md bg-gray-800 text-white text-xs font-normal text-center px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity z-30 shadow-lg">
+                      In case we need to contact you about your order
+                      <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+                    </span>
+                  </span>
+                </label>
+                <PhoneField value={address.phone} onChange={(fullPhone) => setAddress((prev) => ({ ...prev, phone: fullPhone }))} />
+                {errFor('phone') && <p className="mt-1 text-xs text-red-600">{errFor('phone')}</p>}
+              </div>
             </div>
           </div>
 
@@ -320,30 +431,35 @@ export default function CheckoutPage() {
             {!billingSame && (
               <div className="mt-3 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <Input className={inputClass} value={billing.firstName} onChange={(e) => handleBillingChange('firstName', e.target.value)} placeholder="First name" />
-                  <Input className={inputClass} value={billing.lastName} onChange={(e) => handleBillingChange('lastName', e.target.value)} placeholder="Last name" />
+                  <FloatingInput label="First name" value={billing.firstName} onChange={(v) => handleBillingChange('firstName', v)} error={billErrFor('firstName')} />
+                  <FloatingInput label="Last name" value={billing.lastName} onChange={(v) => handleBillingChange('lastName', v)} error={billErrFor('lastName')} />
                 </div>
-                <Input className={inputClass} value={billing.line1} onChange={(e) => handleBillingChange('line1', e.target.value)} placeholder="Address" />
-                <Input className={inputClass} value={billing.line2} onChange={(e) => handleBillingChange('line2', e.target.value)} placeholder="Apartment, suite, etc. (optional)" />
+                <FloatingInput label="Address" value={billing.line1} onChange={(v) => handleBillingChange('line1', v)} error={billErrFor('line1')} />
+                <FloatingInput label="Apartment, suite, etc. (optional)" value={billing.line2} onChange={(v) => handleBillingChange('line2', v)} />
                 <div className="grid grid-cols-3 gap-3">
-                  <Input className={inputClass} value={billing.city} onChange={(e) => handleBillingChange('city', e.target.value)} placeholder="City" />
-                  <select
-                    value={billing.state}
-                    onChange={(e) => handleBillingChange('state', e.target.value)}
-                    className="h-11 w-full rounded-md border border-gray-200 bg-white px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
-                  >
-                    <option value="">State</option>
-                    {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  <Input className={inputClass} value={billing.pincode} onChange={(e) => handleBillingChange('pincode', e.target.value)} placeholder="PIN code" maxLength={6} />
+                  <FloatingInput label="City" value={billing.city} onChange={(v) => handleBillingChange('city', v)} error={billErrFor('city')} />
+                  <div>
+                    <div className="relative">
+                      <select
+                        value={billing.state}
+                        onChange={(e) => handleBillingChange('state', e.target.value)}
+                        className={`peer h-12 w-full rounded-md border bg-white px-2 pt-4 pb-1 text-sm text-gray-900 focus:outline-none focus:ring-2 ${billErrFor('state') ? 'border-red-400 focus:ring-red-300' : 'border-gray-300 focus:ring-rose-500'}`}
+                      >
+                        <option value="">Select</option>
+                        {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <label className="pointer-events-none absolute left-2 top-1.5 text-[10px] text-gray-400">State</label>
+                    </div>
+                    {billErrFor('state') && <p className="mt-1 text-xs text-red-600">{billErrFor('state')}</p>}
+                  </div>
+                  <FloatingInput label="PIN code" value={billing.pincode} onChange={(v) => handleBillingChange('pincode', v)} error={billErrFor('pincode')} inputMode="numeric" maxLength={6} />
                 </div>
-                <Input className={inputClass} value={billing.phone} onChange={(e) => handleBillingChange('phone', e.target.value)} placeholder="Phone" type="tel" />
               </div>
             )}
           </div>
 
           {/* Pay now — desktop only (mobile shows it below the summary) */}
-          <Button onClick={placeOrder} disabled={loading || !isAddressValid || !isBillingValid} className="hidden lg:flex w-full" size="lg">
+          <Button onClick={placeOrder} disabled={loading} className="hidden lg:flex w-full" size="lg">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Pay now'}
           </Button>
         </div>
@@ -373,7 +489,12 @@ export default function CheckoutPage() {
               <span>{formatPrice(subtotal)}</span>
             </div>
             <div className="flex justify-between text-gray-600">
-              <span>Shipping</span>
+              <span className="inline-flex items-center gap-1">
+                Shipping
+                <button type="button" onClick={() => setShowShipping(true)} aria-label="Shipping & return policy" className="text-gray-400 hover:text-[#C2185B]">
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </button>
+              </span>
               {isAddressValid ? (
                 <span className={shipping === 0 ? 'text-green-600 font-medium' : ''}>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span>
               ) : (
@@ -390,7 +511,7 @@ export default function CheckoutPage() {
           </div>
 
           {/* Pay now — mobile */}
-          <Button onClick={placeOrder} disabled={loading || !isAddressValid || !isBillingValid} className="w-full mt-6 lg:hidden" size="lg">
+          <Button onClick={placeOrder} disabled={loading} className="w-full mt-6 lg:hidden" size="lg">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Pay now'}
           </Button>
 

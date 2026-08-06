@@ -110,7 +110,7 @@ export default function AdminVendorsPage() {
 
       {showForm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowForm(false)} />
+          <div className="absolute inset-0 bg-black/50" />
           <div className="relative bg-white rounded-2xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-[#4E1E24]">{editing ? 'Edit Vendor' : 'New Vendor'}</h2>

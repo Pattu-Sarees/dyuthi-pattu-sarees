@@ -7,7 +7,9 @@ import { DisplayItem } from './displayItems'
 
 /** Item CARDS revealed per scroll batch. */
 const BATCH = 24
-const STORAGE_KEY = 'dyuthi_grid_view'
+// Bumped to v2 so any previously-saved 3-column mobile preference is dropped
+// and mobile defaults to 2 columns again.
+const STORAGE_KEY = 'dyuthi_grid_view_v2'
 type MobileCols = 2 | 3
 type DesktopCols = 1 | 2 | 3 | 4 | 5
 

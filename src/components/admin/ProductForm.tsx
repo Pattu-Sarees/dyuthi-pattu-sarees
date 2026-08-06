@@ -834,7 +834,6 @@ export default function ProductForm({ product }: { product?: Product }) {
         {confirmDeleteRow !== null && (
           <div
             className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4"
-            onClick={(e) => e.target === e.currentTarget && setConfirmDeleteRow(null)}
           >
             <div role="dialog" aria-label="Delete item" className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6">
               <p className="text-base font-semibold text-gray-900">Do you want to delete the item?</p>

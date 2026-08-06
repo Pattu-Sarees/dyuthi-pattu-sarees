@@ -54,8 +54,8 @@ export default function ImageCropper({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={onCancel}>
-      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden">
         <div className="px-5 pt-4 pb-2">
           <h3 className="font-bold text-gray-900">Adjust image</h3>
           <p className="text-xs text-gray-500">Drag to reposition · pinch or use the slider to zoom</p>

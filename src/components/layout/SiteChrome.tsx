@@ -5,6 +5,7 @@ import Navbar from './Navbar'
 import Footer from './Footer'
 import WhatsAppButton from './WhatsAppButton'
 import ScrollToTop from './ScrollToTop'
+import CheckoutHeader from '@/components/checkout/CheckoutHeader'
 import type { FooterData } from '@/lib/footer'
 
 export type AnnouncementConfig = { enabled: boolean; text: string }
@@ -22,10 +23,21 @@ export default function SiteChrome({
 }) {
   const pathname = usePathname()
   const isAdmin = pathname?.startsWith('/admin')
+  const isCheckout = pathname === '/checkout'
 
   if (isAdmin) {
     // Admin has its own top bar + sidebar — no storefront chrome
     return <main className="flex-1">{children}</main>
+  }
+
+  if (isCheckout) {
+    // Checkout has a minimal header (brand + cart) and no navbar/footer.
+    return (
+      <>
+        <CheckoutHeader logo={logo} />
+        <main className="flex-1">{children}</main>
+      </>
+    )
   }
 
   return (

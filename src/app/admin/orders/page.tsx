@@ -324,7 +324,7 @@ export default function AdminOrdersPage() {
 
       {/* Ordered-item image preview */}
       {previewImg && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" onClick={() => setPreviewImg(null)}>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" />
           <div className="relative w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setPreviewImg(null)} className="absolute -top-3 -right-3 z-10 bg-white rounded-full p-1.5 shadow-lg text-gray-600 hover:text-gray-900"><X className="h-5 w-5" /></button>
@@ -346,7 +346,7 @@ function ViewOrderModal({ order, onClose }: { order: Order; onClose: () => void 
   const phoneStr = order.customer_phone ? `${order.customer_country_code ? order.customer_country_code + ' ' : ''}${order.customer_phone}` : '—'
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" />
       <div className="relative bg-white rounded-2xl w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
@@ -494,7 +494,7 @@ function EditOrderModal({ order, products, onClose, onSaved }: { order: Order; p
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" />
       <div className="relative bg-white rounded-2xl w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-[#4E1E24]">Edit Order — {order.order_number || order.id.slice(0, 8)}</h2>
@@ -681,7 +681,7 @@ function CreateOrderModal({ products, onClose, onCreated }: { products: Product[
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" />
       <div className="relative bg-white rounded-2xl w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-[#4E1E24]">Create Order</h2>
