@@ -561,16 +561,13 @@ export default function ProductDetail({ product, reviews }: { product: Product; 
 
           {/* Stock + per-design pieces — one compact status row */}
           <div className="flex items-center gap-3 flex-wrap">
-            <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium ${
-              stock.level === 'in' ? 'bg-green-50 text-green-700' : stock.level === 'low' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600'
-            }`}>
-              <div className={`h-2 w-2 rounded-full ${
-                stock.level === 'in' ? 'bg-green-500' : stock.level === 'low' ? 'bg-amber-500' : 'bg-red-500'
-              }`} />
-              {stock.level === 'out'
-                ? 'Sold Out'
-                : `${stock.label} (${product.stock_quantity} left)`}
-            </div>
+            {/* Only surface "Sold Out" — don't reveal exact stock counts to buyers. */}
+            {stock.level === 'out' && (
+              <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium bg-red-50 text-red-600">
+                <div className="h-2 w-2 rounded-full bg-red-500" />
+                Sold Out
+              </div>
+            )}
             {/* Per-design availability — soft pill, updates as designs change */}
             {variantPieces != null && stock.level !== 'out' && (
               <>

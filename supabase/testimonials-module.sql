@@ -24,6 +24,10 @@ alter table testimonials enable row level security;
 -- Storefront reads only active testimonials publicly.
 create policy "testimonials_public_select" on testimonials for select using (is_active = true);
 
+-- The public (anon) role must be granted SELECT for the RLS policy to apply —
+-- without this the storefront gets "permission denied" and shows no reviews.
+grant select on testimonials to anon, authenticated;
+
 -- Reuses the existing set_updated_at() function (already defined by the homepage module).
 create trigger testimonials_set_updated_at before update on testimonials
   for each row execute function set_updated_at();

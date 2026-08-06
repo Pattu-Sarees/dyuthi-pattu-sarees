@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdminEmail } from '@/lib/admin'
@@ -53,6 +54,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   // Keep the product's stored rating/review_count in sync with its approved reviews.
   await recomputeProductRating(admin, (data as { product_id?: string | null })?.product_id)
+  revalidateTag('testimonials', 'max') // approve/toggle/edit → refresh homepage reviews
+  revalidateTag('products', 'max')     // rating/review_count may have changed
   return NextResponse.json({ testimonial: data })
 }
 
@@ -65,5 +68,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { error } = await admin.from('testimonials').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   await recomputeProductRating(admin, (row as { product_id?: string | null })?.product_id)
+  revalidateTag('testimonials', 'max')
+  revalidateTag('products', 'max')
   return NextResponse.json({ success: true })
 }

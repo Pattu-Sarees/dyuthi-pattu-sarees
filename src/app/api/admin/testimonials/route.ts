@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdminEmail } from '@/lib/admin'
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient()
   const { data, error } = await admin.from('testimonials').insert(payload).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidateTag('testimonials', 'max') // refresh the homepage "Customer Diaries" section
   return NextResponse.json({ testimonial: data })
 }
 
@@ -69,5 +71,6 @@ export async function PATCH(req: NextRequest) {
     await admin.from('testimonials').update({ display_order: Number(r.display_order) || 0 }).eq('id', r.id)
   }
   const { data } = await admin.from('testimonials').select('*').order('display_order', { ascending: true })
+  revalidateTag('testimonials', 'max')
   return NextResponse.json({ testimonials: data })
 }
