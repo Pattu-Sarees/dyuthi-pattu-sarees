@@ -62,6 +62,30 @@ const EMPTY_ADDRESS: AddressForm = {
   firstName: '', lastName: '', country: 'India', line1: '', line2: '', city: '', state: '', pincode: '', phone: '',
 }
 
+// Shape of the `address` object stored on a past order.
+type SavedAddr = {
+  name?: string; first_name?: string; last_name?: string; country?: string
+  phone?: string; line1?: string; line2?: string; city?: string; state?: string; pincode?: string
+}
+
+// Map a past order's saved address into the checkout form shape (splitting an
+// old single "name" into first/last when the order predates split names).
+function mapSavedAddress(a: SavedAddr): AddressForm {
+  const name = (a.name || '').trim()
+  const parts = name ? name.split(/\s+/) : []
+  return {
+    firstName: a.first_name || parts[0] || '',
+    lastName: a.last_name || parts.slice(1).join(' ') || '',
+    country: a.country || 'India',
+    line1: a.line1 || '',
+    line2: a.line2 || '',
+    city: a.city || '',
+    state: a.state || '',
+    pincode: a.pincode || '',
+    phone: a.phone || '',
+  }
+}
+
 export default function CheckoutPage() {
   const { selectedItems, removeItems } = useCartStore()
   const items = selectedItems() // only items the user checked on the Cart page
@@ -76,6 +100,9 @@ export default function CheckoutPage() {
   const [submitted, setSubmitted] = useState(false) // show errors after a Pay attempt
   const [menuOpen, setMenuOpen] = useState(false)    // account (three-dots) menu
   const [showShipping, setShowShipping] = useState(false) // shipping & return policy popup
+  // 'loading' until we know if the user has a saved address; then 'saved' (show
+  // the summary card) or 'edit' (show the full form for first-time buyers).
+  const [addrMode, setAddrMode] = useState<'loading' | 'saved' | 'edit'>('loading')
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Close the account menu on outside click.
@@ -101,6 +128,12 @@ export default function CheckoutPage() {
   const errFor = (f: string) => (submitted ? addressErrors[f] : undefined)
   const billErrFor = (f: string) => (submitted ? billingErrors[f] : undefined)
 
+  // Display strings for the saved-address summary card.
+  const savedLine = [address.line1, address.line2, address.city, `${address.state} ${address.pincode}`.trim()]
+    .map((s) => s.trim()).filter(Boolean).join(', ')
+  const phoneDigits = address.phone.replace(/\D/g, '')
+  const phoneDisplay = phoneDigits.length > 10 ? phoneDigits.slice(-10) : phoneDigits
+
   // Only guard the leave-page once the delivery form is fully filled in
   // (and the billing address too, when it differs) — nothing to lose before that.
   const isAddressComplete = (a: AddressForm) =>
@@ -114,6 +147,38 @@ export default function CheckoutPage() {
       setUser(data.user as { id: string; email: string })
     })
   }, [])
+
+  // If the cart is empty (e.g. after placing the order), go back to the cart.
+  // Done in an effect so it never runs during server render.
+  useEffect(() => {
+    if (items.length === 0) router.push('/cart')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.length])
+
+  // Once signed in, look up the most recent past order and reuse its address.
+  // Show the summary card only when that saved address is complete/valid,
+  // otherwise pre-fill it and open the form so the buyer can finish it.
+  useEffect(() => {
+    if (!user) return
+    let active = true
+    fetch('/api/orders')
+      .then((r) => (r.ok ? r.json() : { orders: [] }))
+      .then(({ orders }) => {
+        if (!active) return
+        const withAddr = Array.isArray(orders)
+          ? orders.find((o: { address?: SavedAddr }) => o?.address?.line1)
+          : null
+        if (withAddr?.address) {
+          const mapped = mapSavedAddress(withAddr.address)
+          setAddress(mapped)
+          setAddrMode(Object.keys(validateAddress(mapped)).length === 0 ? 'saved' : 'edit')
+        } else {
+          setAddrMode('edit')
+        }
+      })
+      .catch(() => { if (active) setAddrMode('edit') })
+    return () => { active = false }
+  }, [user])
 
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0)
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
@@ -238,7 +303,7 @@ export default function CheckoutPage() {
   }
 
   if (items.length === 0) {
-    router.push('/cart')
+    // Redirect handled in the effect below (can't navigate during render/SSR).
     return null
   }
 
@@ -306,6 +371,28 @@ export default function CheckoutPage() {
           {/* Delivery */}
           <div>
             <h2 className="font-bold text-gray-900 mb-4">Delivery</h2>
+            {addrMode === 'loading' ? (
+              <div className="space-y-3 animate-pulse">
+                <div className="h-11 rounded-md bg-gray-100" />
+                <div className="h-12 rounded-md bg-gray-100" />
+                <div className="h-12 rounded-md bg-gray-100" />
+              </div>
+            ) : addrMode === 'saved' ? (
+              /* Returning buyer — show their saved address with a Change link. */
+              <div className="rounded-xl border-2 border-rose-600 bg-rose-50 p-4">
+                <div className="flex items-start gap-3">
+                  <input type="radio" checked readOnly aria-label="Deliver to this address" className="mt-1 accent-rose-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-semibold text-gray-900 break-words">{address.firstName} {address.lastName}</p>
+                      <button type="button" onClick={() => setAddrMode('edit')} className="text-[#C2185B] font-semibold text-sm hover:underline flex-shrink-0">Change</button>
+                    </div>
+                    <p className="text-sm text-gray-700 mt-1 break-words">{savedLine}</p>
+                    <p className="text-sm text-gray-700 mt-1">Mobile: <span className="font-semibold">{phoneDisplay}</span></p>
+                  </div>
+                </div>
+              </div>
+            ) : (
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Country/Region</label>
@@ -373,6 +460,7 @@ export default function CheckoutPage() {
                 {errFor('phone') && <p className="mt-1 text-xs text-red-600">{errFor('phone')}</p>}
               </div>
             </div>
+            )}
           </div>
 
           {/* Shipping method */}
