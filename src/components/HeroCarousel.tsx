@@ -89,11 +89,11 @@ export default function HeroCarousel({ slides = HERO_DEFAULT_SLIDES }: { slides?
         </div>
       </div>
 
-      {/* Prev / Next buttons */}
-      <button onClick={prev} aria-label="Previous slide" className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-sm transition-colors">
+      {/* Prev / Next buttons — desktop only; on mobile users swipe left/right */}
+      <button onClick={prev} aria-label="Previous slide" className="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-black/30 hover:bg-black/50 text-white items-center justify-center backdrop-blur-sm transition-colors">
         <ChevronLeft className="h-5 w-5" />
       </button>
-      <button onClick={next} aria-label="Next slide" className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-sm transition-colors">
+      <button onClick={next} aria-label="Next slide" className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full bg-black/30 hover:bg-black/50 text-white items-center justify-center backdrop-blur-sm transition-colors">
         <ChevronRight className="h-5 w-5" />
       </button>
 

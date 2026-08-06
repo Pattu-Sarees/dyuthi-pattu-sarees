@@ -269,7 +269,7 @@ export default function Navbar({
       {/* Mobile search bar — part of the sticky header so it never scrolls away
           on its own (and its dropdown always renders below a visible input). */}
       {showMobileSearch && (
-        <div className="md:hidden bg-[#F5EFE6] border-t border-gray-100 px-4 py-2">
+        <div className="md:hidden bg-[#F5EFE6] border-t border-gray-100 px-4 pt-1 pb-2">
           <SearchBox variant="mobile" />
         </div>
       )}
