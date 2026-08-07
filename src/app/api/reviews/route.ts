@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { CUSTOMER_REVIEW_SOURCES } from '@/types'
+import { rateLimit, clientIp, tooMany } from '@/lib/rate-limit'
 
 // GET /api/reviews?order_id=…      → { exists }  (has this order been reviewed?)
 // GET /api/reviews?product_id=…    → { reviews } (approved reviews for a product)
@@ -30,6 +31,9 @@ export async function GET(req: NextRequest) {
 // POST /api/reviews — customer review submission (order page, product page, review link).
 // Always lands as status='pending' / is_active=false → admin approval required.
 export async function POST(req: NextRequest) {
+  const rl = rateLimit(`review:${clientIp(req)}`, 5, 10 * 60_000) // 5 per 10 min
+  if (!rl.ok) return tooMany(rl.retryAfter)
+
   let body: Record<string, unknown>
   try {
     body = await req.json()

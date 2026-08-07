@@ -1,0 +1,3 @@
+select count(*) as total_products,
+       count(*) filter (where status is null or status <> 'inactive') as active_products
+from products;

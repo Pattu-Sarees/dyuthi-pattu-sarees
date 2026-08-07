@@ -14,6 +14,7 @@ import CheckoutBreadcrumb from '@/components/checkout/CheckoutBreadcrumb'
 import FloatingInput from '@/components/checkout/FloatingInput'
 import AddressAutocomplete from '@/components/checkout/AddressAutocomplete'
 import PhoneField from '@/components/admin/PhoneField'
+import CouponBox from '@/components/checkout/CouponBox'
 import NavigationGuard from '@/components/NavigationGuard'
 import { useFormDraft, clearFormDraft } from '@/lib/useFormDraft'
 
@@ -183,7 +184,11 @@ export default function CheckoutPage() {
   const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0)
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
   const shipping = subtotal >= 999 ? 0 : 99
-  const total = subtotal + shipping
+
+  // ---- Coupon ----
+  const [coupon, setCoupon] = useState<{ code: string; description: string | null; discount: number } | null>(null)
+  const discount = coupon ? Math.min(coupon.discount, subtotal) : 0
+  const total = Math.max(0, subtotal - discount) + shipping
 
   // Names → letters only (no digits/symbols); PIN → digits only.
   const clean = (field: keyof AddressForm, value: string) => {
@@ -237,7 +242,7 @@ export default function CheckoutPage() {
       const res = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })) }),
+        body: JSON.stringify({ items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })), coupon_code: coupon?.code }),
       })
       const { orderId, key, amount } = await res.json()
       if (!orderId) { toast.error('Could not start payment. Please try again.'); setLoading(false); return }
@@ -278,6 +283,7 @@ export default function CheckoutPage() {
         })),
         address: addressPayload,
         customer_email: user?.email || '',
+        coupon_code: coupon?.code,
         payment_method: 'razorpay',
         // Verified server-side — the server sets the real amount & paid status.
         payment_id: paymentId,
@@ -571,11 +577,22 @@ export default function CheckoutPage() {
             ))}
           </div>
 
+          {/* Coupon */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <CouponBox subtotal={subtotal} coupon={coupon} onApply={setCoupon} onRemove={() => setCoupon(null)} />
+          </div>
+
           <div className="mt-6 pt-4 border-t border-gray-100 space-y-2.5 text-sm">
             <div className="flex justify-between text-gray-600">
               <span>Subtotal · {itemCount} item{itemCount === 1 ? '' : 's'}</span>
               <span>{formatPrice(subtotal)}</span>
             </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-green-600 font-medium">
+                <span>Discount{coupon ? ` (${coupon.code})` : ''}</span>
+                <span>−{formatPrice(discount)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-gray-600">
               <span className="inline-flex items-center gap-1">
                 Shipping

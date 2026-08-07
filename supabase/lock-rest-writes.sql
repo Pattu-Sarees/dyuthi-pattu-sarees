@@ -12,25 +12,33 @@
 -- those were already blocked.
 -- ============================================================
 
--- Orders — created only by /api/orders (payment verified, amount server-computed)
-drop policy if exists "orders_insert" on orders;
-drop policy if exists "order_items_insert" on order_items;
-
--- Profile — updated only by /api/account/profile
-drop policy if exists "profiles_insert" on profiles;
-drop policy if exists "profiles_update" on profiles;
-
--- Wishlist collections — created/updated/deleted only by /api/wishlist/collections
-drop policy if exists "wishlist_collections_insert_own" on wishlist_collections;
-drop policy if exists "wishlist_collections_update_own" on wishlist_collections;
-drop policy if exists "wishlist_collections_delete_own" on wishlist_collections;
-
--- Product-view counter — incremented only by the server RPC (service role)
-drop policy if exists "product_views_public_insert" on product_views;
-
--- Legacy public "reviews" table is unused (app writes to "testimonials" server-side)
-drop policy if exists "reviews_insert" on reviews;
-drop policy if exists "reviews_update" on reviews;
+-- Guarded so it runs cleanly even if some tables don't exist in this DB
+-- (e.g. product_views / legacy reviews may never have been created).
+do $$
+begin
+  if to_regclass('public.orders') is not null then
+    execute 'drop policy if exists "orders_insert" on orders';
+  end if;
+  if to_regclass('public.order_items') is not null then
+    execute 'drop policy if exists "order_items_insert" on order_items';
+  end if;
+  if to_regclass('public.profiles') is not null then
+    execute 'drop policy if exists "profiles_insert" on profiles';
+    execute 'drop policy if exists "profiles_update" on profiles';
+  end if;
+  if to_regclass('public.wishlist_collections') is not null then
+    execute 'drop policy if exists "wishlist_collections_insert_own" on wishlist_collections';
+    execute 'drop policy if exists "wishlist_collections_update_own" on wishlist_collections';
+    execute 'drop policy if exists "wishlist_collections_delete_own" on wishlist_collections';
+  end if;
+  if to_regclass('public.product_views') is not null then
+    execute 'drop policy if exists "product_views_public_insert" on product_views';
+  end if;
+  if to_regclass('public.reviews') is not null then
+    execute 'drop policy if exists "reviews_insert" on reviews';
+    execute 'drop policy if exists "reviews_update" on reviews';
+  end if;
+end $$;
 
 -- ---- Verify: only *_select / read policies should remain for the public ----
 --   select tablename, policyname, cmd from pg_policies

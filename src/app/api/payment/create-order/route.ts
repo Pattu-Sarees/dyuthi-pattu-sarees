@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { rateLimit, clientIp, tooMany } from '@/lib/rate-limit'
+import { evaluateCoupon } from '@/lib/coupon'
 
 // Creates a Razorpay order. The amount is computed SERVER-SIDE from the real
 // product prices in the database — never trusted from the client — so a buyer
 // cannot tamper with what they're charged.
 export async function POST(req: NextRequest) {
+  const rl = rateLimit(`payorder:${clientIp(req)}`, 12, 10 * 60_000) // 12 per 10 min
+  if (!rl.ok) return tooMany(rl.retryAfter)
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
+  if (Array.isArray(body.coupon_code)) return NextResponse.json({ error: 'Only one coupon can be applied per order.' }, { status: 400 })
   const items: { product_id?: string; quantity?: number }[] = Array.isArray(body.items) ? body.items : []
   if (items.length === 0) return NextResponse.json({ error: 'No items' }, { status: 400 })
 
@@ -30,7 +36,16 @@ export async function POST(req: NextRequest) {
     subtotal += price * qty
   }
   const shipping = subtotal >= 999 ? 0 : 99
-  const amount = subtotal + shipping
+
+  // Apply coupon discount server-side (never trust a client-sent amount).
+  let discount = 0
+  if (typeof body.coupon_code === 'string' && body.coupon_code.trim()) {
+    const c = await evaluateCoupon(admin, body.coupon_code, subtotal, { userId: user.id })
+    if (!c.ok) return NextResponse.json({ error: c.message, error_code: c.code }, { status: 400 })
+    discount = c.discount
+  }
+
+  const amount = Math.max(0, subtotal - discount) + shipping
   if (amount <= 0) return NextResponse.json({ error: 'Invalid order amount' }, { status: 400 })
 
   try {
@@ -45,7 +60,7 @@ export async function POST(req: NextRequest) {
       currency: 'INR',
       receipt: `receipt_${Date.now()}`,
     })
-    return NextResponse.json({ orderId: order.id, key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, amount })
+    return NextResponse.json({ orderId: order.id, key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, amount, discount })
   } catch {
     return NextResponse.json({ error: 'Payment gateway error' }, { status: 500 })
   }

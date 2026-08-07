@@ -20,6 +20,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.discount_type !== undefined && DISCOUNT_TYPES.includes(body.discount_type)) patch.discount_type = body.discount_type
   if (body.discount_value !== undefined) patch.discount_value = Number(body.discount_value)
   if (body.min_order_value !== undefined) patch.min_order_value = Number(body.min_order_value) || 0
+  if (body.max_order_value !== undefined) patch.max_order_value = body.max_order_value ? Number(body.max_order_value) : null
+  if (body.max_daily_uses !== undefined) patch.max_daily_uses = body.max_daily_uses ? Number(body.max_daily_uses) : null
+  if (body.description !== undefined) patch.description = body.description ? String(body.description).trim().slice(0, 160) : null
+  if (body.per_user_limit !== undefined) patch.per_user_limit = body.per_user_limit ? Number(body.per_user_limit) : null
+  if (body.once_per_user !== undefined) patch.once_per_user = !!body.once_per_user
+  if (body.new_users_only !== undefined) patch.new_users_only = !!body.new_users_only
+  if (body.existing_users_only !== undefined) patch.existing_users_only = !!body.existing_users_only
+  if (body.allow_guests !== undefined) patch.allow_guests = !!body.allow_guests
   if (body.expiry_date !== undefined) patch.expiry_date = body.expiry_date || null
   if (body.usage_limit !== undefined) patch.usage_limit = body.usage_limit ? Number(body.usage_limit) : null
   if (body.is_active !== undefined) patch.is_active = !!body.is_active

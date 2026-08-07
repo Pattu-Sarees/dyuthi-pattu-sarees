@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateOrderNumber } from '@/lib/order-number'
 import { notify } from '@/lib/notify-server'
+import { evaluateCoupon, istToday } from '@/lib/coupon'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -19,6 +20,10 @@ export async function POST(req: NextRequest) {
 
   if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: 'No items in the order' }, { status: 400 })
+  }
+  // One coupon per order — reject any attempt to pass multiple codes.
+  if (Array.isArray(body.coupon_code)) {
+    return NextResponse.json({ error: 'Only one coupon can be applied per order.' }, { status: 400 })
   }
 
   // ---- Verify the Razorpay payment SERVER-SIDE ----
@@ -51,7 +56,19 @@ export async function POST(req: NextRequest) {
     subtotal += price * Math.max(1, Math.min(99, Math.floor(Number(it.quantity) || 1)))
   }
   const serverShipping = subtotal >= 999 ? 0 : 99
-  const serverTotal = subtotal + serverShipping
+
+  // Re-validate the coupon server-side and recompute the discount (the client
+  // value is never trusted). Counters are incremented atomically further down.
+  let couponCode: string | null = null
+  let couponId: string | null = null
+  let discount = 0
+  if (typeof body.coupon_code === 'string' && body.coupon_code.trim()) {
+    const c = await evaluateCoupon(admin, body.coupon_code, subtotal, { userId: user.id })
+    if (c.ok) { couponCode = c.code; couponId = c.couponId; discount = c.discount }
+    // If the coupon is no longer valid at this moment, we proceed WITHOUT the
+    // discount rather than failing an already-paid order (Phase 1 policy).
+  }
+  const serverTotal = Math.max(0, subtotal - discount) + serverShipping
 
   // Global order number via service-role client (RLS-safe count).
   const orderNumber = await generateOrderNumber(admin)
@@ -73,7 +90,8 @@ export async function POST(req: NextRequest) {
       customer_phone: address?.phone || null,
       total_amount: serverTotal,       // server-computed, not client-supplied
       shipping_amount: serverShipping,
-      discount_amount: 0,
+      discount_amount: discount,
+      coupon_code: couponCode,
       address,
       payment_method,
       payment_id: razorpay_payment_id || null,
@@ -100,6 +118,23 @@ export async function POST(req: NextRequest) {
 
   const { error: itemsError } = await admin.from('order_items').insert(orderItems)
   if (itemsError) return NextResponse.json({ error: 'Could not save order items' }, { status: 500 })
+
+  // Record the coupon redemption and atomically bump usage counters. Only for
+  // a paid order that actually used a valid coupon. Best-effort: a paid order is
+  // never failed here — if the atomic claim loses a rare race, we still keep the
+  // order (the redemption row remains the accounting source of truth).
+  if (paid && couponId && discount > 0) {
+    const { data: c } = await admin.from('coupons').select('usage_limit, max_daily_uses').eq('id', couponId).maybeSingle()
+    await admin.rpc('redeem_coupon', {
+      p_coupon: couponId,
+      p_total_limit: c?.usage_limit ?? null,
+      p_daily_limit: c?.max_daily_uses ?? null,
+      p_day: istToday(),
+    }).then(undefined, () => {})
+    await admin.from('coupon_redemptions').insert({
+      coupon_id: couponId, order_id: order.id, user_id: user.id, discount_amount: discount, status: 'redeemed',
+    }).then(undefined, () => {})
+  }
 
   await notify(admin, {
     type: 'new_order',

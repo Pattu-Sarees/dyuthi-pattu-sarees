@@ -254,6 +254,15 @@ export interface Coupon {
   discount_type: DiscountType
   discount_value: number
   min_order_value: number
+  max_order_value: number | null // upper bound of the eligible order range (null = no cap)
+  max_daily_uses: number | null  // per-day cap (null = unlimited)
+  description: string | null      // customer-visible line shown at checkout
+  // Phase 2 — user restrictions
+  per_user_limit: number | null       // max redemptions per customer (null = unlimited)
+  once_per_user: boolean              // shorthand for per_user_limit = 1
+  new_users_only: boolean             // only customers with zero paid orders
+  existing_users_only: boolean        // only customers with ≥1 paid order
+  allow_guests: boolean               // allow non-logged-in usage
   expiry_date: string | null
   usage_limit: number | null
   used_count: number
