@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Mail, Phone, MapPin, Truck, ShieldCheck, Award, Gem } from 'lucide-react'
 import FooterAccordion from './FooterAccordion'
 import BrandLogo from './BrandLogo'
+import InstagramPicker from './InstagramPicker'
 import { FOOTER_DEFAULTS, type FooterData } from '@/lib/footer'
 
 const cards = ['UPI', 'Visa', 'Mastercard', 'RuPay', 'Amex', 'Net Banking', 'Wallets']
@@ -11,16 +12,9 @@ const FacebookIcon = () => (
     <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5 3.66 9.15 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.78-1.63 1.57v1.87h2.78l-.44 2.9h-2.34V22c4.78-.79 8.44-4.94 8.44-9.94Z" />
   </svg>
 )
-const InstagramIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-    <rect x="2" y="2" width="20" height="20" rx="5" />
-    <circle cx="12" cy="12" r="4" />
-    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
-  </svg>
-)
-const YoutubeIcon = () => (
+const PinterestIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-    <path d="M23 7.5a3 3 0 0 0-2.1-2.1C19 5 12 5 12 5s-7 0-8.9.4A3 3 0 0 0 1 7.5 31 31 0 0 0 .6 12 31 31 0 0 0 1 16.5a3 3 0 0 0 2.1 2.1C5 19 12 19 12 19s7 0 8.9-.4a3 3 0 0 0 2.1-2.1c.3-1.5.4-3 .4-4.5s-.1-3-.4-4.5ZM9.8 15.3V8.7l5.7 3.3-5.7 3.3Z" />
+    <path d="M12 2C6.48 2 2 6.48 2 12c0 4.24 2.64 7.86 6.36 9.32-.09-.79-.17-2 .03-2.86.19-.82 1.2-5.19 1.2-5.19s-.31-.61-.31-1.52c0-1.42.83-2.48 1.86-2.48.88 0 1.3.66 1.3 1.45 0 .88-.56 2.2-.85 3.42-.24 1.02.51 1.86 1.52 1.86 1.83 0 3.23-1.93 3.23-4.71 0-2.46-1.77-4.18-4.29-4.18-2.93 0-4.65 2.19-4.65 4.46 0 .88.34 1.83.76 2.34.08.1.1.19.07.29-.08.32-.25 1.02-.29 1.16-.05.19-.15.23-.35.14-1.3-.61-2.11-2.5-2.11-4.03 0-3.28 2.38-6.29 6.87-6.29 3.61 0 6.41 2.57 6.41 6.01 0 3.58-2.26 6.47-5.4 6.47-1.05 0-2.04-.55-2.38-1.2l-.65 2.47c-.23.9-.87 2.02-1.29 2.71.97.3 2 .46 3.07.46 5.52 0 10-4.48 10-10S17.52 2 12 2Z" />
   </svg>
 )
 
@@ -32,24 +26,32 @@ const trust = [
 ]
 
 export default function Footer({ data = FOOTER_DEFAULTS, logo = '/logo-v3.jpeg' }: { data?: FooterData; logo?: string }) {
-  const socials = [
-    { href: data.facebook, label: 'Facebook', Icon: FacebookIcon },
-    { href: data.instagram, label: 'Instagram', Icon: InstagramIcon },
-    { href: data.youtube, label: 'YouTube', Icon: YoutubeIcon },
+  // Multiple Instagram profiles behind a single icon. Edit the URLs here.
+  const instaAccounts = [
+    { label: 'Dyuthi Pattu Sarees', url: 'https://www.instagram.com/dyuthipattusarees_collections' },
+    { label: 'Dyuthi Handlooms', url: 'https://www.instagram.com/sitarahandlooms' },
   ]
   const SocialLinks = () => (
     <>
-      {socials.map(({ href, label, Icon }) => (
-        <a
-          key={label}
-          href={href || '#'}
-          {...(href ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-          aria-label={label}
-          className="p-2 bg-white/10 rounded-md hover:bg-[#C2185B] transition-colors"
-        >
-          <Icon />
-        </a>
-      ))}
+      <a
+        href="https://www.facebook.com/share/1C63fCvD9i/"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Facebook"
+        className="p-2 bg-white/10 rounded-md hover:bg-[#C2185B] transition-colors"
+      >
+        <FacebookIcon />
+      </a>
+      <InstagramPicker accounts={instaAccounts} />
+      <a
+        href="https://pin.it/2rNe7YzBY"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Pinterest"
+        className="p-2 bg-white/10 rounded-md hover:bg-[#C2185B] transition-colors"
+      >
+        <PinterestIcon />
+      </a>
     </>
   )
 
