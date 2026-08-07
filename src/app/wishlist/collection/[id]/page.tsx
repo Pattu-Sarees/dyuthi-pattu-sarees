@@ -57,8 +57,12 @@ export default function CollectionDetailPage() {
     if (!collection) return
     const items = collection.items.filter((k) => k !== key)
     setCollection({ ...collection, items })
-    const { error } = await createClient().from('wishlist_collections').update({ items }).eq('id', collection.id)
-    if (error) toast.error('Could not update collection')
+    const res = await fetch('/api/wishlist/collections', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: collection.id, items }),
+    })
+    if (!res.ok) toast.error('Could not update collection')
   }
 
   const removeCollection = async () => {
@@ -66,7 +70,7 @@ export default function CollectionDetailPage() {
     try {
       await deleteCollection(collection.id)
       toast.success('Collection deleted')
-      router.push('/wishlist')
+      router.push('/wishlist?tab=collections')
     } catch {
       toast.error('Could not delete collection')
     }
@@ -95,9 +99,22 @@ export default function CollectionDetailPage() {
   return (
     <div className="bg-[#FFFDF7] min-h-screen">
       <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
+        {/* ===== Breadcrumb ===== */}
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm mb-4">
+          <Link href="/wishlist" className="text-gray-500 hover:text-[#AD1457] transition-colors">
+            My Wishlist
+          </Link>
+          <span className="text-gray-400">›</span>
+          <Link href="/wishlist?tab=collections" className="text-gray-500 hover:text-[#AD1457] transition-colors">
+            Collections
+          </Link>
+          <span className="text-gray-400">›</span>
+          <span className="font-semibold text-[#4E1E24] truncate">{collection.name}</span>
+        </nav>
+
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-baseline gap-2">
-            <Link href="/wishlist" aria-label="Back" className="self-center p-1 -ml-1 rounded hover:bg-black/5 text-[#4E1E24]">
+            <Link href="/wishlist?tab=collections" aria-label="Back to collections" className="self-center p-1 -ml-1 rounded hover:bg-black/5 text-[#4E1E24]">
               <ChevronLeft className="h-6 w-6" />
             </Link>
             <h1 className="text-2xl md:text-3xl font-bold text-[#4E1E24]">{collection.name}</h1>

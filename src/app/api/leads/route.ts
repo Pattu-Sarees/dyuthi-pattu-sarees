@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     message: message || null,
   })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Could not submit. Please try again.' }, { status: 500 })
 
   await notify(admin, {
     type: 'new_lead',

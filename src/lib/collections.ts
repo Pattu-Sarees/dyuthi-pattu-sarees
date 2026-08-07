@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/client'
+// Wishlist collections — all reads/writes go through the server /api routes
+// (which enforce ownership with the service role). The browser no longer hits
+// the Supabase REST endpoint for these, so direct REST writes can be removed.
 
 export interface Collection {
   id: string
@@ -10,50 +12,46 @@ export interface Collection {
   updated_at: string
 }
 
-// All collections for the current user (RLS scopes to auth.uid()).
+async function api<T>(input: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(input, {
+    headers: { 'Content-Type': 'application/json' },
+    ...init,
+  })
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(json?.error || 'Request failed')
+  return json as T
+}
+
+// All collections for the current user.
 export async function fetchCollections(): Promise<Collection[]> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('wishlist_collections')
-    .select('*')
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return (data as Collection[]) || []
+  const { collections } = await api<{ collections: Collection[] }>('/api/wishlist/collections')
+  return collections || []
 }
 
-export async function createCollection(userId: string, name: string, items: string[], cover: string | null): Promise<Collection> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('wishlist_collections')
-    .insert({ user_id: userId, name, items, cover })
-    .select('*')
-    .single()
-  if (error) throw error
-  return data as Collection
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function createCollection(_userId: string, name: string, items: string[], cover: string | null): Promise<Collection> {
+  const { collection } = await api<{ collection: Collection }>('/api/wishlist/collections', {
+    method: 'POST',
+    body: JSON.stringify({ name, items, cover }),
+  })
+  return collection
 }
 
-// Merge new item keys into a collection (dedupes).
+// Merge new item keys into a collection (dedupes) — merge is done client-side,
+// the server persists the resulting list on the user's own collection.
 export async function addItemsToCollection(collection: Collection, keys: string[]): Promise<Collection> {
-  const supabase = createClient()
   const merged = Array.from(new Set([...(collection.items || []), ...keys]))
-  const { data, error } = await supabase
-    .from('wishlist_collections')
-    .update({ items: merged })
-    .eq('id', collection.id)
-    .select('*')
-    .single()
-  if (error) throw error
-  return data as Collection
+  const { collection: updated } = await api<{ collection: Collection }>('/api/wishlist/collections', {
+    method: 'PATCH',
+    body: JSON.stringify({ id: collection.id, items: merged }),
+  })
+  return updated
 }
 
 export async function renameCollection(id: string, name: string): Promise<void> {
-  const supabase = createClient()
-  const { error } = await supabase.from('wishlist_collections').update({ name }).eq('id', id)
-  if (error) throw error
+  await api('/api/wishlist/collections', { method: 'PATCH', body: JSON.stringify({ id, name }) })
 }
 
 export async function deleteCollection(id: string): Promise<void> {
-  const supabase = createClient()
-  const { error } = await supabase.from('wishlist_collections').delete().eq('id', id)
-  if (error) throw error
+  await api(`/api/wishlist/collections?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
 }

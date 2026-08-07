@@ -36,6 +36,36 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
+  // Production security headers applied to every response. These are safe and
+  // don't affect Razorpay / Google Maps / Supabase.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()' },
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+          { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          // ── Content-Security-Policy (recommended) ────────────────────────
+          // Left OUT by default because a wrong CSP can block the Razorpay
+          // checkout or Google Maps. Test in Preview first, then uncomment:
+          // { key: 'Content-Security-Policy', value: [
+          //   "default-src 'self'",
+          //   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://maps.googleapis.com",
+          //   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+          //   "img-src 'self' data: blob: https:",
+          //   "font-src 'self' https://fonts.gstatic.com data:",
+          //   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.razorpay.com https://lumberjack.razorpay.com https://maps.googleapis.com https://photon.komoot.io",
+          //   "frame-src https://api.razorpay.com https://checkout.razorpay.com",
+          //   "frame-ancestors 'self'", "base-uri 'self'", "form-action 'self'", "object-src 'none'",
+          // ].join('; ') },
+        ],
+      },
+    ]
+  },
 }
 
 export default nextConfig

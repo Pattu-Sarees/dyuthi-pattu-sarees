@@ -28,6 +28,7 @@ export default function WishlistPage() {
   const router = useRouter()
   const ids = useWishlistStore((s) => s.ids)
   const toggle = useWishlistStore((s) => s.toggle)
+  const pruneMissing = useWishlistStore((s) => s.pruneMissing)
 
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,7 +46,13 @@ export default function WishlistPage() {
   const [renameTarget, setRenameTarget] = useState<Collection | null>(null)
   const [shareItemsOverride, setShareItemsOverride] = useState<string[] | null>(null)
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    setMounted(true)
+    // Honor ?tab= so links (e.g. a collection's "back") can land on the right
+    // sub-view instead of always defaulting to the wishlist grid.
+    const t = new URLSearchParams(window.location.search).get('tab')
+    if (t === 'collections' || t === 'outofstock') setTab(t)
+  }, [])
 
   const productIds = useMemo(() => Array.from(new Set(ids.map((k) => parseWishKey(k).id))), [ids])
 
@@ -63,10 +70,16 @@ export default function WishlistPage() {
       .from('products')
       .select(PUBLIC_PRODUCT_COLUMNS)
       .in('id', productIds)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (cancelled) return
-        setProducts((data as Product[]) || [])
+        const rows = (data as Product[]) || []
+        setProducts(rows)
         setLoading(false)
+        // Reconcile: drop wishlisted ids that no longer resolve to a product
+        // (deleted / unpublished / hidden), so the badge count matches the
+        // cards shown. Only when the fetch actually succeeded — never prune on
+        // a transient error, which would wrongly wipe valid entries.
+        if (!error) pruneMissing(rows.map((p) => p.id))
       })
     return () => {
       cancelled = true
@@ -229,6 +242,23 @@ export default function WishlistPage() {
   return (
     <div className="bg-[#FFFDF7] min-h-screen">
       <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
+        {/* ===== Breadcrumb ===== */}
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm mb-4">
+          {tab === 'wishlist' ? (
+            <span className="font-semibold text-[#4E1E24]">My Wishlist</span>
+          ) : (
+            <>
+              <button onClick={() => setTab('wishlist')} className="text-gray-500 hover:text-[#AD1457] transition-colors">
+                My Wishlist
+              </button>
+              <span className="text-gray-400">›</span>
+              <span className="font-semibold text-[#4E1E24]">
+                {tab === 'collections' ? 'Collections' : 'Out of Stock'}
+              </span>
+            </>
+          )}
+        </nav>
+
         {/* ===== Header ===== */}
         <div className="flex items-center justify-between gap-4 mb-5">
           <div className="flex items-baseline gap-2">

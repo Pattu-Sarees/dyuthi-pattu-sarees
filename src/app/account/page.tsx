@@ -38,14 +38,13 @@ export default function AccountPage() {
   const saveProfile = async () => {
     if (!user) return
     setSaving(true)
-    const { error } = await supabase.from('profiles').upsert({
-      id: user.id,
-      full_name: profile.full_name,
-      phone: profile.phone,
-      updated_at: new Date().toISOString(),
+    const res = await fetch('/api/account/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ full_name: profile.full_name, phone: profile.phone }),
     })
     setSaving(false)
-    if (error) toast.error('Failed to save profile')
+    if (!res.ok) toast.error('Failed to save profile')
     else {
       toast.success('Profile updated successfully!')
       // Let the persistent navbar refresh the displayed name immediately.

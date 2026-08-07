@@ -232,23 +232,25 @@ export default function CheckoutPage() {
     }
 
     try {
-      // Create Razorpay order — the only available payment method.
+      // Create Razorpay order — the amount is computed server-side from the
+      // cart's product IDs (client price/total are never trusted).
       const res = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: total }),
+        body: JSON.stringify({ items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })) }),
       })
-      const { orderId, key } = await res.json()
+      const { orderId, key, amount } = await res.json()
+      if (!orderId) { toast.error('Could not start payment. Please try again.'); setLoading(false); return }
 
       const options = {
         key,
-        amount: total * 100,
+        amount: Math.round((amount ?? total) * 100),
         currency: 'INR',
         name: 'Dyuthi Pattu Sarees',
         description: 'Saree Purchase',
         order_id: orderId,
-        handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string }) => {
-          await createOrder(addressPayload, response.razorpay_payment_id, response.razorpay_order_id)
+        handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
+          await createOrder(addressPayload, response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature)
         },
         prefill: { email: user?.email, contact: address.phone, name: fullName },
         theme: { color: '#be123c' },
@@ -263,7 +265,7 @@ export default function CheckoutPage() {
     }
   }
 
-  const createOrder = async (addressPayload: Record<string, unknown>, paymentId?: string, razorpayOrderId?: string) => {
+  const createOrder = async (addressPayload: Record<string, unknown>, paymentId?: string, razorpayOrderId?: string, razorpaySignature?: string) => {
     const res = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -273,16 +275,14 @@ export default function CheckoutPage() {
           product_name: i.product.name,
           product_image: i.image || i.product.images?.[0] || '',
           quantity: i.quantity,
-          price: i.product.price,
         })),
         address: addressPayload,
         customer_email: user?.email || '',
-        total_amount: total,
-        shipping_amount: shipping,
         payment_method: 'razorpay',
+        // Verified server-side — the server sets the real amount & paid status.
         payment_id: paymentId,
         razorpay_order_id: razorpayOrderId,
-        payment_status: paymentId ? 'paid' : 'pending',
+        razorpay_signature: razorpaySignature,
       }),
     })
 

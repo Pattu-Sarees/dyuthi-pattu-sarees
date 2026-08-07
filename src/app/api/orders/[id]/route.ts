@@ -14,6 +14,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .eq('user_id', user.id)
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 404 })
+  if (error) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
   return NextResponse.json({ order })
 }

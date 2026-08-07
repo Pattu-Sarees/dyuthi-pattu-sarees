@@ -72,7 +72,7 @@ async function search(query: string | null, limit: number, scope: Scope) {
   // Prefer search_text; fall back if the migration hasn't added the column yet.
   let { data, error } = await run('search_text')
   if (error) ({ data, error } = await run('fallback'))
-  if (error) return { items: [] as VariantSuggestion[], error: error.message }
+  if (error) return { items: [] as VariantSuggestion[], error: 'Search failed' }
 
   const products = ((data as (Product & { status?: string })[]) || [])
     .filter((p) => (p.status ?? 'active') !== 'inactive')
