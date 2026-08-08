@@ -3,6 +3,7 @@ import { Mail, Phone, MapPin, Truck, ShieldCheck, Award, Gem } from 'lucide-reac
 import FooterAccordion from './FooterAccordion'
 import BrandLogo from './BrandLogo'
 import InstagramPicker from './InstagramPicker'
+import WhatsAppPicker from './WhatsAppPicker'
 import { FOOTER_DEFAULTS, type FooterData } from '@/lib/footer'
 
 const cards = ['UPI', 'Visa', 'Mastercard', 'RuPay', 'Amex', 'Net Banking', 'Wallets']
@@ -31,6 +32,10 @@ export default function Footer({ data = FOOTER_DEFAULTS, logo = '/logo-v3.jpeg' 
     { label: 'Dyuthi Pattu Sarees', url: 'https://www.instagram.com/dyuthipattusarees_collections' },
     { label: 'Dyuthi Handlooms', url: 'https://www.instagram.com/sitarahandlooms' },
   ]
+  const waAccounts = [
+    { label: 'Sales & Orders', url: 'https://wa.me/917075792599' },
+    { label: 'Collections', url: 'https://wa.me/917075799039' },
+  ]
   const SocialLinks = () => (
     <>
       <a
@@ -43,6 +48,7 @@ export default function Footer({ data = FOOTER_DEFAULTS, logo = '/logo-v3.jpeg' 
         <FacebookIcon />
       </a>
       <InstagramPicker accounts={instaAccounts} />
+      <WhatsAppPicker accounts={waAccounts} />
       <a
         href="https://pin.it/2rNe7YzBY"
         target="_blank"

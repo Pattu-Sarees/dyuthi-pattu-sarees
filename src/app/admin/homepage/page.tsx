@@ -86,6 +86,7 @@ function SectionCard({ section, index, total, onToggle, onMove, onSave }: {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const isAnnouncement = section.key === 'announcement'
+  const isPromo = section.key === 'promo'
   const isFooter = section.key === 'footer'
   const isHero = section.key === 'hero'
 
@@ -158,7 +159,7 @@ function SectionCard({ section, index, total, onToggle, onMove, onSave }: {
       body = { data: { ...section.data, slides: heroSlides } }
     } else {
       body = { title: title || null, subtitle: subtitle || null, images }
-      if (isAnnouncement) body.data = { ...section.data, message }
+      if (isAnnouncement || isPromo) body.data = { ...section.data, message }
     }
     const ok = await onSave(body)
     setSaving(false)
@@ -277,6 +278,12 @@ function SectionCard({ section, index, total, onToggle, onMove, onSave }: {
           <label className="grid gap-1">
             <span className="text-xs font-medium text-gray-600">Announcement text</span>
             <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="e.g. Enjoy Free Shipping All Over India" className={input} />
+          </label>
+        ) : isPromo ? (
+          <label className="grid gap-1">
+            <span className="text-xs font-medium text-gray-600">Offer banner text</span>
+            <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="🧵 Direct From Weavers · 🚚 Free Shipping · 🎁 Festive Savings Up to ₹300" className={input} />
+            <span className="text-[11px] text-gray-400">A “View Offers →” button (opening the coupon list) is added automatically. Toggle this section off to hide the banner when offers are closed.</span>
           </label>
         ) : (
           <div className="grid sm:grid-cols-2 gap-3">

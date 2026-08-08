@@ -35,6 +35,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     enabled: config.announcement?.enabled ?? true,
     text: ((config.announcement?.data?.message as string) || '').trim() || 'Enjoy Free Shipping All Over India',
   }
+  const promo = {
+    enabled: config.promo?.enabled ?? false,
+    text: ((config.promo?.data?.message as string) || '').trim()
+      || '🧵 Direct From Weavers · 🚚 Free Shipping · ✨ Exclusive Sravanam Offers · 🎁 Save Up to ₹300',
+  }
 
   return (
     <html lang="en">
@@ -43,7 +48,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           children
         ) : (
           <>
-            <SiteChrome footer={footer} logo={logo} announcement={announcement}>{children}</SiteChrome>
+            <SiteChrome footer={footer} logo={logo} announcement={announcement} promo={promo}>{children}</SiteChrome>
             <Toaster richColors position="top-right" duration={1500} />
           </>
         )}

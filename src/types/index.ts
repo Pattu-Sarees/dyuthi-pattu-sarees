@@ -220,11 +220,12 @@ export interface Testimonial {
 }
 
 // ==================== HOMEPAGE CMS ====================
-export const HOMEPAGE_SECTION_KEYS = ['announcement', 'hero', 'new_arrivals', 'best_sellers', 'on_sale', 'collection', 'footer'] as const
+export const HOMEPAGE_SECTION_KEYS = ['announcement', 'promo', 'hero', 'new_arrivals', 'best_sellers', 'on_sale', 'collection', 'footer'] as const
 export type HomepageSectionKey = (typeof HOMEPAGE_SECTION_KEYS)[number]
 
 export const HOMEPAGE_SECTION_LABELS: Record<HomepageSectionKey, string> = {
   announcement: 'Announcement Bar',
+  promo: 'Offer Banner',
   hero: 'Hero Banner',
   new_arrivals: 'New Arrivals',
   best_sellers: 'Best Sellers',
