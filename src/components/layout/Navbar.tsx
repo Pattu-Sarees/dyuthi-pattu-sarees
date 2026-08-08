@@ -104,7 +104,8 @@ export default function Navbar({
       items: [
         { label: 'Mangalgiri', cat: 'mangalgiri' },
         { label: 'Kuppadam', cat: 'kuppadam' },
-        { label: 'Gadwal', cat: 'gadwal' },
+        { label: 'Mangalgiri Kuppadam', cat: 'mangalgiri kuppadam' },
+        { label: 'Gadwal Cotton', cat: 'gadwal cotton' },
         { label: 'Kota', cat: 'kota' },
         { label: 'Kanchipattu', cat: 'kanchipattu' },
         { label: 'Soft Silks', cat: 'soft silks' },

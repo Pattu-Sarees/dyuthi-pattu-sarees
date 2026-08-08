@@ -14,17 +14,23 @@ const headline = (o: Offer) => (o.discount_type === 'percent' ? `${o.discount_va
 export default function PromoBanner({ text }: { text: string }) {
   const [open, setOpen] = useState(false)
   const [offers, setOffers] = useState<Offer[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
 
+  // Prefetch the offers once when the banner mounts, so the drawer opens
+  // instantly (no "Loading…"). The banner lives in the persistent layout, so
+  // this runs a single time per session, not on every navigation.
   useEffect(() => {
-    if (!open) return
-    setLoading(true)
     fetch('/api/coupons/list')
       .then((r) => r.json())
       .then(({ coupons }) => setOffers(coupons || []))
       .catch(() => setOffers([]))
-      .finally(() => setLoading(false))
+      .finally(() => setLoaded(true))
+  }, [])
+
+  // Close on Escape while the drawer is open.
+  useEffect(() => {
+    if (!open) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
@@ -85,7 +91,7 @@ export default function PromoBanner({ text }: { text: string }) {
             </div>
 
             <div className="p-5">
-              {loading ? (
+              {!loaded ? (
                 <p className="text-sm text-gray-400 text-center py-10">Loading offers…</p>
               ) : offers.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-10">No offers available right now.</p>

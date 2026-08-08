@@ -4,7 +4,8 @@
 export const PRODUCT_CATEGORIES = [
   'mangalgiri',
   'kuppadam',
-  'gadwal',
+  'mangalgiri kuppadam',
+  'gadwal cotton',
   'kota',
   'kanchipattu',
   'soft silks',

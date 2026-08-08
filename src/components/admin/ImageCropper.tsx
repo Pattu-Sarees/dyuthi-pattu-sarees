@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import Cropper, { Area } from 'react-easy-crop'
+import 'react-easy-crop/react-easy-crop.css'
 import { Loader2, ZoomIn } from 'lucide-react'
 
 async function getCroppedBlob(src: string, area: Area): Promise<Blob | null> {
@@ -29,12 +30,14 @@ export default function ImageCropper({
   src,
   aspect = 1,
   shape = 'round',
+  minZoom = 1,
   onCancel,
   onDone,
 }: {
   src: string
   aspect?: number
   shape?: 'round' | 'rect'
+  minZoom?: number   // 1 = image always covers the frame (no empty padding)
   onCancel: () => void
   onDone: (blob: Blob) => void | Promise<void>
 }) {
@@ -68,8 +71,8 @@ export default function ImageCropper({
             aspect={aspect}
             cropShape={shape}
             showGrid={false}
-            minZoom={0.4}
-            restrictPosition={false}
+            minZoom={minZoom}
+            restrictPosition={minZoom >= 1}
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={onComplete}
@@ -78,7 +81,7 @@ export default function ImageCropper({
         <div className="p-5 space-y-4">
           <div className="flex items-center gap-2">
             <ZoomIn className="h-4 w-4 text-gray-400" />
-            <input type="range" min={0.4} max={3} step={0.01} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="w-full accent-[#C2185B]" />
+            <input type="range" min={minZoom} max={3} step={0.01} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="w-full accent-[#C2185B]" />
           </div>
           <div className="flex gap-3">
             <button onClick={onCancel} className="flex-1 h-10 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50">Cancel</button>

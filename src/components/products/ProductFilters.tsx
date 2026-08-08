@@ -5,7 +5,7 @@ import { useCallback } from 'react'
 import { X } from 'lucide-react'
 
 const FILTERS = {
-  category: ['mangalgiri', 'kuppadam', 'gadwal', 'kota', 'kanchipattu', 'soft silks', 'jamdhani', 'butter silk', 'green mango'],
+  category: ['mangalgiri', 'kuppadam', 'mangalgiri kuppadam', 'gadwal cotton', 'kota', 'kanchipattu', 'soft silks', 'jamdhani', 'butter silk', 'green mango'],
   fabric: ['pure silk', 'blended silk', 'cotton', 'soft silk', 'linen'],
 }
 

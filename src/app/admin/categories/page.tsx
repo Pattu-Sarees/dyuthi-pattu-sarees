@@ -162,7 +162,7 @@ export default function AdminCategories() {
       {cropSrc && (
         <ImageCropper
           src={cropSrc}
-          aspect={4 / 5}
+          aspect={9 / 16}
           shape="rect"
           onCancel={() => { if (cropSrc) URL.revokeObjectURL(cropSrc); setCropSrc(null) }}
           onDone={uploadBlob}
