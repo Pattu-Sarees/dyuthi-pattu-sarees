@@ -225,10 +225,10 @@ function ColorSwatchSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center gap-1 h-9 px-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:border-[#C2185B] hover:text-[#C2185B]"
+        className="flex items-center gap-1 h-9 w-[128px] px-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:border-[#C2185B] hover:text-[#C2185B]"
       >
         <SwatchDot hex={hexOf(value)} className="h-4 w-4 flex-shrink-0" />
-        <span className="truncate max-w-[72px]">{value || 'Color'}</span>
+        <span className="flex-1 truncate text-left">{value || 'Color'}</span>
         <ChevronDown className="h-3.5 w-3.5 flex-shrink-0" />
       </button>
       {open && (
@@ -815,7 +815,7 @@ export default function ProductForm({ product }: { product?: Product }) {
                 onDrop={() => { if (dragIndex !== null) { moveItem(dragIndex, i); setDragIndex(null) } }}
               >
                 {/* Everything on ONE row: drag · # · image · pieces · colour · New · Best · delete */}
-                <div className="flex items-center gap-x-1.5 flex-nowrap overflow-x-auto">
+                <div className="flex items-center gap-x-1.5 flex-nowrap">
                 <button
                   type="button"
                   draggable
