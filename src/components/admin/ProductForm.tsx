@@ -513,24 +513,21 @@ export default function ProductForm({ product }: { product?: Product }) {
     e.target.value = ''
     if (files.length === 0) return
 
-    // Show each photo instantly with a local preview, then upload+convert in the
-    // background and swap in the real URL when ready. HEIC conversion is slow
-    // server-side, but the admin never waits for it.
+    // Show a loading tile first. We build the real preview from the PROCESSED
+    // JPEG (so HEIC previews aren't broken), then upload and swap in the final
+    // URL. The admin never waits for it.
     const staged = files.map((file) => {
       const id =
         typeof crypto !== 'undefined' && crypto.randomUUID
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random()}`
-      // Browsers can't render HEIC, so don't make a (broken) preview for it —
-      // show a loading tile instead. JPG/PNG get an instant real preview.
-      const heic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)
-      return { file, tempId: id, preview: heic ? `pending:${id}` : URL.createObjectURL(file) }
+      return { file, tempId: id }
     })
 
     setItems((prev) => [
       ...prev,
       ...staged.map((s) => ({
-        image: s.preview,
+        image: `pending:${s.tempId}`,
         quantity: 1,
         isNew: true,
         tempId: s.tempId,
@@ -540,9 +537,14 @@ export default function ProductForm({ product }: { product?: Product }) {
     setPendingCount((c) => c + staged.length)
 
     for (const s of staged) {
+      let localUrl = ''
       ;(async () => {
+        const up = await toUploadable(s.file)
+        // Renderable preview from the processed JPEG — shows while uploading.
+        localUrl = URL.createObjectURL(up)
+        setItems((prev) => prev.map((it) => (it.tempId === s.tempId ? { ...it, image: localUrl } : it)))
         const fd = new FormData()
-        fd.append('file', await toUploadable(s.file))
+        fd.append('file', up)
         const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
         const json = await res.json().catch(() => ({} as { url?: string; error?: string }))
         return { ok: res.ok, status: res.status, ...json }
@@ -564,7 +566,7 @@ export default function ProductForm({ product }: { product?: Product }) {
           setItems((prev) => prev.filter((it) => it.tempId !== s.tempId))
         })
         .finally(() => {
-          if (s.preview.startsWith('blob:')) URL.revokeObjectURL(s.preview)
+          if (localUrl) URL.revokeObjectURL(localUrl)
           setPendingCount((c) => c - 1)
         })
     }
@@ -624,64 +626,70 @@ export default function ProductForm({ product }: { product?: Product }) {
     if (files.length === 0) return
 
     const staged = files.map((file) => {
-      const heic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)
       const id =
         typeof crypto !== 'undefined' && crypto.randomUUID
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random()}`
-      return { file, preview: heic ? `pending:${id}` : URL.createObjectURL(file) }
+      return { file, id, marker: `pending:${id}` }
     })
 
-    // Show previews on the row immediately, swap each for its real URL when done.
+    // Show loading tiles first; the real preview is built from the processed
+    // JPEG below (so HEIC previews aren't broken), then swapped for the URL.
     setItems((prev) =>
       prev.map((it, idx) =>
         idx === i
-          ? { ...it, additional_images: [...(it.additional_images || []), ...staged.map((s) => s.preview)] }
+          ? { ...it, additional_images: [...(it.additional_images || []), ...staged.map((s) => s.marker)] }
           : it
       )
     )
     setPendingCount((c) => c + staged.length)
 
+    // Swap one url value for another within this row's additional_images.
+    const swap = (from: string, to: string) =>
+      setItems((prev) =>
+        prev.map((it, idx) =>
+          idx === i
+            ? { ...it, additional_images: (it.additional_images || []).map((u) => (u === from ? to : u)) }
+            : it
+        )
+      )
+    const drop = (val: string) =>
+      setItems((prev) =>
+        prev.map((it, idx) =>
+          idx === i
+            ? { ...it, additional_images: (it.additional_images || []).filter((u) => u !== val) }
+            : it
+        )
+      )
+
     for (const s of staged) {
+      let current = s.marker
+      let localUrl = ''
       ;(async () => {
+        const up = await toUploadable(s.file)
+        localUrl = URL.createObjectURL(up)
+        swap(current, localUrl)
+        current = localUrl
         const fd = new FormData()
-        fd.append('file', await toUploadable(s.file))
+        fd.append('file', up)
         const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
         const json = await res.json().catch(() => ({} as { url?: string; error?: string }))
         return { ok: res.ok, status: res.status, ...json }
       })()
         .then((json) => {
           if (json.url) {
-            setItems((prev) =>
-              prev.map((it, idx) =>
-                idx === i
-                  ? { ...it, additional_images: (it.additional_images || []).map((u) => (u === s.preview ? json.url : u)) }
-                  : it
-              )
-            )
+            swap(current, json.url)
           } else {
-            toast.error(json.error || 'Upload failed')
-            setItems((prev) =>
-              prev.map((it, idx) =>
-                idx === i
-                  ? { ...it, additional_images: (it.additional_images || []).filter((u) => u !== s.preview) }
-                  : it
-              )
-            )
+            toast.error(json.error || (json.status === 413 ? 'Photo is too large' : 'Upload failed'))
+            drop(current)
           }
         })
         .catch(() => {
           toast.error('Upload failed')
-          setItems((prev) =>
-            prev.map((it, idx) =>
-              idx === i
-                ? { ...it, additional_images: (it.additional_images || []).filter((u) => u !== s.preview) }
-                : it
-            )
-          )
+          drop(current)
         })
         .finally(() => {
-          if (s.preview.startsWith('blob:')) URL.revokeObjectURL(s.preview)
+          if (localUrl) URL.revokeObjectURL(localUrl)
           setPendingCount((c) => c - 1)
         })
     }
