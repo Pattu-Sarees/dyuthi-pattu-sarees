@@ -15,8 +15,8 @@ import { DEFAULT_CATEGORIES, type ProductCategory } from '@/lib/categories'
 
 const FABRICS = ['silk', 'pure silk', 'blended silk', 'cotton', 'soft silk', 'linen', 'sico', 'pattu']
 
-// Downscale a blob to a JPEG whose longest side is <= maxDim, via canvas.
-function downscaleToJpeg(blob: Blob, maxDim: number, quality: number): Promise<Blob | null> {
+// Re-encode a blob to a JPEG whose longest side is <= maxDim, via canvas.
+function encodeJpeg(blob: Blob, maxDim: number, quality: number): Promise<Blob | null> {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(blob)
     const img = new window.Image()
@@ -37,34 +37,62 @@ function downscaleToJpeg(blob: Blob, maxDim: number, quality: number): Promise<B
   })
 }
 
-// Prepare a file for upload ENTIRELY in the browser:
-//  1. Convert iPhone HEIC/HEIF → JPEG (server-side HEIC is unreliable on Vercel).
-//  2. Downscale + re-encode to JPEG so the payload stays well under Vercel's
-//     4.5MB serverless request-body limit — the real reason big phone photos
-//     upload fine on localhost but fail on the live site.
-// Falls back gracefully so a normal small JPG still works even if a step fails.
+// Compress a blob until it's under `target` bytes, stepping down size/quality.
+// Returns the smallest result achieved (or null if the image can't be decoded).
+async function compressUnder(blob: Blob, target: number): Promise<Blob | null> {
+  const steps: Array<[number, number]> = [[2600, 0.85], [2200, 0.82], [1800, 0.8], [1500, 0.75]]
+  let best: Blob | null = null
+  for (const [dim, q] of steps) {
+    const out = await encodeJpeg(blob, dim, q)
+    if (!out) continue
+    best = out
+    if (out.size <= target) return out
+  }
+  return best
+}
+
+// Prepare a file for upload ENTIRELY in the browser, per the rule:
+//  • JPEG (or any non-HEIC image): DON'T convert. Upload as-is if already under
+//    the size limit; only compress it if it's too big.
+//  • HEIC/HEIF: convert to JPEG first, then compress if still too big.
+//
+// The cap is ~4MB to stay safely under Vercel's 4.5MB serverless request-body
+// limit — the real reason big phone photos upload on localhost but fail live.
+//
+// CRITICAL: if HEIC conversion fails, return the ORIGINAL file UNCHANGED (keep
+// its image/heic type + .heic name) so the server can still detect it — never
+// hand the server HEIC bytes disguised as .jpg (that makes sharp throw
+// "Could not process image").
+const UPLOAD_MAX_BYTES = 4 * 1024 * 1024
+
 async function toUploadable(file: File): Promise<File> {
   const isHeic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)
-  const outName = file.name.replace(/\.(heic|heif|png|webp|jpeg)$/i, '.jpg') || 'photo.jpg'
 
-  let blob: Blob = file
-  if (isHeic) {
-    try {
-      const heic2any = (await import('heic2any')).default
-      const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
-      blob = Array.isArray(out) ? out[0] : out
-    } catch {
-      // conversion failed — keep original; downscale below may still handle it
-    }
+  if (!isHeic) {
+    // Already small enough → upload the original untouched (no conversion).
+    if (file.size <= UPLOAD_MAX_BYTES) return file
+    // Too big → compress only. If compression fails, send the original.
+    const small = await compressUnder(file, UPLOAD_MAX_BYTES)
+    if (small) return new File([small], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' })
+    return file
   }
 
+  // HEIC → convert to JPEG.
+  let jpeg: Blob
   try {
-    const small = await downscaleToJpeg(blob, 1600, 0.85)
-    if (small) return new File([small], outName, { type: 'image/jpeg' })
+    const mod = (await import('heic2any')) as unknown as { default?: unknown }
+    // heic2any is CommonJS — the callable may be on .default or be the export.
+    const convert = (mod.default ?? mod) as (o: { blob: Blob; toType: string; quality?: number }) => Promise<Blob | Blob[]>
+    const out = await convert({ blob: file, toType: 'image/jpeg', quality: 0.92 })
+    jpeg = Array.isArray(out) ? out[0] : out
   } catch {
-    // ignore — fall through to returning the (possibly converted) blob
+    return file // conversion failed — send original HEIC untouched, don't mislabel
   }
-  return new File([blob], outName, { type: blob.type || 'image/jpeg' })
+
+  const name = file.name.replace(/\.(heic|heif)$/i, '.jpg') || 'photo.jpg'
+  if (jpeg.size <= UPLOAD_MAX_BYTES) return new File([jpeg], name, { type: 'image/jpeg' })
+  const small = await compressUnder(jpeg, UPLOAD_MAX_BYTES)
+  return new File([small ?? jpeg], name, { type: 'image/jpeg' })
 }
 
 // Swatch palette for the per-variant colour selector — light, dark & blended shades.
@@ -515,9 +543,10 @@ export default function ProductForm({ product }: { product?: Product }) {
       ;(async () => {
         const fd = new FormData()
         fd.append('file', await toUploadable(s.file))
-        return fetch('/api/admin/upload', { method: 'POST', body: fd })
+        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+        const json = await res.json().catch(() => ({} as { url?: string; error?: string }))
+        return { ok: res.ok, status: res.status, ...json }
       })()
-        .then((res) => res.json())
         .then((json) => {
           if (json.url) {
             setItems((prev) =>
@@ -526,7 +555,7 @@ export default function ProductForm({ product }: { product?: Product }) {
               )
             )
           } else {
-            toast.error(json.error || 'Upload failed')
+            toast.error(json.error || (json.status === 413 ? 'Photo is too large' : 'Upload failed'))
             setItems((prev) => prev.filter((it) => it.tempId !== s.tempId))
           }
         })
@@ -617,9 +646,10 @@ export default function ProductForm({ product }: { product?: Product }) {
       ;(async () => {
         const fd = new FormData()
         fd.append('file', await toUploadable(s.file))
-        return fetch('/api/admin/upload', { method: 'POST', body: fd })
+        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+        const json = await res.json().catch(() => ({} as { url?: string; error?: string }))
+        return { ok: res.ok, status: res.status, ...json }
       })()
-        .then((res) => res.json())
         .then((json) => {
           if (json.url) {
             setItems((prev) =>
