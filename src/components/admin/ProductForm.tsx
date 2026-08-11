@@ -12,6 +12,7 @@ import { Product, InventoryItem, Vendor } from '@/types'
 import { toast } from 'sonner'
 import { Loader2, Upload, Trash2, ImagePlus, ChevronDown, Search, X, GripVertical } from 'lucide-react'
 import { DEFAULT_CATEGORIES, type ProductCategory } from '@/lib/categories'
+import { createClient as createBrowserSupabase } from '@/lib/supabase/client'
 
 const FABRICS = ['silk', 'pure silk', 'blended silk', 'cotton', 'soft silk', 'linen', 'sico', 'pattu']
 
@@ -60,6 +61,29 @@ async function compressUnder(blob: Blob, target: number): Promise<Blob | null> {
 // A file is HEIC/HEIF (browser can't preview it; the server converts it).
 const fileIsHeic = (f: { type?: string; name?: string }) =>
   /heic|heif/i.test(f.type || '') || /\.(heic|heif)$/i.test(f.name || '')
+
+// Upload a (already-prepared) file by streaming it DIRECTLY to Supabase Storage
+// via a server-issued signed URL — this bypasses Vercel's 4.5MB request-body
+// limit entirely — then ask the server to convert HEIC + compress it and hand
+// back the final public URL. Returns that URL (or throws with a message).
+async function uploadPreparedImage(file: File, isHeic: boolean): Promise<string> {
+  const r1 = await fetch('/api/admin/upload-url', { method: 'POST' })
+  const j1 = await r1.json().catch(() => ({} as { path?: string; token?: string; error?: string }))
+  if (!r1.ok || !j1.path || !j1.token) throw new Error(j1.error || 'Could not start upload')
+
+  const supabase = createBrowserSupabase()
+  const { error: upErr } = await supabase.storage.from('product-images').uploadToSignedUrl(j1.path, j1.token, file)
+  if (upErr) throw new Error(upErr.message || 'Upload failed')
+
+  const r2 = await fetch('/api/admin/process-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: j1.path, isHeic }),
+  })
+  const j2 = await r2.json().catch(() => ({} as { url?: string; error?: string }))
+  if (!j2.url) throw new Error(j2.error || 'Could not process image')
+  return j2.url as string
+}
 
 // Prepare a file for upload, per the rule:
 //  • JPEG / any non-HEIC image: DON'T convert. Upload as-is when already under
@@ -535,33 +559,22 @@ export default function ProductForm({ product }: { product?: Product }) {
     for (const s of staged) {
       let localUrl = ''
       ;(async () => {
-        const up = await toUploadable(s.file)
+        const prepared = await toUploadable(s.file)
         // Non-HEIC: show an instant preview. HEIC can't be previewed in the
         // browser, so keep the spinner until the server returns the JPEG URL.
-        if (!fileIsHeic(up)) {
-          localUrl = URL.createObjectURL(up)
+        if (!fileIsHeic(prepared)) {
+          localUrl = URL.createObjectURL(prepared)
           setItems((prev) => prev.map((it) => (it.tempId === s.tempId ? { ...it, image: localUrl } : it)))
         }
-        const fd = new FormData()
-        fd.append('file', up)
-        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-        const json = await res.json().catch(() => ({} as { url?: string; error?: string }))
-        return { ok: res.ok, status: res.status, ...json }
+        return uploadPreparedImage(prepared, fileIsHeic(s.file))
       })()
-        .then((json) => {
-          if (json.url) {
-            setItems((prev) =>
-              prev.map((it) =>
-                it.tempId === s.tempId ? { ...it, image: json.url, pending: false } : it
-              )
-            )
-          } else {
-            toast.error(json.error || (json.status === 413 ? 'Photo is too large' : 'Upload failed'))
-            setItems((prev) => prev.filter((it) => it.tempId !== s.tempId))
-          }
+        .then((url) => {
+          setItems((prev) =>
+            prev.map((it) => (it.tempId === s.tempId ? { ...it, image: url, pending: false } : it))
+          )
         })
-        .catch(() => {
-          toast.error('Upload failed')
+        .catch((e) => {
+          toast.error((e as Error)?.message || 'Upload failed')
           setItems((prev) => prev.filter((it) => it.tempId !== s.tempId))
         })
         .finally(() => {
@@ -666,30 +679,21 @@ export default function ProductForm({ product }: { product?: Product }) {
       let current = s.marker
       let localUrl = ''
       ;(async () => {
-        const up = await toUploadable(s.file)
+        const prepared = await toUploadable(s.file)
         // Non-HEIC: instant preview. HEIC: keep the spinner until the server
         // returns the converted JPEG URL (browser can't preview HEIC).
-        if (!fileIsHeic(up)) {
-          localUrl = URL.createObjectURL(up)
+        if (!fileIsHeic(prepared)) {
+          localUrl = URL.createObjectURL(prepared)
           swap(current, localUrl)
           current = localUrl
         }
-        const fd = new FormData()
-        fd.append('file', up)
-        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-        const json = await res.json().catch(() => ({} as { url?: string; error?: string }))
-        return { ok: res.ok, status: res.status, ...json }
+        return uploadPreparedImage(prepared, fileIsHeic(s.file))
       })()
-        .then((json) => {
-          if (json.url) {
-            swap(current, json.url)
-          } else {
-            toast.error(json.error || (json.status === 413 ? 'Photo is too large' : 'Upload failed'))
-            drop(current)
-          }
+        .then((url) => {
+          swap(current, url)
         })
-        .catch(() => {
-          toast.error('Upload failed')
+        .catch((e) => {
+          toast.error((e as Error)?.message || 'Upload failed')
           drop(current)
         })
         .finally(() => {
