@@ -838,7 +838,9 @@ export default function ProductForm({ product }: { product?: Product }) {
                       <div className="absolute inset-0 bg-gray-100" />
                     )
                   ) : (
-                    <Image src={it.image} alt={`Item ${i + 1}`} fill className="object-cover" sizes="56px" />
+                    // Load the stored JPEG directly (no Next optimizer) — the
+                    // optimizer can fail on a just-uploaded URL and render broken.
+                    <Image src={it.image} alt={`Item ${i + 1}`} fill className="object-cover" sizes="56px" unoptimized />
                   )}
                   {it.pending && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/40">
