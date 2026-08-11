@@ -914,17 +914,7 @@ export default function ProductForm({ product }: { product?: Product }) {
                               </div>
                             </>
                           ) : (
-                            <Image
-                              src={url}
-                              alt="Additional angle"
-                              fill
-                              className="object-cover"
-                              sizes="40px"
-                              // A stored angle whose file is corrupt/missing (e.g. saved
-                              // during the earlier broken uploads) can't render — drop it
-                              // so it never shows as a broken tile. Re-upload to replace.
-                              onError={() => removeAngle(i, url)}
-                            />
+                            <Image src={url} alt="Additional angle" fill className="object-cover" sizes="40px" unoptimized />
                           )}
                           <button
                             type="button"
