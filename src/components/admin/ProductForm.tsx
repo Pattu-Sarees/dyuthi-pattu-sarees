@@ -299,6 +299,10 @@ function ColorSwatchSelect({
 // the background (shown instantly via a local preview, swapped for the real URL).
 type Row = InventoryItem & { isNew?: boolean; tempId?: string; pending?: boolean }
 
+// A stale local-preview URL (blob:/pending:) accidentally saved by an older
+// build — these are dead on reload and render as broken tiles, so drop them.
+const isStaleUrl = (u: string) => !u || u.startsWith('blob:') || u.startsWith('pending:')
+
 // Handle old data shapes gracefully
 function normalise(variants?: Array<Partial<InventoryItem> & { image?: string; images?: string[] }>): Row[] {
   if (!variants?.length) return []
@@ -307,10 +311,12 @@ function normalise(variants?: Array<Partial<InventoryItem> & { image?: string; i
       color: (v as { color?: string }).color || '',
       is_new_arrival: !!v.is_new_arrival,
       is_best_seller: !!v.is_best_seller,
-      additional_images: Array.isArray(v.additional_images) ? v.additional_images : [],
+      // Drop any stale blob:/pending: angle URLs left over from older saves.
+      additional_images: (Array.isArray(v.additional_images) ? v.additional_images : []).filter((u) => !isStaleUrl(u)),
     }
-    if (v.image) return [{ image: v.image, quantity: Number(v.quantity) || 1, ...flags }]
-    if (v.images?.length) return v.images.map((img) => ({ image: img, quantity: Number(v.quantity) || 1, ...flags }))
+    // Skip a row whose main image is itself a dead placeholder.
+    if (v.image && !isStaleUrl(v.image)) return [{ image: v.image, quantity: Number(v.quantity) || 1, ...flags }]
+    if (v.images?.length) return v.images.filter((img) => !isStaleUrl(img)).map((img) => ({ image: img, quantity: Number(v.quantity) || 1, ...flags }))
     return []
   })
 }
@@ -621,7 +627,8 @@ export default function ProductForm({ product }: { product?: Product }) {
 
   // Extra angle shots for one row — uploaded like main photos but stored on the row.
   const handleAddAngles = (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
+    // Only one additional photo per item — take just the first selected file.
+    const files = Array.from(e.target.files || []).slice(0, 1)
     e.target.value = ''
     if (files.length === 0) return
 
@@ -803,10 +810,12 @@ export default function ProductForm({ product }: { product?: Product }) {
             {items.map((it, i) => (
               <div
                 key={i}
-                className="flex flex-wrap items-center gap-x-2 gap-y-2 bg-gray-50 rounded-lg p-2.5"
+                className="bg-gray-50 rounded-lg p-2.5"
                 onDragOver={(e) => { if (dragIndex !== null) e.preventDefault() }}
                 onDrop={() => { if (dragIndex !== null) { moveItem(dragIndex, i); setDragIndex(null) } }}
               >
+                {/* Everything on ONE row: drag · # · image · pieces · colour · New · Best · delete */}
+                <div className="flex items-center gap-x-1.5 flex-nowrap overflow-x-auto">
                 <button
                   type="button"
                   draggable
@@ -838,41 +847,44 @@ export default function ProductForm({ product }: { product?: Product }) {
                   )}
                 </div>
                 {!isEdit || it.isNew ? (
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-500">Pieces</label>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <label className="text-[11px] text-gray-500">Pieces</label>
                     <input
                       type="number"
                       min={0}
                       value={it.quantity}
                       onChange={(e) => setQty(i, Number(e.target.value))}
-                      className="w-14 h-9 px-2 text-center rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]"
+                      className="w-12 h-9 px-1.5 text-center rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]"
                     />
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">Pieces</span>
-                    <span className="inline-flex items-center justify-center min-w-9 h-9 px-2 rounded-lg bg-gray-100 text-sm font-semibold text-gray-700">{it.quantity}</span>
+                  <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
+                    <span className="text-[11px] text-gray-500">Pieces</span>
+                    <span className="inline-flex items-center justify-center min-w-8 h-9 px-1.5 rounded-lg bg-gray-100 text-sm font-semibold text-gray-700">{it.quantity}</span>
                     <Link href={`/admin/inventory?adjust=${product!.id}&variant=${encodeURIComponent(it.image)}`} className="text-[11px] font-medium text-[#AD1457] hover:underline">Update in Inventory</Link>
                   </div>
                 )}
                 {/* Per-item colour swatch selector (main row only) */}
-                <ColorSwatchSelect value={it.color || ''} onChange={(c) => setColor(i, c)} palette={palette} onAddCustom={addCustomColor} />
+                <div className="flex-shrink-0">
+                  <ColorSwatchSelect value={it.color || ''} onChange={(c) => setColor(i, c)} palette={palette} onAddCustom={addCustomColor} />
+                </div>
                 {/* Per-item merchandising flags — same row */}
-                <label className="flex items-center gap-1.5 cursor-pointer">
+                <label className="flex items-center gap-1 cursor-pointer flex-shrink-0 whitespace-nowrap">
                   <input type="checkbox" checked={!!it.is_new_arrival} onChange={(e) => toggleFlag(i, 'is_new_arrival', e.target.checked)} className="h-4 w-4 accent-[#C2185B]" />
-                  <span className="text-xs text-gray-600">New Arrival</span>
+                  <span className="text-[11px] text-gray-600">New Arrival</span>
                 </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
+                <label className="flex items-center gap-1 cursor-pointer flex-shrink-0 whitespace-nowrap">
                   <input type="checkbox" checked={!!it.is_best_seller} onChange={(e) => toggleFlag(i, 'is_best_seller', e.target.checked)} className="h-4 w-4 accent-[#C2185B]" />
-                  <span className="text-xs text-gray-600">Best Seller</span>
+                  <span className="text-[11px] text-gray-600">Best Seller</span>
                 </label>
-                {/* Delete icon — always last on the flags row */}
-                <button type="button" onClick={() => setConfirmDeleteRow(i)} title="Delete item" className="ml-auto p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg flex-shrink-0">
+                {/* Delete icon — always last on the row */}
+                <button type="button" onClick={() => setConfirmDeleteRow(i)} title="Delete item" className="ml-auto p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg flex-shrink-0">
                   <Trash2 className="h-4 w-4" />
                 </button>
+                </div>
 
                 {/* Additional photos ("Angles") — on its own line, collapsed until clicked */}
-                <div className="w-full pl-10">
+                <div className="pl-10 mt-2">
                   <button
                     type="button"
                     onClick={() => toggleAngles(i)}
@@ -914,11 +926,14 @@ export default function ProductForm({ product }: { product?: Product }) {
                           </button>
                         </div>
                       ))}
-                      {/* Upload more angle photos */}
-                      <label className="inline-flex items-center gap-1 w-10 h-12 justify-center rounded-md border border-dashed border-gray-300 text-[#AD1457] hover:bg-rose-50 cursor-pointer" title="Upload angle photos">
-                        <ImagePlus className="h-4 w-4" />
-                        <input type="file" accept="image/*,.heic,.heif" multiple onChange={(e) => handleAddAngles(i, e)} className="hidden" disabled={saving} />
-                      </label>
+                      {/* Only one additional photo is allowed — show the upload box
+                          only while none has been added yet (no extra empty box). */}
+                      {(it.additional_images?.length || 0) === 0 && (
+                        <label className="inline-flex items-center gap-1 w-10 h-12 justify-center rounded-md border border-dashed border-gray-300 text-[#AD1457] hover:bg-rose-50 cursor-pointer" title="Upload one angle photo">
+                          <ImagePlus className="h-4 w-4" />
+                          <input type="file" accept="image/*,.heic,.heif" onChange={(e) => handleAddAngles(i, e)} className="hidden" disabled={saving} />
+                        </label>
+                      )}
                     </div>
                   )}
                 </div>
