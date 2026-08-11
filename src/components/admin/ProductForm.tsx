@@ -474,6 +474,11 @@ export default function ProductForm({ product }: { product?: Product }) {
   const [items, setItems] = useState<Row[]>(normalise(product?.color_variants))
   // Row index pending delete confirmation (parent variant/photo).
   const [confirmDeleteRow, setConfirmDeleteRow] = useState<number | null>(null)
+  // Angle image URLs that failed to load (corrupt/missing stored files). We show
+  // a neutral "Unavailable" tile for these instead of a broken image, and NEVER
+  // auto-delete them — the admin removes them with the ✕ and re-uploads.
+  const [brokenAngles, setBrokenAngles] = useState<Set<string>>(new Set())
+  const markAngleBroken = (url: string) => setBrokenAngles((prev) => (prev.has(url) ? prev : new Set(prev).add(url)))
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -913,8 +918,18 @@ export default function ProductForm({ product }: { product?: Product }) {
                                 <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
                               </div>
                             </>
+                          ) : brokenAngles.has(url) ? (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400 text-[7px] text-center leading-tight px-0.5">Unavailable</div>
                           ) : (
-                            <Image src={url} alt="Additional angle" fill className="object-cover" sizes="40px" unoptimized />
+                            <Image
+                              src={url}
+                              alt="Additional angle"
+                              fill
+                              className="object-cover"
+                              sizes="40px"
+                              unoptimized
+                              onError={() => markAngleBroken(url)}
+                            />
                           )}
                           <button
                             type="button"
