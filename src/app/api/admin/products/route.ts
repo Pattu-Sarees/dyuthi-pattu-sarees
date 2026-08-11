@@ -5,6 +5,19 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdminEmail } from '@/lib/admin'
 import { logActivity } from '@/lib/notify-server'
 import { sanitizeProcurements } from '@/lib/procurement'
+import { PRODUCT_CATEGORIES } from '@/lib/categories'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+// Guard against saving a category that isn't a known slug — this is what let
+// legacy values like "kanjivaram" persist and mismatch the form. Categories are
+// admin-managed, so validate against the DB; fall back to the built-in list if
+// the table isn't reachable so saves never wrongly fail.
+async function isValidCategory(admin: SupabaseClient, slug: unknown): Promise<boolean> {
+  if (typeof slug !== 'string' || !slug) return false
+  const { data, error } = await admin.from('product_categories').select('slug').eq('slug', slug).maybeSingle()
+  if (error) return (PRODUCT_CATEGORIES as readonly string[]).includes(slug)
+  return !!data
+}
 
 async function requireAdmin() {
   const supabase = await createClient()
@@ -81,6 +94,9 @@ export async function POST(req: NextRequest) {
 
   if (!payload.name || !payload.price || !payload.category) {
     return NextResponse.json({ error: 'Name, price and category are required' }, { status: 400 })
+  }
+  if (!(await isValidCategory(admin, payload.category))) {
+    return NextResponse.json({ error: `Invalid category "${payload.category}". Please pick an existing category or add it first.` }, { status: 400 })
   }
 
   const { data, error } = await admin.from('products').insert(payload).select().single()

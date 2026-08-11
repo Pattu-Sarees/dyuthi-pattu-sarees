@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { toast } from 'sonner'
 import { Loader2, ImagePlus, Trash2, Plus, X, Check } from 'lucide-react'
 import ImageCropper from '@/components/admin/ImageCropper'
-import { PRODUCT_CATEGORIES } from '@/lib/categories'
+import { DEFAULT_CATEGORIES, type ProductCategory } from '@/lib/categories'
 
 type Cat = { id: string; name: string; slug: string; image: string; sort_order: number }
 
@@ -18,6 +18,15 @@ export default function AdminCategories() {
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [cropSrc, setCropSrc] = useState<string | null>(null)
+  // Category options come from the admin-managed product categories (the same
+  // list as All Collections), so newly added categories appear here too.
+  const [productCats, setProductCats] = useState<ProductCategory[]>(DEFAULT_CATEGORIES)
+  useEffect(() => {
+    fetch('/api/categories')
+      .then((r) => r.json())
+      .then(({ categories }) => { if (Array.isArray(categories) && categories.length) setProductCats(categories) })
+      .catch(() => {})
+  }, [])
 
   const load = () => {
     fetch('/api/admin/categories')
@@ -112,14 +121,33 @@ export default function AdminCategories() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Category slug <span className="text-gray-400">(matches product category)</span></label>
-              <select value={form.slug} onChange={(e) => set('slug', e.target.value)} className={`${input} capitalize`}>
+              <select
+                value={form.slug}
+                onChange={(e) => {
+                  const slug = e.target.value
+                  const match = productCats.find((c) => c.slug === slug)
+                  // Auto-fill Name from the picked category — user can still edit it.
+                  setForm((f) => ({ ...f, slug, name: match ? match.name : f.name }))
+                }}
+                className={input}
+              >
                 <option value="" disabled>Select a category</option>
-                {PRODUCT_CATEGORIES.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
+                {productCats.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Sort order</label>
-              <input type="number" value={form.sort_order} onChange={(e) => set('sort_order', Number(e.target.value))} className={input} />
+              <input
+                type="text"
+                inputMode="numeric"
+                value={form.sort_order}
+                onChange={(e) => {
+                  // Keep digits only and strip leading zeros so "02" becomes "2".
+                  const digits = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+                  set('sort_order', digits === '' ? 0 : Number(digits))
+                }}
+                className={input}
+              />
             </div>
             <div className="flex gap-2 pt-1">
               {form.id && (
@@ -162,7 +190,7 @@ export default function AdminCategories() {
       {cropSrc && (
         <ImageCropper
           src={cropSrc}
-          aspect={9 / 16}
+          aspect={4 / 5}
           shape="rect"
           onCancel={() => { if (cropSrc) URL.revokeObjectURL(cropSrc); setCropSrc(null) }}
           onDone={uploadBlob}

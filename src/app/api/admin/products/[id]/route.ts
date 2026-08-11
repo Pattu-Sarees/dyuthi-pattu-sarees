@@ -5,6 +5,18 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdminEmail } from '@/lib/admin'
 import { logActivity } from '@/lib/notify-server'
 import { sanitizeProcurements } from '@/lib/procurement'
+import { PRODUCT_CATEGORIES } from '@/lib/categories'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+// Reject saving a category that isn't a known slug (prevents legacy / mistyped
+// values from persisting). Categories are admin-managed → validate against the
+// DB, falling back to the built-in list if the table isn't reachable.
+async function isValidCategory(admin: SupabaseClient, slug: unknown): Promise<boolean> {
+  if (typeof slug !== 'string' || !slug) return false
+  const { data, error } = await admin.from('product_categories').select('slug').eq('slug', slug).maybeSingle()
+  if (error) return (PRODUCT_CATEGORIES as readonly string[]).includes(slug)
+  return !!data
+}
 
 async function requireAdmin() {
   const supabase = await createClient()
@@ -60,6 +72,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const currentStock = Number(existing?.stock_quantity ?? 0)
   const newStock = Math.max(0, currentStock - removedQty + addedQty)
+
+  if (!(await isValidCategory(admin, body.category))) {
+    return NextResponse.json({ error: `Invalid category "${body.category}". Please pick an existing category or add it first.` }, { status: 400 })
+  }
 
   const variantColors = Array.from(new Set(variants.map((v: { color?: string }) => v.color).filter(Boolean)))
   const payload = {

@@ -10,6 +10,8 @@ import { toast } from 'sonner'
 import Pagination from '@/components/admin/Pagination'
 import { useAdminPrefs } from '@/lib/admin-prefs'
 import { useHighlight, HIGHLIGHT_RING } from '@/lib/use-highlight'
+import CategoryManager from '@/components/admin/CategoryManager'
+import { Tags } from 'lucide-react'
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -20,6 +22,7 @@ export default function AdminProductsPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [threshold, setThreshold] = useState(3)
+  const [categoryMgrOpen, setCategoryMgrOpen] = useState(false)
   const [prefs] = useAdminPrefs()
   const PAGE_SIZE = prefs.dashboard.rowsPerPage
   const highlight = useHighlight('/admin/products')
@@ -112,12 +115,19 @@ export default function AdminProductsPage() {
     <div>
       <div className="flex flex-row items-center justify-between gap-3 mb-2 sm:mb-5">
         <h1 className="text-2xl md:text-3xl font-bold text-[#4E1E24]" style={{ fontFamily: 'var(--font-cormorant-upright), serif' }}>Products</h1>
-        <Link href="/admin/products/new" className="flex-shrink-0">
-          <span className="inline-flex items-center justify-center gap-1.5 bg-[#AD1457] hover:bg-[#880E4F] text-white font-semibold text-xs px-2.5 py-1.5 sm:text-sm sm:px-3.5 sm:py-2 rounded-lg transition-colors whitespace-nowrap">
-            <PlusCircle className="h-4 w-4" /> Add New Product
-          </span>
-        </Link>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={() => setCategoryMgrOpen(true)} className="inline-flex items-center justify-center gap-1.5 border border-[#AD1457] text-[#AD1457] hover:bg-[#AD1457]/5 font-semibold text-xs px-2.5 py-1.5 sm:text-sm sm:px-3.5 sm:py-2 rounded-lg transition-colors whitespace-nowrap">
+            <Tags className="h-4 w-4" /> Add New Category
+          </button>
+          <Link href="/admin/products/new">
+            <span className="inline-flex items-center justify-center gap-1.5 bg-[#AD1457] hover:bg-[#880E4F] text-white font-semibold text-xs px-2.5 py-1.5 sm:text-sm sm:px-3.5 sm:py-2 rounded-lg transition-colors whitespace-nowrap">
+              <PlusCircle className="h-4 w-4" /> Add New Product
+            </span>
+          </Link>
+        </div>
       </div>
+
+      {categoryMgrOpen && <CategoryManager onClose={() => setCategoryMgrOpen(false)} />}
 
       <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2 mb-2 sm:mb-4">
         <div className="relative flex-1 min-w-0">

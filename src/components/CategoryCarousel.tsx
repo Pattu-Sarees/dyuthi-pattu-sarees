@@ -1,7 +1,9 @@
 'use client'
 
+import { useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 type Category = { name: string; slug: string; img: string }
 
@@ -304,12 +306,41 @@ function CategoryCard({ cat, idx, active }: { cat: Category; idx: number; active
 }
 
 export default function CategoryCarousel({ categories, selectedSlug }: { categories: Category[]; selectedSlug?: string }) {
-  // Mobile: horizontal scroll showing ~2.5 cards. Desktop: centered wrap.
+  // Mobile: horizontal scroll showing ~2.5 cards.
+  // Desktop: up to 6 cards in a centered row; more than 6 → a single scrolling
+  // row with minimal prev/next arrows. (6 cards ≈ 1380px at 210px + gap-6.)
+  const trackRef = useRef<HTMLDivElement>(null)
+  const hasArrows = categories.length > 6
+  const nudge = (dir: number) => {
+    const el = trackRef.current
+    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.85, behavior: 'smooth' })
+  }
+
+  const arrowCls =
+    'hidden md:flex absolute top-[44%] -translate-y-1/2 z-10 h-10 w-10 items-center justify-center rounded-full bg-white/95 border border-[#e7ddcd] shadow-md text-[#4E1E24] hover:text-[#C2185B] hover:border-[#C2185B] transition-colors'
+
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2 md:flex-wrap md:justify-center md:gap-6 md:overflow-visible md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {categories.map((cat, idx) => (
-        <CategoryCard key={cat.slug} cat={cat} idx={idx} active={cat.slug === selectedSlug} />
-      ))}
+    <div className="relative md:max-w-[1380px] md:mx-auto">
+      {hasArrows && (
+        <button aria-label="Previous categories" onClick={() => nudge(-1)} className={`${arrowCls} left-0 -translate-x-1/2`}>
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+      )}
+
+      <div
+        ref={trackRef}
+        className={`flex gap-4 overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory md:snap-none md:gap-6 md:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${hasArrows ? 'md:justify-start' : 'md:flex-wrap md:justify-center md:overflow-visible'}`}
+      >
+        {categories.map((cat, idx) => (
+          <CategoryCard key={cat.slug} cat={cat} idx={idx} active={cat.slug === selectedSlug} />
+        ))}
+      </div>
+
+      {hasArrows && (
+        <button aria-label="Next categories" onClick={() => nudge(1)} className={`${arrowCls} right-0 translate-x-1/2`}>
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      )}
     </div>
   )
 }

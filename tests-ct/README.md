@@ -28,8 +28,6 @@ npx playwright test -c playwright-ct.config.ts
 - All 60 cards are unique (no duplicates across batches).
 - Small-catalog case (8 items): no sentinel, all 8 shown, no infinite scroll.
 
-## Notes
-- These files are additions only; they don't modify any application code.
-- The config is separate from your E2E suite; run it with the `-c` flag above.
-- If Vite complains about an import from ProductCard's chain, it's stubbed —
+## Notesnpm run devstubbed —
   confirm the alias in `playwright-ct.config.ts` matches your file path.
+

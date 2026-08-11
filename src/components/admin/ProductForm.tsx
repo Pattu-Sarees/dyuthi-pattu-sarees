@@ -11,10 +11,61 @@ import Link from 'next/link'
 import { Product, InventoryItem, Vendor } from '@/types'
 import { toast } from 'sonner'
 import { Loader2, Upload, Trash2, ImagePlus, ChevronDown, Search, X, GripVertical } from 'lucide-react'
-import { PRODUCT_CATEGORIES } from '@/lib/categories'
+import { DEFAULT_CATEGORIES, type ProductCategory } from '@/lib/categories'
 
-const CATEGORIES = PRODUCT_CATEGORIES
 const FABRICS = ['silk', 'pure silk', 'blended silk', 'cotton', 'soft silk', 'linen', 'sico', 'pattu']
+
+// Downscale a blob to a JPEG whose longest side is <= maxDim, via canvas.
+function downscaleToJpeg(blob: Blob, maxDim: number, quality: number): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob)
+    const img = new window.Image()
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
+      const w = Math.max(1, Math.round(img.width * scale))
+      const h = Math.max(1, Math.round(img.height * scale))
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { URL.revokeObjectURL(url); resolve(null); return }
+      ctx.drawImage(img, 0, 0, w, h)
+      canvas.toBlob((b) => { URL.revokeObjectURL(url); resolve(b) }, 'image/jpeg', quality)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null) }
+    img.src = url
+  })
+}
+
+// Prepare a file for upload ENTIRELY in the browser:
+//  1. Convert iPhone HEIC/HEIF → JPEG (server-side HEIC is unreliable on Vercel).
+//  2. Downscale + re-encode to JPEG so the payload stays well under Vercel's
+//     4.5MB serverless request-body limit — the real reason big phone photos
+//     upload fine on localhost but fail on the live site.
+// Falls back gracefully so a normal small JPG still works even if a step fails.
+async function toUploadable(file: File): Promise<File> {
+  const isHeic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)
+  const outName = file.name.replace(/\.(heic|heif|png|webp|jpeg)$/i, '.jpg') || 'photo.jpg'
+
+  let blob: Blob = file
+  if (isHeic) {
+    try {
+      const heic2any = (await import('heic2any')).default
+      const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
+      blob = Array.isArray(out) ? out[0] : out
+    } catch {
+      // conversion failed — keep original; downscale below may still handle it
+    }
+  }
+
+  try {
+    const small = await downscaleToJpeg(blob, 1600, 0.85)
+    if (small) return new File([small], outName, { type: 'image/jpeg' })
+  } catch {
+    // ignore — fall through to returning the (possibly converted) blob
+  }
+  return new File([blob], outName, { type: blob.type || 'image/jpeg' })
+}
 
 // Swatch palette for the per-variant colour selector — light, dark & blended shades.
 const SAREE_COLORS: { name: string; hex: string }[] = [
@@ -353,7 +404,7 @@ export default function ProductForm({ product }: { product?: Product }) {
     price: product?.price?.toString() || '',
     original_price: product?.original_price?.toString() || '',
     priority: product?.priority?.toString() ?? '',
-    category: product?.category || 'kanjivaram',
+    category: product?.category || DEFAULT_CATEGORIES[0].slug,
     fabric: product?.fabric || 'pure silk',
     region: product?.region || '',
     occasion: product?.occasion?.join(', ') || '',
@@ -368,6 +419,15 @@ export default function ProductForm({ product }: { product?: Product }) {
   // Hold the typed product details for 10 min so a refresh doesn't wipe them.
   const draftKey = `draft:product:${product?.id ?? 'new'}`
   useFormDraft(draftKey, form, setForm)
+  // Categories are admin-managed — load them from the DB (fall back to the
+  // built-in list so the dropdown is never empty while the fetch is in flight).
+  const [categories, setCategories] = useState<ProductCategory[]>(DEFAULT_CATEGORIES)
+  useEffect(() => {
+    fetch('/api/categories')
+      .then((r) => r.json())
+      .then(({ categories }) => { if (Array.isArray(categories) && categories.length) setCategories(categories) })
+      .catch(() => {})
+  }, [])
   const [vendors, setVendors] = useState<Vendor[]>([])
 
   // Active vendors for the procurement dropdown
@@ -452,9 +512,11 @@ export default function ProductForm({ product }: { product?: Product }) {
     setPendingCount((c) => c + staged.length)
 
     for (const s of staged) {
-      const fd = new FormData()
-      fd.append('file', s.file)
-      fetch('/api/admin/upload', { method: 'POST', body: fd })
+      ;(async () => {
+        const fd = new FormData()
+        fd.append('file', await toUploadable(s.file))
+        return fetch('/api/admin/upload', { method: 'POST', body: fd })
+      })()
         .then((res) => res.json())
         .then((json) => {
           if (json.url) {
@@ -552,9 +614,11 @@ export default function ProductForm({ product }: { product?: Product }) {
     setPendingCount((c) => c + staged.length)
 
     for (const s of staged) {
-      const fd = new FormData()
-      fd.append('file', s.file)
-      fetch('/api/admin/upload', { method: 'POST', body: fd })
+      ;(async () => {
+        const fd = new FormData()
+        fd.append('file', await toUploadable(s.file))
+        return fetch('/api/admin/upload', { method: 'POST', body: fd })
+      })()
         .then((res) => res.json())
         .then((json) => {
           if (json.url) {
@@ -729,8 +793,9 @@ export default function ProductForm({ product }: { product?: Product }) {
                     <Image src={it.image} alt={`Item ${i + 1}`} fill className="object-cover" sizes="56px" />
                   )}
                   {it.pending && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/40">
                       <Loader2 className="h-4 w-4 animate-spin text-white" />
+                      <span className="text-[8px] font-medium text-white leading-none">Optimizing…</span>
                     </div>
                   )}
                 </div>
@@ -827,7 +892,7 @@ export default function ProductForm({ product }: { product?: Product }) {
         <label className="inline-flex items-center gap-2 cursor-pointer bg-[#C2185B] hover:bg-[#a01049] text-white font-medium text-sm px-4 py-2.5 rounded-lg transition-colors">
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
           {uploading ? 'Uploading…' : 'Add photos'}
-          <input type="file" accept="image/*,.heic,.heif" multiple capture="environment" onChange={handleAddPhotos} className="hidden" disabled={saving} />
+          <input type="file" accept="image/*,.heic,.heif" multiple onChange={handleAddPhotos} className="hidden" disabled={saving} />
         </label>
 
         {/* Delete-item confirmation popup (parent variant/photo). */}
@@ -892,7 +957,14 @@ export default function ProductForm({ product }: { product?: Product }) {
           <div>
             <label className={label}>Category *</label>
             <select value={form.category} onChange={(e) => set('category', e.target.value)} className={input}>
-              {CATEGORIES.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
+              {/* If the saved category isn't in the current list (e.g. a legacy
+                  value), show it explicitly so the admin sees the TRUE stored
+                  value instead of the select silently falling back to the first
+                  option — and can re-pick a valid one. */}
+              {form.category && !categories.some((c) => c.slug === form.category) && (
+                <option value={form.category} className="capitalize">{form.category} (unlisted — please reassign)</option>
+              )}
+              {categories.map((c) => <option key={c.slug} value={c.slug} className="capitalize">{c.name}</option>)}
             </select>
           </div>
           <div>

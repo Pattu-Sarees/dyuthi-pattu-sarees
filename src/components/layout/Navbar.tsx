@@ -12,6 +12,7 @@ import LotusAccent from '@/components/ui/LotusAccent'
 import BrandLogo from './BrandLogo'
 import AnnouncementBar from './AnnouncementBar'
 import { cn } from '@/lib/utils'
+import { DEFAULT_CATEGORIES, groupCategories, type ProductCategory } from '@/lib/categories'
 
 export default function Navbar({
   logo = '/logo-v3.jpeg',
@@ -33,6 +34,14 @@ export default function Navbar({
   const [collOpen, setCollOpen] = useState(false)
   const toggleCat = (t: string) => setOpenCats((p) => (p.includes(t) ? p.filter((x) => x !== t) : [...p, t]))
   const [mounted, setMounted] = useState(false)
+  // Admin-managed categories drive the All Collections mega menu.
+  const [categories, setCategories] = useState<ProductCategory[]>(DEFAULT_CATEGORIES)
+  useEffect(() => {
+    fetch('/api/categories')
+      .then((r) => r.json())
+      .then(({ categories }) => { if (Array.isArray(categories) && categories.length) setCategories(categories) })
+      .catch(() => {})
+  }, [])
   const supabase = createClient()
 
   useEffect(() => {
@@ -98,30 +107,12 @@ export default function Navbar({
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/')
 
-  const collectionCols: { title: string; href?: string; items: { label: string; cat: string }[] }[] = [
-    {
-      title: 'Sarees',
-      items: [
-        { label: 'Mangalgiri', cat: 'mangalgiri' },
-        { label: 'Kuppadam', cat: 'kuppadam' },
-        { label: 'Mangalgiri Kuppadam', cat: 'mangalgiri kuppadam' },
-        { label: 'Gadwal Cotton', cat: 'gadwal cotton' },
-        { label: 'Kota', cat: 'kota' },
-        { label: 'Kanchipattu', cat: 'kanchipattu' },
-        { label: 'Soft Silks', cat: 'soft silks' },
-      ],
-    },
-    {
-      title: 'Other Sarees',
-      items: [
-        { label: 'Jamdhani', cat: 'jamdhani' },
-        { label: 'Butter Silk', cat: 'butter silk' },
-        { label: 'Green Mango', cat: 'green mango' },
-      ],
-    },
-    { title: 'Lehengas', href: '/products?category=lehengas', items: [] },
-    { title: 'Dress Materials', href: '/products?category=dress materials', items: [] },
-  ]
+  // Built from admin-managed categories, grouped into columns and alphabetical
+  // within each. Empty groups are dropped so the menu only shows real columns.
+  const collectionCols: { title: string; href?: string; items: { label: string; cat: string }[] }[] =
+    groupCategories(categories)
+      .map((g) => ({ title: g.title, items: g.items.map((c) => ({ label: c.name, cat: c.slug })) }))
+      .filter((g) => g.items.length > 0)
 
   const searchRoutes = ['/', '/new-arrivals', '/best-sellers', '/on-sale', '/products']
   const showMobileSearch = searchRoutes.includes(pathname)
@@ -175,7 +166,7 @@ export default function Navbar({
                             <ul className="space-y-2.5">
                               {col.items.map((it) => (
                                 <li key={it.cat}>
-                                  <Link href={`/products?category=${encodeURIComponent(it.cat)}`} className="text-sm text-[#71474D] hover:text-[#C2185B] transition-colors">
+                                  <Link href={`/products?category=${encodeURIComponent(it.cat)}`} className="text-sm text-[#71474D] hover:text-[#C2185B] transition-colors whitespace-nowrap">
                                     {it.label}
                                   </Link>
                                 </li>
