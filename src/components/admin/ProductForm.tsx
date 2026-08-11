@@ -37,18 +37,24 @@ function encodeJpeg(blob: Blob, maxDim: number, quality: number): Promise<Blob |
   })
 }
 
-// Compress a blob until it's under `target` bytes, stepping down size/quality.
-// Returns the smallest result achieved (or null if the image can't be decoded).
+// Compress a blob until it's under `target` bytes, stepping size/quality down
+// aggressively. GUARANTEES a result under target for any decodable image (the
+// last steps are tiny), or null if the image can't be decoded at all.
 async function compressUnder(blob: Blob, target: number): Promise<Blob | null> {
-  const steps: Array<[number, number]> = [[2600, 0.85], [2200, 0.82], [1800, 0.8], [1500, 0.75]]
+  // If it's already small, keep as-is.
+  if (blob.size <= target) return blob
+  const steps: Array<[number, number]> = [
+    [2600, 0.85], [2200, 0.82], [1800, 0.78], [1500, 0.72],
+    [1200, 0.68], [1000, 0.6], [800, 0.55], [640, 0.5],
+  ]
   let best: Blob | null = null
   for (const [dim, q] of steps) {
     const out = await encodeJpeg(blob, dim, q)
     if (!out) continue
-    best = out
+    if (!best || out.size < best.size) best = out
     if (out.size <= target) return out
   }
-  return best
+  return best // smallest we could make (or null if undecodable)
 }
 
 // Prepare a file for upload ENTIRELY in the browser, per the rule:
@@ -56,43 +62,40 @@ async function compressUnder(blob: Blob, target: number): Promise<Blob | null> {
 //    the size limit; only compress it if it's too big.
 //  • HEIC/HEIF: convert to JPEG first, then compress if still too big.
 //
-// The cap is ~4MB to stay safely under Vercel's 4.5MB serverless request-body
-// limit — the real reason big phone photos upload on localhost but fail live.
-//
-// CRITICAL: if HEIC conversion fails, return the ORIGINAL file UNCHANGED (keep
-// its image/heic type + .heic name) so the server can still detect it — never
-// hand the server HEIC bytes disguised as .jpg (that makes sharp throw
-// "Could not process image").
-const UPLOAD_MAX_BYTES = 4 * 1024 * 1024
+// The cap is ~3.8MB to stay safely under Vercel's 4.5MB serverless request-body
+// limit (the reason big phone photos fail live). Returns null when a file can't
+// be made safe (e.g. a HEIC we couldn't decode) so the caller can show a clear
+// message instead of triggering a 413 or storing a broken image.
+const UPLOAD_MAX_BYTES = Math.round(3.8 * 1024 * 1024)
 
-async function toUploadable(file: File): Promise<File> {
+async function toUploadable(file: File): Promise<File | null> {
   const isHeic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)
 
   if (!isHeic) {
-    // Already small enough → upload the original untouched (no conversion).
-    if (file.size <= UPLOAD_MAX_BYTES) return file
-    // Too big → compress only. If compression fails, send the original.
+    if (file.size <= UPLOAD_MAX_BYTES) return file // small enough — untouched
     const small = await compressUnder(file, UPLOAD_MAX_BYTES)
-    if (small) return new File([small], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' })
-    return file
+    if (small && small.size <= UPLOAD_MAX_BYTES) {
+      return new File([small], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' })
+    }
+    return null // couldn't get it under the limit
   }
 
-  // HEIC → convert to JPEG.
+  // HEIC → convert to JPEG in the browser.
   let jpeg: Blob
   try {
     const mod = (await import('heic2any')) as unknown as { default?: unknown }
-    // heic2any is CommonJS — the callable may be on .default or be the export.
     const convert = (mod.default ?? mod) as (o: { blob: Blob; toType: string; quality?: number }) => Promise<Blob | Blob[]>
-    const out = await convert({ blob: file, toType: 'image/jpeg', quality: 0.92 })
+    const out = await convert({ blob: file, toType: 'image/jpeg', quality: 0.9 })
     jpeg = Array.isArray(out) ? out[0] : out
   } catch {
-    return file // conversion failed — send original HEIC untouched, don't mislabel
+    return null // couldn't decode the HEIC — don't upload a broken/oversized file
   }
 
   const name = file.name.replace(/\.(heic|heif)$/i, '.jpg') || 'photo.jpg'
   if (jpeg.size <= UPLOAD_MAX_BYTES) return new File([jpeg], name, { type: 'image/jpeg' })
   const small = await compressUnder(jpeg, UPLOAD_MAX_BYTES)
-  return new File([small ?? jpeg], name, { type: 'image/jpeg' })
+  if (small && small.size <= UPLOAD_MAX_BYTES) return new File([small], name, { type: 'image/jpeg' })
+  return null
 }
 
 // Swatch palette for the per-variant colour selector — light, dark & blended shades.
@@ -551,6 +554,7 @@ export default function ProductForm({ product }: { product?: Product }) {
       let localUrl = ''
       ;(async () => {
         const up = await toUploadable(s.file)
+        if (!up) return { skipped: true as const }
         // Renderable preview from the processed JPEG — shows while uploading.
         localUrl = URL.createObjectURL(up)
         setItems((prev) => prev.map((it) => (it.tempId === s.tempId ? { ...it, image: localUrl } : it)))
@@ -561,7 +565,10 @@ export default function ProductForm({ product }: { product?: Product }) {
         return { ok: res.ok, status: res.status, ...json }
       })()
         .then((json) => {
-          if (json.url) {
+          if ('skipped' in json) {
+            toast.error("Couldn't process this photo. If it's an iPhone HEIC, set Camera → Formats → Most Compatible, or upload a JPG.")
+            setItems((prev) => prev.filter((it) => it.tempId !== s.tempId))
+          } else if (json.url) {
             setItems((prev) =>
               prev.map((it) =>
                 it.tempId === s.tempId ? { ...it, image: json.url, pending: false } : it
@@ -679,6 +686,7 @@ export default function ProductForm({ product }: { product?: Product }) {
       let localUrl = ''
       ;(async () => {
         const up = await toUploadable(s.file)
+        if (!up) return { skipped: true as const }
         localUrl = URL.createObjectURL(up)
         swap(current, localUrl)
         current = localUrl
@@ -689,7 +697,10 @@ export default function ProductForm({ product }: { product?: Product }) {
         return { ok: res.ok, status: res.status, ...json }
       })()
         .then((json) => {
-          if (json.url) {
+          if ('skipped' in json) {
+            toast.error("Couldn't process this photo. If it's an iPhone HEIC, set Camera → Formats → Most Compatible, or upload a JPG.")
+            drop(current)
+          } else if (json.url) {
             swap(current, json.url)
           } else {
             toast.error(json.error || (json.status === 413 ? 'Photo is too large' : 'Upload failed'))
