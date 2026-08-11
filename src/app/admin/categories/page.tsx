@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Loader2, ImagePlus, Trash2, Plus, X, Check } from 'lucide-react'
 import ImageCropper from '@/components/admin/ImageCropper'
 import { DEFAULT_CATEGORIES, type ProductCategory } from '@/lib/categories'
+import { processAndUpload } from '@/lib/clientImageUpload'
 
 type Cat = { id: string; name: string; slug: string; image: string; sort_order: number }
 
@@ -47,15 +48,17 @@ export default function AdminCategories() {
 
   const uploadBlob = async (blob: Blob) => {
     setUploading(true)
-    const fd = new FormData()
-    fd.append('file', blob, 'category.jpg')
-    const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-    const json = await res.json()
-    setUploading(false)
-    if (cropSrc) URL.revokeObjectURL(cropSrc)
-    setCropSrc(null)
-    if (json.url) set('image', json.url)
-    else toast.error(json.error || 'Upload failed')
+    try {
+      const file = new File([blob], 'category.jpg', { type: 'image/jpeg' })
+      const url = await processAndUpload(file, { folder: 'categories' })
+      set('image', url)
+    } catch (e) {
+      toast.error((e as Error)?.message || 'Upload failed')
+    } finally {
+      setUploading(false)
+      if (cropSrc) URL.revokeObjectURL(cropSrc)
+      setCropSrc(null)
+    }
   }
 
   const save = async () => {

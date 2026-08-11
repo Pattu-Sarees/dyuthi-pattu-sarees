@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { toast } from 'sonner'
+import { processAndUpload } from '@/lib/clientImageUpload'
 import {
   Loader2, Plus, X, Check, Trash2, Star, Pencil, Eye, EyeOff,
   BadgeCheck, Sparkles, ImagePlus, ThumbsUp, ThumbsDown,
@@ -137,14 +138,13 @@ export default function AdminReviews() {
   const uploadProof = async (file: File | undefined) => {
     if (!file) return
     setUploading(true)
-    const fd = new FormData()
-    fd.append('file', file)
-    const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-    const json = await res.json()
+    try {
+      set('proof_image', await processAndUpload(file, { folder: 'reviews' }))
+    } catch (e) {
+      toast.error((e as Error)?.message || 'Upload failed')
+    }
     setUploading(false)
     if (fileRef.current) fileRef.current.value = ''
-    if (json.url) set('proof_image', json.url)
-    else toast.error(json.error || 'Upload failed')
   }
 
   const input = 'w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]'

@@ -7,6 +7,7 @@ import { Loader2, ChevronUp, ChevronDown, Power, ImagePlus, X, Save } from 'luci
 import { toast } from 'sonner'
 import { FOOTER_DEFAULTS, type FooterData } from '@/lib/footer'
 import { type HeroSlide } from '@/lib/hero'
+import { processAndUpload } from '@/lib/clientImageUpload'
 
 const input = 'w-full h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#AD1457] bg-white'
 
@@ -121,11 +122,12 @@ function SectionCard({ section, index, total, onToggle, onMove, onSave }: {
     const file = files?.[0]
     if (!file) return
     setHeroUploading(idx)
-    const fd = new FormData()
-    fd.append('file', file)
-    const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-    if (res.ok) { const { url } = await res.json(); setSlide(idx, { image: url }) }
-    else toast.error('Upload failed')
+    try {
+      const url = await processAndUpload(file, { folder: 'homepage' })
+      setSlide(idx, { image: url })
+    } catch (e) {
+      toast.error((e as Error)?.message || 'Upload failed')
+    }
     setHeroUploading(null)
   }
 
@@ -171,11 +173,11 @@ function SectionCard({ section, index, total, onToggle, onMove, onSave }: {
     setUploading(true)
     const next = [...images]
     for (const file of Array.from(files)) {
-      const fd = new FormData()
-      fd.append('file', file)
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-      if (res.ok) { const { url } = await res.json(); next.push(url) }
-      else toast.error('Upload failed')
+      try {
+        next.push(await processAndUpload(file, { folder: 'homepage' }))
+      } catch (e) {
+        toast.error((e as Error)?.message || 'Upload failed')
+      }
     }
     setImages(next)
     setUploading(false)

@@ -3,10 +3,10 @@
 import Image from 'next/image'
 import { useRef, useState } from 'react'
 import { Star, Loader2, ImagePlus, X, CheckCircle2 } from 'lucide-react'
+import { processAndUpload } from '@/lib/clientImageUpload'
 
 const MAX_IMAGES = 3
 const ALLOWED = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-const MAX_SIZE = 5 * 1024 * 1024
 
 export default function ReviewForm({
   source,
@@ -45,17 +45,14 @@ export default function ReviewForm({
     setUploading(true)
     const next = [...images]
     for (const file of picked) {
-      if (!ALLOWED.includes(file.type)) { setError('Use JPG, PNG or WEBP images'); continue }
-      if (file.size > MAX_SIZE) { setError('Each image must be under 5MB'); continue }
-      const fd = new FormData()
-      fd.append('file', file)
+      // HEIC from iPhones is allowed now — it's converted to JPEG in the browser.
+      const heic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)
+      if (!heic && !ALLOWED.includes(file.type)) { setError('Use JPG, PNG or WEBP images'); continue }
       try {
-        const res = await fetch('/api/reviews/upload', { method: 'POST', body: fd })
-        const json = await res.json()
-        if (json.url) next.push(json.url)
-        else setError(json.error || 'Upload failed')
-      } catch {
-        setError('Upload failed')
+        const url = await processAndUpload(file, { signEndpoint: '/api/reviews/upload-url', folder: 'reviews' })
+        next.push(url)
+      } catch (e) {
+        setError((e as Error)?.message || 'Upload failed')
       }
     }
     setImages(next)

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { processAndUpload } from '@/lib/clientImageUpload'
 import { Loader2, Pencil, Mail, Phone, Shield, Clock, Calendar, CheckCircle2, ImagePlus, X, User as UserIcon, Save } from 'lucide-react'
 
 const input = 'w-full h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#AD1457] bg-white'
@@ -52,10 +53,12 @@ export default function AdminProfilePage() {
   const upload = async (file: File | null) => {
     if (!file) return
     setUploading(true)
-    const fd = new FormData(); fd.append('file', file)
-    const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+    try {
+      setAvatar(await processAndUpload(file, { folder: 'branding' }))
+    } catch (e) {
+      toast.error((e as Error)?.message || 'Upload failed')
+    }
     setUploading(false)
-    if (res.ok) { const { url } = await res.json(); setAvatar(url) } else toast.error('Upload failed')
     if (fileRef.current) fileRef.current.value = ''
   }
 

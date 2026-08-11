@@ -12,96 +12,19 @@ import { Product, InventoryItem, Vendor } from '@/types'
 import { toast } from 'sonner'
 import { Loader2, Upload, Trash2, ImagePlus, ChevronDown, Search, X, GripVertical } from 'lucide-react'
 import { DEFAULT_CATEGORIES, type ProductCategory } from '@/lib/categories'
-import { createClient as createBrowserSupabase } from '@/lib/supabase/client'
+import { processImageForUpload, uploadProcessedImage, uploadRawViaServer, isHeicFile } from '@/lib/clientImageUpload'
 
 const FABRICS = ['silk', 'pure silk', 'blended silk', 'cotton', 'soft silk', 'linen', 'sico', 'pattu']
 
-// Re-encode a blob to a JPEG whose longest side is <= maxDim, via canvas.
-function encodeJpeg(blob: Blob, maxDim: number, quality: number): Promise<Blob | null> {
+// Resolve once the given image URL has fully loaded (so we only swap the preview
+// out after the final image is ready — never a flash of a broken tile).
+function preloadImage(url: string): Promise<void> {
   return new Promise((resolve) => {
-    const url = URL.createObjectURL(blob)
     const img = new window.Image()
-    img.onload = () => {
-      const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
-      const w = Math.max(1, Math.round(img.width * scale))
-      const h = Math.max(1, Math.round(img.height * scale))
-      const canvas = document.createElement('canvas')
-      canvas.width = w
-      canvas.height = h
-      const ctx = canvas.getContext('2d')
-      if (!ctx) { URL.revokeObjectURL(url); resolve(null); return }
-      ctx.drawImage(img, 0, 0, w, h)
-      canvas.toBlob((b) => { URL.revokeObjectURL(url); resolve(b) }, 'image/jpeg', quality)
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(null) }
+    img.onload = () => resolve()
+    img.onerror = () => resolve()
     img.src = url
   })
-}
-
-// Compress a blob until it's under `target` bytes, stepping size/quality down
-// aggressively. GUARANTEES a result under target for any decodable image (the
-// last steps are tiny), or null if the image can't be decoded at all.
-async function compressUnder(blob: Blob, target: number): Promise<Blob | null> {
-  // If it's already small, keep as-is.
-  if (blob.size <= target) return blob
-  const steps: Array<[number, number]> = [
-    [2600, 0.85], [2200, 0.82], [1800, 0.78], [1500, 0.72],
-    [1200, 0.68], [1000, 0.6], [800, 0.55], [640, 0.5],
-  ]
-  let best: Blob | null = null
-  for (const [dim, q] of steps) {
-    const out = await encodeJpeg(blob, dim, q)
-    if (!out) continue
-    if (!best || out.size < best.size) best = out
-    if (out.size <= target) return out
-  }
-  return best // smallest we could make (or null if undecodable)
-}
-
-// A file is HEIC/HEIF (browser can't preview it; the server converts it).
-const fileIsHeic = (f: { type?: string; name?: string }) =>
-  /heic|heif/i.test(f.type || '') || /\.(heic|heif)$/i.test(f.name || '')
-
-// Upload a (already-prepared) file by streaming it DIRECTLY to Supabase Storage
-// via a server-issued signed URL — this bypasses Vercel's 4.5MB request-body
-// limit entirely — then ask the server to convert HEIC + compress it and hand
-// back the final public URL. Returns that URL (or throws with a message).
-async function uploadPreparedImage(file: File, isHeic: boolean): Promise<string> {
-  const r1 = await fetch('/api/admin/upload-url', { method: 'POST' })
-  const j1 = await r1.json().catch(() => ({} as { path?: string; token?: string; error?: string }))
-  if (!r1.ok || !j1.path || !j1.token) throw new Error(j1.error || 'Could not start upload')
-
-  const supabase = createBrowserSupabase()
-  const { error: upErr } = await supabase.storage.from('product-images').uploadToSignedUrl(j1.path, j1.token, file)
-  if (upErr) throw new Error(upErr.message || 'Upload failed')
-
-  const r2 = await fetch('/api/admin/process-image', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: j1.path, isHeic }),
-  })
-  const j2 = await r2.json().catch(() => ({} as { url?: string; error?: string }))
-  if (!j2.url) throw new Error(j2.error || 'Could not process image')
-  return j2.url as string
-}
-
-// Prepare a file for upload, per the rule:
-//  • JPEG / any non-HEIC image: DON'T convert. Upload as-is when already under
-//    the size cap; only COMPRESS it (in the browser) when it's too big.
-//  • HEIC/HEIF: leave the ORIGINAL file untouched and let the SERVER convert it
-//    to JPEG + compress (reliable via sharp/heic-convert). Browser HEIC decoders
-//    are unreliable, so we don't touch HEIC here — and never relabel it.
-//
-// Cap is 4.3MB — safely under Vercel's 4.5MB serverless request-body limit.
-const UPLOAD_MAX_BYTES = Math.round(4.3 * 1024 * 1024)
-
-async function toUploadable(file: File): Promise<File> {
-  // HEIC → send the original untouched; the server converts + compresses it.
-  if (fileIsHeic(file)) return file
-  // Non-HEIC → upload as-is if small; only compress when over the cap.
-  if (file.size <= UPLOAD_MAX_BYTES) return file
-  const small = await compressUnder(file, UPLOAD_MAX_BYTES)
-  return small ? new File([small], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }) : file
 }
 
 // Swatch palette for the per-variant colour selector — light, dark & blended shades.
@@ -234,7 +157,7 @@ function ColorSwatchSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1 h-9 w-[128px] px-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:border-[#C2185B] hover:text-[#C2185B]"
+        className="flex items-center gap-1 h-9 w-[96px] px-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:border-[#C2185B] hover:text-[#C2185B]"
       >
         <SwatchDot hex={hexOf(value)} className="h-4 w-4 flex-shrink-0" />
         <span className="flex-1 truncate text-left">{value || 'Color'}</span>
@@ -509,7 +432,14 @@ export default function ProductForm({ product }: { product?: Product }) {
 
   // Which rows have their "Additional Photos" (Angles) panel expanded.
   const [openAngles, setOpenAngles] = useState<Record<number, boolean>>({})
-  const toggleAngles = (i: number) => setOpenAngles((p) => ({ ...p, [i]: !p[i] }))
+  // Which rows are currently showing an empty upload box (one per click of
+  // "Add Additional Photos"). It closes after a photo is picked; click again to
+  // add another. This lets you add multiple angles, one box at a time.
+  const [angleBoxOpen, setAngleBoxOpen] = useState<Record<number, boolean>>({})
+  const openAngleUpload = (i: number) => {
+    setOpenAngles((p) => ({ ...p, [i]: true }))
+    setAngleBoxOpen((p) => ({ ...p, [i]: true }))
+  }
 
   // Pieces being added via brand-new colour rows in this edit session.
   const addedQty = items.reduce((s, it) => s + (it.isNew ? Number(it.quantity) || 0 : 0), 0)
@@ -559,20 +489,27 @@ export default function ProductForm({ product }: { product?: Product }) {
     for (const s of staged) {
       let localUrl = ''
       ;(async () => {
-        const prepared = await toUploadable(s.file)
-        // Non-HEIC: show an instant preview. HEIC can't be previewed in the
-        // browser, so keep the spinner until the server returns the JPEG URL.
-        if (!fileIsHeic(prepared)) {
-          localUrl = URL.createObjectURL(prepared)
+        // INSTANT preview: show the original file right away for non-HEIC (the
+        // browser renders it directly), so the tile fills in a fraction of a
+        // second while compression + upload happen in the background.
+        if (!isHeicFile(s.file)) {
+          localUrl = URL.createObjectURL(s.file)
           setItems((prev) => prev.map((it) => (it.tempId === s.tempId ? { ...it, image: localUrl } : it)))
         }
-        return uploadPreparedImage(prepared, fileIsHeic(s.file))
+        // Try full browser processing (JPEG, or browser-decodable HEIC).
+        let processed: File | null = null
+        try {
+          processed = await processImageForUpload(s.file)
+        } catch (err) {
+          if (!(isHeicFile(s.file) && (err as Error)?.message === 'HEIC_NEEDS_SERVER')) throw err
+        }
+        const finalUrl = processed
+          ? await uploadProcessedImage(processed, { folder: 'sarees' })
+          : await uploadRawViaServer(s.file, { folder: 'sarees' }) // HEIC the browser couldn't decode
+        // Req 9: keep the preview until the FINAL url is loaded, then swap + revoke.
+        await preloadImage(finalUrl)
+        setItems((prev) => prev.map((it) => (it.tempId === s.tempId ? { ...it, image: finalUrl, pending: false } : it)))
       })()
-        .then((url) => {
-          setItems((prev) =>
-            prev.map((it) => (it.tempId === s.tempId ? { ...it, image: url, pending: false } : it))
-          )
-        })
         .catch((e) => {
           toast.error((e as Error)?.message || 'Upload failed')
           setItems((prev) => prev.filter((it) => it.tempId !== s.tempId))
@@ -633,9 +570,11 @@ export default function ProductForm({ product }: { product?: Product }) {
 
   // Extra angle shots for one row — uploaded like main photos but stored on the row.
   const handleAddAngles = (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only one additional photo per item — take just the first selected file.
+    // One photo per upload box; the box closes after picking. Click "Add
+    // Additional Photos" again to open a fresh box for the next angle.
     const files = Array.from(e.target.files || []).slice(0, 1)
     e.target.value = ''
+    setAngleBoxOpen((p) => ({ ...p, [i]: false }))
     if (files.length === 0) return
 
     const staged = files.map((file) => {
@@ -679,19 +618,26 @@ export default function ProductForm({ product }: { product?: Product }) {
       let current = s.marker
       let localUrl = ''
       ;(async () => {
-        const prepared = await toUploadable(s.file)
-        // Non-HEIC: instant preview. HEIC: keep the spinner until the server
-        // returns the converted JPEG URL (browser can't preview HEIC).
-        if (!fileIsHeic(prepared)) {
-          localUrl = URL.createObjectURL(prepared)
+        // Instant preview from the original (non-HEIC renders directly).
+        if (!isHeicFile(s.file)) {
+          localUrl = URL.createObjectURL(s.file)
           swap(current, localUrl)
           current = localUrl
         }
-        return uploadPreparedImage(prepared, fileIsHeic(s.file))
+        let processed: File | null = null
+        try {
+          processed = await processImageForUpload(s.file)
+        } catch (err) {
+          if (!(isHeicFile(s.file) && (err as Error)?.message === 'HEIC_NEEDS_SERVER')) throw err
+        }
+        const finalUrl = processed
+          ? await uploadProcessedImage(processed, { folder: 'sarees' })
+          : await uploadRawViaServer(s.file, { folder: 'sarees' }) // HEIC browser couldn't decode
+        // Req 9: keep the preview until the final URL has loaded, then swap.
+        await preloadImage(finalUrl)
+        swap(current, finalUrl)
+        current = finalUrl
       })()
-        .then((url) => {
-          swap(current, url)
-        })
         .catch((e) => {
           toast.error((e as Error)?.message || 'Upload failed')
           drop(current)
@@ -843,15 +789,17 @@ export default function ProductForm({ product }: { product?: Product }) {
                     <Image src={it.image} alt={`Item ${i + 1}`} fill className="object-cover" sizes="56px" unoptimized />
                   )}
                   {it.pending && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/40">
-                      <Loader2 className="h-4 w-4 animate-spin text-white" />
-                      <span className="text-[8px] font-medium text-white leading-none">Optimizing…</span>
+                    // Small corner badge — the image is already visible; this just
+                    // shows the upload is still finishing in the background.
+                    <div className="absolute bottom-0.5 right-0.5 rounded-full bg-black/55 p-0.5">
+                      <Loader2 className="h-3 w-3 animate-spin text-white" />
                     </div>
                   )}
                 </div>
-                {!isEdit || it.isNew ? (
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <label className="text-[11px] text-gray-500">Pieces</label>
+                <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
+                  <span className="text-[11px] text-gray-500">Pieces</span>
+                  {!isEdit || it.isNew ? (
+                    // New / unsaved row → set the starting count directly.
                     <input
                       type="number"
                       min={0}
@@ -859,14 +807,25 @@ export default function ProductForm({ product }: { product?: Product }) {
                       onChange={(e) => setQty(i, Number(e.target.value))}
                       className="w-12 h-9 px-1.5 text-center rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#C2185B]"
                     />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
-                    <span className="text-[11px] text-gray-500">Pieces</span>
+                  ) : (
+                    // Saved row → stock is owned by the Inventory module (read-only here).
                     <span className="inline-flex items-center justify-center min-w-8 h-9 px-1.5 rounded-lg bg-gray-100 text-sm font-semibold text-gray-700">{it.quantity}</span>
-                    <Link href={`/admin/inventory?adjust=${product!.id}&variant=${encodeURIComponent(it.image)}`} className="text-[11px] font-medium text-[#AD1457] hover:underline">Update in Inventory</Link>
-                  </div>
-                )}
+                  )}
+                  {/* Same "Update in Inventory" link as before — now shown on every
+                      row. On a saved product it opens the Inventory adjust screen;
+                      on a brand-new (unsaved) product it prompts to save first. */}
+                  {product?.id ? (
+                    <Link href={`/admin/inventory?adjust=${product.id}&variant=${encodeURIComponent(it.image)}`} className="text-[11px] font-medium text-[#AD1457] hover:underline">Update in Inventory</Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toast.info('Save the product first, then you can update its inventory.')}
+                      className="text-[11px] font-medium text-[#AD1457] hover:underline"
+                    >
+                      Update in Inventory
+                    </button>
+                  )}
+                </div>
                 {/* Per-item colour swatch selector (main row only) */}
                 <div className="flex-shrink-0">
                   <ColorSwatchSelect value={it.color || ''} onChange={(c) => setColor(i, c)} palette={palette} onAddCustom={addCustomColor} />
@@ -890,16 +849,16 @@ export default function ProductForm({ product }: { product?: Product }) {
                 <div className="pl-10 mt-2">
                   <button
                     type="button"
-                    onClick={() => toggleAngles(i)}
+                    onClick={() => openAngleUpload(i)}
                     className="inline-flex items-center gap-1 text-xs font-medium text-[#AD1457] hover:underline"
                   >
                     <ImagePlus className="h-3.5 w-3.5" />
                     Add Additional Photos
                     {(it.additional_images?.length || 0) > 0 && <span className="text-gray-400">({it.additional_images!.length})</span>}
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${(openAngles[i] ?? (it.additional_images?.length || 0) > 0) ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${(openAngles[i] || angleBoxOpen[i] || (it.additional_images?.length || 0) > 0) ? 'rotate-180' : ''}`} />
                   </button>
 
-                  {(openAngles[i] ?? (it.additional_images?.length || 0) > 0) && (
+                  {(openAngles[i] || angleBoxOpen[i] || (it.additional_images?.length || 0) > 0) && (
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <span className="text-[11px] text-gray-400">Angles:</span>
                       {(it.additional_images || []).map((url) => (
@@ -912,8 +871,8 @@ export default function ProductForm({ product }: { product?: Product }) {
                               ) : (
                                 <div className="absolute inset-0 bg-gray-100" />
                               )}
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                                <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
+                              <div className="absolute bottom-0.5 right-0.5 rounded-full bg-black/55 p-0.5">
+                                <Loader2 className="h-3 w-3 animate-spin text-white" />
                               </div>
                             </>
                           ) : brokenAngles.has(url) ? (
@@ -939,10 +898,11 @@ export default function ProductForm({ product }: { product?: Product }) {
                           </button>
                         </div>
                       ))}
-                      {/* Only one additional photo is allowed — show the upload box
-                          only while none has been added yet (no extra empty box). */}
-                      {(it.additional_images?.length || 0) === 0 && (
-                        <label className="inline-flex items-center gap-1 w-10 h-12 justify-center rounded-md border border-dashed border-gray-300 text-[#AD1457] hover:bg-rose-50 cursor-pointer" title="Upload one angle photo">
+                      {/* One empty upload box, shown only after clicking "Add
+                          Additional Photos". It closes once a photo is picked;
+                          click again to add another angle. */}
+                      {angleBoxOpen[i] && (
+                        <label className="inline-flex items-center gap-1 w-10 h-12 justify-center rounded-md border border-dashed border-gray-300 text-[#AD1457] hover:bg-rose-50 cursor-pointer" title="Upload an angle photo">
                           <ImagePlus className="h-4 w-4" />
                           <input type="file" accept="image/*,.heic,.heif" onChange={(e) => handleAddAngles(i, e)} className="hidden" disabled={saving} />
                         </label>
@@ -955,9 +915,11 @@ export default function ProductForm({ product }: { product?: Product }) {
           </div>
         )}
 
+        {/* Always active — you can keep adding photos while others upload in the
+            background (each tile shows its own corner spinner until done). */}
         <label className="inline-flex items-center gap-2 cursor-pointer bg-[#C2185B] hover:bg-[#a01049] text-white font-medium text-sm px-4 py-2.5 rounded-lg transition-colors">
-          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-          {uploading ? 'Uploading…' : 'Add photos'}
+          <ImagePlus className="h-4 w-4" />
+          Add photos
           <input type="file" accept="image/*,.heic,.heif" multiple onChange={handleAddPhotos} className="hidden" disabled={saving} />
         </label>
 

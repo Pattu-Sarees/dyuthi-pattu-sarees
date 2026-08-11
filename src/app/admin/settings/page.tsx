@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { StoreSettings, DEFAULT_STORE_SETTINGS } from '@/types'
 import { Loader2, Store, Boxes, LayoutTemplate, Save, ImagePlus, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { processAndUpload } from '@/lib/clientImageUpload'
 
 const input = 'w-full h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#AD1457] bg-white'
 const label = 'block text-sm font-medium text-gray-700 mb-1.5'
@@ -38,11 +39,12 @@ export default function AdminSettingsPage() {
   const uploadHero = async (file: File | null) => {
     if (!file) return
     setUploading(true)
-    const fd = new FormData(); fd.append('file', file)
-    const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+    try {
+      set('hero_banner_image', await processAndUpload(file, { folder: 'homepage' }))
+    } catch (e) {
+      toast.error((e as Error)?.message || 'Upload failed')
+    }
     setUploading(false)
-    if (res.ok) { const { url } = await res.json(); set('hero_banner_image', url) }
-    else toast.error('Upload failed')
     if (fileRef.current) fileRef.current.value = ''
   }
 
