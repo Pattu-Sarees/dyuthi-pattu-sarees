@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isAdminEmail } from '@/lib/admin'
-import sharp from 'sharp'
 
-// sharp + heic-convert need the Node.js runtime (not edge).
+// heic-convert needs the Node.js runtime (not edge).
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
@@ -17,28 +16,29 @@ async function requireAdmin() {
   return user && isAdminEmail(user.email) ? user : null
 }
 
-// Auto-rotate (honour EXIF), resize to <=3000px, compress to JPEG.
-function encode(input: Buffer) {
-  return sharp(input, { unlimited: true })
-    .rotate()
-    .resize(3000, 3000, { fit: 'inside', withoutEnlargement: true })
-    .jpeg({ quality: 82 })
-    .toBuffer()
-}
-
 async function processImage(inputBuffer: Buffer, isHeic: boolean): Promise<Buffer> {
-  // HEIC: decode with heic-convert FIRST — do NOT let sharp attempt the HEIC
-  // decode. On some platforms sharp's libheif "succeeds" on phone HEICs but
-  // returns a BLANK/garbled image; heic-convert (libheif wasm) decodes them
-  // correctly. sharp is then only used to resize/compress the decoded JPEG.
+  // Step 1 — HEIC → JPEG via heic-convert (libheif wasm), verified to decode
+  // these phone HEICs correctly. (JPEG/PNG input is passed straight through.)
+  let jpegBuffer = inputBuffer
   if (isHeic) {
     const heicConvert = (await import('heic-convert')).default
-    const out = await heicConvert({ buffer: inputBuffer as unknown as ArrayBufferLike, format: 'JPEG', quality: 0.92 })
-    const jpeg = Buffer.from(out)
-    console.log(`[process-image] heic-convert decoded ${(inputBuffer.length / 1024).toFixed(0)}KB HEIC -> ${(jpeg.length / 1024).toFixed(0)}KB JPEG`)
-    return encode(jpeg)
+    const out = await heicConvert({ buffer: inputBuffer as unknown as ArrayBufferLike, format: 'JPEG', quality: 0.85 })
+    jpegBuffer = Buffer.from(out)
+    console.log(`[process-image] heic-convert ${(inputBuffer.length / 1024).toFixed(0)}KB HEIC -> ${(jpegBuffer.length / 1024).toFixed(0)}KB JPEG`)
   }
-  return encode(inputBuffer)
+
+  // Step 2 — resize + compress with jimp (pure-JS, no native binary). We use
+  // jimp instead of sharp because sharp's resize was CORRUPTING these large
+  // (24MP) images on Vercel, producing broken files. jimp is slower but reliable.
+  const Jimp = (await import('jimp')).default
+  const image = await Jimp.read(jpegBuffer)
+  if (Math.max(image.bitmap.width, image.bitmap.height) > 1600) {
+    image.scaleToFit(1600, 1600) // downscale only; preserves aspect ratio
+  }
+  image.quality(80)
+  const outBuf = await image.getBufferAsync(Jimp.MIME_JPEG)
+  console.log(`[process-image] jimp ${image.bitmap.width}x${image.bitmap.height} -> ${(outBuf.length / 1024).toFixed(0)}KB`)
+  return outBuf
 }
 
 // SERVER FALLBACK — only used for HEIC files the browser couldn't decode. The

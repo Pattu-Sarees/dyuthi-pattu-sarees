@@ -32,7 +32,7 @@ const nextConfig: NextConfig = {
   // Images process in the browser; the ONLY server-side use is the HEIC fallback
   // (process-image) for files the browser can't decode. Keep these native/wasm
   // libs external so Next loads their binaries correctly.
-  serverExternalPackages: ['sharp', 'heic-convert'],
+  serverExternalPackages: ['sharp', 'heic-convert', 'jimp'],
   // Tree-shake the icon barrel so only the icons actually used ship to the client.
   experimental: {
     optimizePackageImports: ['lucide-react'],
