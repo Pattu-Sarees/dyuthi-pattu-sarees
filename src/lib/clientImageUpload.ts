@@ -121,7 +121,12 @@ export async function uploadProcessedImage(
   if (!r1.ok || !j1.path || !j1.token) throw new Error(j1.error || 'Could not start upload')
 
   const supabase = createClient()
-  const { error } = await supabase.storage.from(bucket).uploadToSignedUrl(j1.path, j1.token, file)
+  // IMPORTANT: pass contentType explicitly. uploadToSignedUrl otherwise stores
+  // the object as text/plain, so Supabase serves the JPEG with a non-image
+  // content-type and browsers refuse to render it (broken image / "Unavailable").
+  const { error } = await supabase.storage
+    .from(bucket)
+    .uploadToSignedUrl(j1.path, j1.token, file, { contentType: file.type || 'image/jpeg', upsert: true })
   if (error) {
     console.error('[imgupload] upload FAILURE:', error.message)
     throw new Error(error.message || 'Upload failed')
@@ -156,7 +161,9 @@ export async function uploadRawViaServer(
   if (!r1.ok || !j1.path || !j1.token) throw new Error(j1.error || 'Could not start upload')
 
   const supabase = createClient()
-  const { error } = await supabase.storage.from(bucket).uploadToSignedUrl(j1.path, j1.token, file)
+  const { error } = await supabase.storage
+    .from(bucket)
+    .uploadToSignedUrl(j1.path, j1.token, file, { contentType: file.type || 'application/octet-stream', upsert: true })
   if (error) { console.error('[imgupload] raw upload FAILURE:', error.message); throw new Error(error.message || 'Upload failed') }
 
   const r2 = await fetch(processEndpoint, {
