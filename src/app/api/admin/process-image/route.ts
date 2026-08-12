@@ -27,15 +27,18 @@ function encode(input: Buffer) {
 }
 
 async function processImage(inputBuffer: Buffer, isHeic: boolean): Promise<Buffer> {
-  try {
-    return await encode(inputBuffer)
-  } catch (err) {
-    if (!isHeic) throw err
-    // Fallback for HEICs sharp can't decode natively: wasm decoder, then re-encode.
+  // HEIC: decode with heic-convert FIRST — do NOT let sharp attempt the HEIC
+  // decode. On some platforms sharp's libheif "succeeds" on phone HEICs but
+  // returns a BLANK/garbled image; heic-convert (libheif wasm) decodes them
+  // correctly. sharp is then only used to resize/compress the decoded JPEG.
+  if (isHeic) {
     const heicConvert = (await import('heic-convert')).default
     const out = await heicConvert({ buffer: inputBuffer as unknown as ArrayBufferLike, format: 'JPEG', quality: 0.92 })
-    return encode(Buffer.from(out))
+    const jpeg = Buffer.from(out)
+    console.log(`[process-image] heic-convert decoded ${(inputBuffer.length / 1024).toFixed(0)}KB HEIC -> ${(jpeg.length / 1024).toFixed(0)}KB JPEG`)
+    return encode(jpeg)
   }
+  return encode(inputBuffer)
 }
 
 // SERVER FALLBACK — only used for HEIC files the browser couldn't decode. The
