@@ -121,12 +121,15 @@ export async function uploadProcessedImage(
   if (!r1.ok || !j1.path || !j1.token) throw new Error(j1.error || 'Could not start upload')
 
   const supabase = createClient()
-  // IMPORTANT: pass contentType explicitly. uploadToSignedUrl otherwise stores
-  // the object as text/plain, so Supabase serves the JPEG with a non-image
-  // content-type and browsers refuse to render it (broken image / "Unavailable").
+  // CRITICAL: storage-js's uploadToSignedUrl IGNORES the contentType option when
+  // the body is a Blob/File (it wraps it in FormData and never sets content-type,
+  // so the object is stored as the text/plain default → broken images). Passing
+  // the RAW BYTES (Uint8Array) instead routes through the code path that DOES
+  // apply `content-type`, so the JPEG is stored and served correctly.
+  const bytes = new Uint8Array(await file.arrayBuffer())
   const { error } = await supabase.storage
     .from(bucket)
-    .uploadToSignedUrl(j1.path, j1.token, file, { contentType: file.type || 'image/jpeg', upsert: true })
+    .uploadToSignedUrl(j1.path, j1.token, bytes, { contentType: file.type || 'image/jpeg', upsert: true })
   if (error) {
     console.error('[imgupload] upload FAILURE:', error.message)
     throw new Error(error.message || 'Upload failed')
