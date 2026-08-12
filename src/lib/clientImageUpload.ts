@@ -44,25 +44,16 @@ export async function processImageForUpload(input: File): Promise<File> {
   console.log('[imgupload] original:', input.name, kb(input.size), input.type || '(no type)')
 
   // 1. Decode to a bitmap (EXIF orientation applied). JPEG/PNG decode directly.
-  //    HEIC: try the browser's native decoder first (Safari/iOS, or Windows with
-  //    HEIF extensions), then heic2any (libheif wasm). If BOTH fail, signal the
-  //    caller to fall back to server-side conversion.
+  //    HEIC: NEVER decode in the browser. On Chrome/Windows, createImageBitmap()
+  //    on a HEIC often does NOT throw — it "succeeds" but yields a BLANK bitmap,
+  //    which we'd then upload as a blank (but valid-looking) JPEG. So for HEIC we
+  //    always hand off to the server (heic-convert via /api/admin/process-image),
+  //    which decodes it correctly.
   let bitmap: ImageBitmap
   if (isHeicFile(input)) {
-    // Try the browser's INSTANT native HEIC decoder (Safari/iOS, or Windows with
-    // HEIF extensions). If it isn't available, go STRAIGHT to server conversion —
-    // we skip the slow libheif (heic2any) attempt that would take seconds and
-    // then fail on Windows Chrome anyway.
-    try {
-      bitmap = await createImageBitmap(input, { imageOrientation: 'from-image' })
-      console.log('[imgupload] HEIC decoded natively')
-    } catch {
-      console.warn('[imgupload] native HEIC decode unavailable → server fallback')
-      throw new Error('HEIC_NEEDS_SERVER')
-    }
-  } else {
-    bitmap = await createImageBitmap(input, { imageOrientation: 'from-image' })
+    throw new Error('HEIC_NEEDS_SERVER')
   }
+  bitmap = await createImageBitmap(input, { imageOrientation: 'from-image' })
   const source: Blob = input
   const longestSide = Math.max(bitmap.width, bitmap.height)
 
