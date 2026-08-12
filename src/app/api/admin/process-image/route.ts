@@ -22,20 +22,34 @@ async function processImage(inputBuffer: Buffer, isHeic: boolean): Promise<Buffe
   let jpegBuffer = inputBuffer
   if (isHeic) {
     const heicConvert = (await import('heic-convert')).default
-    const out = await heicConvert({ buffer: inputBuffer as unknown as ArrayBufferLike, format: 'JPEG', quality: 0.85 })
+    // High-fidelity decode — we keep detail here; jimp does the final compress.
+    const out = await heicConvert({ buffer: inputBuffer as unknown as ArrayBufferLike, format: 'JPEG', quality: 0.95 })
     jpegBuffer = Buffer.from(out)
     console.log(`[process-image] heic-convert ${(inputBuffer.length / 1024).toFixed(0)}KB HEIC -> ${(jpegBuffer.length / 1024).toFixed(0)}KB JPEG`)
   }
 
   // Step 2 — resize + compress with jimp (pure-JS, no native binary). We use
   // jimp instead of sharp because sharp's resize was CORRUPTING these large
-  // (24MP) images on Vercel, producing broken files. jimp is slower but reliable.
+  // (24MP) images on Vercel. We store a HIGH-QUALITY master (up to 2560px,
+  // quality 90) so product zoom stays crisp — Next/Image downscales per device
+  // for fast page loads, so the large master doesn't slow the storefront.
   const Jimp = (await import('jimp')).default
-  const image = await Jimp.read(jpegBuffer)
-  if (Math.max(image.bitmap.width, image.bitmap.height) > 1600) {
-    image.scaleToFit(1600, 1600) // downscale only; preserves aspect ratio
+  // jimp's built-in JPEG decoder (jpeg-js) caps memory at 512MB and REFUSES to
+  // decode large phone images (24MP) — that was the "Could not process image"
+  // error. Raise the cap so big HEIC-derived JPEGs decode successfully.
+  const jpegMod = (await import('jpeg-js')) as unknown as {
+    default?: { decode: (d: Buffer, o: object) => unknown }
+    decode?: (d: Buffer, o: object) => unknown
   }
-  image.quality(80)
+  const jpegDecode = (jpegMod.default?.decode || jpegMod.decode)!
+  ;(Jimp as unknown as { decoders: Record<string, (d: Buffer) => unknown> }).decoders['image/jpeg'] =
+    (data: Buffer) => jpegDecode(data, { maxMemoryUsageInMB: 1024, maxResolutionInMP: 200 })
+
+  const image = await Jimp.read(jpegBuffer)
+  if (Math.max(image.bitmap.width, image.bitmap.height) > 2560) {
+    image.scaleToFit(2560, 2560) // downscale only; preserves aspect ratio
+  }
+  image.quality(90)
   const outBuf = await image.getBufferAsync(Jimp.MIME_JPEG)
   console.log(`[process-image] jimp ${image.bitmap.width}x${image.bitmap.height} -> ${(outBuf.length / 1024).toFixed(0)}KB`)
   return outBuf
