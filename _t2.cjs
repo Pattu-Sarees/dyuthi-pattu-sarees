@@ -1,0 +1,10 @@
+const heicConvert = require('heic-convert')
+const { readFileSync, writeFileSync } = require('fs')
+;(async()=>{
+  const buf = readFileSync('/sessions/loving-keen-dijkstra/mnt/uploads/IMG_4084.HEIC')
+  console.log('HEIC bytes:', buf.length)
+  const out = await heicConvert({ buffer: buf, format:'JPEG', quality:0.9 })
+  const jpg = Buffer.from(out)
+  console.log('heic-convert JPEG bytes:', jpg.length)
+  writeFileSync('/sessions/loving-keen-dijkstra/mnt/outputs/hc_4084.jpg', jpg)
+})().catch(e=>console.log('heic-convert ERROR:', e.message))

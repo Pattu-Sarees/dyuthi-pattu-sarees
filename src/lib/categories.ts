@@ -41,7 +41,7 @@ export const DEFAULT_CATEGORIES: ProductCategory[] = [
   { name: 'Gadwal Pattu', slug: 'gadwal pattu', menu_group: 'Sarees' },
   { name: 'Gadwal Cotton', slug: 'gadwal cotton', menu_group: 'Sarees' },
   { name: 'Kota', slug: 'kota', menu_group: 'Sarees' },
-  { name: 'Kanchipattu', slug: 'kanchipattu', menu_group: 'Sarees' },
+  { name: 'Pure Kanchipattu', slug: 'kanchipattu', menu_group: 'Sarees' },
   { name: 'Soft Silks', slug: 'soft silks', menu_group: 'Sarees' },
   { name: 'Jamdhani', slug: 'jamdhani', menu_group: 'Other Sarees' },
   { name: 'Butter Silk', slug: 'butter silk', menu_group: 'Other Sarees' },

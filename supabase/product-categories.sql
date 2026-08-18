@@ -45,7 +45,7 @@ insert into product_categories (name, slug, menu_group) values
   ('Gadwal Pattu',        'gadwal pattu',        'Sarees'),
   ('Gadwal Cotton',       'gadwal cotton',       'Sarees'),
   ('Kota',                'kota',                'Sarees'),
-  ('Kanchipattu',         'kanchipattu',         'Sarees'),
+  ('Pure Kanchipattu',    'kanchipattu',         'Sarees'),
   ('Soft Silks',          'soft silks',          'Sarees'),
   ('Jamdhani',            'jamdhani',            'Other Sarees'),
   ('Butter Silk',         'butter silk',         'Other Sarees'),

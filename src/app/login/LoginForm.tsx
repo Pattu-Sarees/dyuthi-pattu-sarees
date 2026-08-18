@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,19 @@ export default function LoginForm() {
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''))
   const [loading, setLoading] = useState(false)
+  // Resend cooldown (seconds). Should match Supabase's OTP rate limit — set that
+  // to 45s under Auth → Rate Limits so the button re-enables exactly when a new
+  // OTP can actually be sent.
+  const RESEND_COOLDOWN = 45
+  const [cooldown, setCooldown] = useState(0)
   const inputsRef = useRef<(HTMLInputElement | null)[]>([])
+
+  // Tick the resend countdown down to 0.
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const t = setInterval(() => setCooldown((s) => (s <= 1 ? 0 : s - 1)), 1000)
+    return () => clearInterval(t)
+  }, [cooldown])
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -27,6 +39,7 @@ export default function LoginForm() {
   const sendOTP = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim()) return
+    if (cooldown > 0) return // still within the resend cooldown
     setLoading(true)
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -38,6 +51,7 @@ export default function LoginForm() {
     } else {
       toast.success('OTP sent!', { description: `Check your inbox at ${email}` })
       setStep('otp')
+      setCooldown(RESEND_COOLDOWN) // start the resend countdown
     }
   }
 
@@ -183,10 +197,10 @@ export default function LoginForm() {
               <button
                 type="button"
                 onClick={sendOTP}
-                disabled={loading}
-                className="w-full text-sm text-rose-600 hover:text-rose-700 transition-colors"
+                disabled={loading || cooldown > 0}
+                className="w-full text-sm text-rose-600 hover:text-rose-700 transition-colors disabled:text-gray-400 disabled:cursor-not-allowed"
               >
-                Resend OTP
+                {cooldown > 0 ? `Resend OTP in ${cooldown}s` : 'Resend OTP'}
               </button>
             </form>
           )}
