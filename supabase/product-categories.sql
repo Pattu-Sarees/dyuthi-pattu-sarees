@@ -43,6 +43,7 @@ insert into product_categories (name, slug, menu_group) values
   ('Kuppadam',            'kuppadam',            'Sarees'),
   ('Mangalgiri Kuppadam', 'mangalgiri kuppadam', 'Sarees'),
   ('Gadwal Pattu',        'gadwal pattu',        'Sarees'),
+  ('Gadwal Kuppadam',     'gadwal kuppadam',     'Sarees'),
   ('Gadwal Cotton',       'gadwal cotton',       'Sarees'),
   ('Kota',                'kota',                'Sarees'),
   ('Pure Kanchipattu',    'kanchipattu',         'Sarees'),

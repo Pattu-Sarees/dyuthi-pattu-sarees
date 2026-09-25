@@ -17,6 +17,7 @@ import PhoneField from '@/components/admin/PhoneField'
 import CouponBox from '@/components/checkout/CouponBox'
 import NavigationGuard from '@/components/NavigationGuard'
 import { useFormDraft, clearFormDraft } from '@/lib/useFormDraft'
+import { load } from '@cashfreepayments/cashfree-js'
 
 // ---- Field validation for the delivery form ----
 const NAME_RE = /^[A-Za-z][A-Za-z .'-]{1,}$/   // letters, needs ≥2 chars, no digits
@@ -237,40 +238,42 @@ export default function CheckoutPage() {
     }
 
     try {
-      // Create Razorpay order — the amount is computed server-side from the
+      // Create a Cashfree order — the amount is computed server-side from the
       // cart's product IDs (client price/total are never trusted).
       const res = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })), coupon_code: coupon?.code }),
+        body: JSON.stringify({
+          items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
+          coupon_code: coupon?.code,
+          customer_phone: address.phone,
+        }),
       })
-      const { orderId, key, amount } = await res.json()
-      if (!orderId) { toast.error('Could not start payment. Please try again.'); setLoading(false); return }
+      const { paymentSessionId, orderId } = await res.json()
+      if (!paymentSessionId || !orderId) { toast.error('Could not start payment. Please try again.'); setLoading(false); return }
 
-      const options = {
-        key,
-        amount: Math.round((amount ?? total) * 100),
-        currency: 'INR',
-        name: 'Dyuthi Pattu Sarees',
-        description: 'Saree Purchase',
-        order_id: orderId,
-        handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
-          await createOrder(addressPayload, response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature)
-        },
-        prefill: { email: user?.email, contact: address.phone, name: fullName },
-        theme: { color: '#be123c' },
+      // Open Cashfree checkout as a popup over this page.
+      const mode: 'sandbox' | 'production' =
+        process.env.NEXT_PUBLIC_CASHFREE_MODE === 'production' ? 'production' : 'sandbox'
+      const cashfree = await load({ mode })
+      const result = await cashfree.checkout({ paymentSessionId, redirectTarget: '_modal' })
+
+      // User closed the popup or the payment failed.
+      if (result?.error) {
+        toast.error(result.error.message || 'Payment was not completed.')
+        setLoading(false)
+        return
       }
 
-      const rzp = new (window as typeof window & { Razorpay: new (opts: typeof options) => { open(): void } }).Razorpay(options)
-      rzp.open()
-      setLoading(false)
+      // Payment attempt finished — verify it server-side (via Cashfree) and record the order.
+      await createOrder(addressPayload, orderId)
     } catch {
       toast.error('Something went wrong. Please try again.')
       setLoading(false)
     }
   }
 
-  const createOrder = async (addressPayload: Record<string, unknown>, paymentId?: string, razorpayOrderId?: string, razorpaySignature?: string) => {
+  const createOrder = async (addressPayload: Record<string, unknown>, cashfreeOrderId: string) => {
     const res = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -284,11 +287,10 @@ export default function CheckoutPage() {
         address: addressPayload,
         customer_email: user?.email || '',
         coupon_code: coupon?.code,
-        payment_method: 'razorpay',
-        // Verified server-side — the server sets the real amount & paid status.
-        payment_id: paymentId,
-        razorpay_order_id: razorpayOrderId,
-        razorpay_signature: razorpaySignature,
+        payment_method: 'cashfree',
+        // Verified server-side — the server fetches the Cashfree order to confirm
+        // it's actually PAID and sets the real amount & paid status.
+        cashfree_order_id: cashfreeOrderId,
       }),
     })
 
@@ -494,7 +496,7 @@ export default function CheckoutPage() {
             </p>
             <div className="rounded-xl border-2 border-rose-600 bg-rose-50 overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-sm font-medium text-gray-900">Razorpay Secure (UPI, Cards, Int&apos;l Cards, Wallets)</span>
+                <span className="text-sm font-medium text-gray-900">Cashfree Secure (UPI, Cards, Net Banking, Wallets)</span>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <span className="text-[10px] font-bold text-white bg-[#6C37F4] rounded px-1.5 py-0.5">UPI</span>
                   <span className="text-[10px] font-bold text-white bg-[#1A1F71] rounded px-1.5 py-0.5">VISA</span>
@@ -503,7 +505,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
               <div className="bg-white px-4 py-3 text-xs text-gray-500 border-t border-rose-100">
-                You&apos;ll be redirected to Razorpay Secure (UPI, Cards, Int&apos;l Cards, Wallets) to complete your purchase.
+                You&apos;ll complete your payment securely via Cashfree (UPI, Cards, Net Banking, Wallets).
               </div>
             </div>
           </div>

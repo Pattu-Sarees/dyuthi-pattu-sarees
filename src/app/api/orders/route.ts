@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
 import { isValidEmail } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateOrderNumber } from '@/lib/order-number'
 import { notify } from '@/lib/notify-server'
 import { evaluateCoupon, istToday } from '@/lib/coupon'
+import { cfGetOrder } from '@/lib/cashfree'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -14,9 +14,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const { items, address, payment_method } = body
-  const razorpay_order_id: string | undefined = body.razorpay_order_id
-  const razorpay_payment_id: string | undefined = body.payment_id || body.razorpay_payment_id
-  const razorpay_signature: string | undefined = body.razorpay_signature
+  const cashfreeOrderId: string | undefined = body.cashfree_order_id || body.order_id
 
   if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: 'No items in the order' }, { status: 400 })
@@ -24,22 +22,6 @@ export async function POST(req: NextRequest) {
   // One coupon per order — reject any attempt to pass multiple codes.
   if (Array.isArray(body.coupon_code)) {
     return NextResponse.json({ error: 'Only one coupon can be applied per order.' }, { status: 400 })
-  }
-
-  // ---- Verify the Razorpay payment SERVER-SIDE ----
-  // Only a payment whose signature checks out may be recorded as 'paid'. This
-  // stops a client from POSTing payment_status: 'paid' without actually paying.
-  let paid = false
-  if (razorpay_payment_id) {
-    const expected = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '')
-      .update(`${razorpay_order_id || ''}|${razorpay_payment_id}`)
-      .digest('hex')
-    paid = !!razorpay_signature && expected.length > 0 &&
-      crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(razorpay_signature))
-    if (!paid) {
-      return NextResponse.json({ error: 'Payment could not be verified' }, { status: 400 })
-    }
   }
 
   // ---- Recompute the amount from real DB prices (never trust the client) ----
@@ -70,6 +52,24 @@ export async function POST(req: NextRequest) {
   }
   const serverTotal = Math.max(0, subtotal - discount) + serverShipping
 
+  // ---- Verify the Cashfree payment SERVER-SIDE ----
+  // We fetch the order straight from Cashfree and only record 'paid' when its
+  // real status is PAID and the amount matches what we computed — a client can
+  // never mark an order paid without an actually-successful payment.
+  let paid = false
+  let paymentRef: string | null = null
+  if (cashfreeOrderId) {
+    const cf = await cfGetOrder(cashfreeOrderId)
+    paid = cf?.order_status === 'PAID'
+    if (!paid) {
+      return NextResponse.json({ error: 'Payment could not be verified' }, { status: 400 })
+    }
+    if (typeof cf?.order_amount === 'number' && Math.abs(cf.order_amount - serverTotal) > 1) {
+      return NextResponse.json({ error: 'Payment amount mismatch' }, { status: 400 })
+    }
+    paymentRef = cf?.cf_order_id ? String(cf.cf_order_id) : cashfreeOrderId
+  }
+
   // Global order number via service-role client (RLS-safe count).
   const orderNumber = await generateOrderNumber(admin)
 
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       coupon_code: couponCode,
       address,
       payment_method,
-      payment_id: razorpay_payment_id || null,
+      payment_id: paymentRef,
       payment_status: paid ? 'paid' : 'pending',
     })
     .select()

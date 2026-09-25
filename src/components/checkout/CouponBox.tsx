@@ -54,6 +54,7 @@ export default function CouponBox({
       else {
         const applied: Applied = { code: data.code, description: data.description ?? null, discount: data.discount }
         onApply(applied)
+        setOpen(false)        // close the coupon panel so only the success popup shows
         setSuccess(applied)   // show the "Applied!" popup
         setInput('')
       }
@@ -130,18 +131,30 @@ export default function CouponBox({
                     <p className="text-sm text-gray-400 py-4 text-center">No offers available right now.</p>
                   ) : (
                     <div className="space-y-3">
-                      {list.map((c) => (
-                        <div key={c.code} className="rounded-xl border border-dashed border-gray-300 p-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="font-bold text-gray-900 tracking-wide">{c.code}</p>
-                              <p className="text-xs font-semibold text-green-700">{headline(c)}{c.min_order_value > 0 ? ` · min ${inr(c.min_order_value)}` : ''}</p>
+                      {list.map((c) => {
+                        const need = Math.max(0, (c.min_order_value || 0) - subtotal)
+                        const eligible = need <= 0
+                        return (
+                          <div key={c.code} className={`rounded-xl border border-dashed p-3 ${eligible ? 'border-gray-300' : 'border-gray-200 bg-gray-50/70'}`}>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className={`font-bold tracking-wide ${eligible ? 'text-gray-900' : 'text-gray-400'}`}>{c.code}</p>
+                                <p className={`text-xs font-semibold ${eligible ? 'text-green-700' : 'text-gray-400'}`}>{headline(c)}{c.min_order_value > 0 ? ` · min ${inr(c.min_order_value)}` : ''}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => eligible && apply(c.code)}
+                                disabled={applying || !eligible}
+                                className="text-sm font-bold text-[#C2185B] hover:text-[#a01049] disabled:text-gray-300 disabled:cursor-not-allowed flex-shrink-0"
+                              >
+                                APPLY
+                              </button>
                             </div>
-                            <button type="button" onClick={() => apply(c.code)} disabled={applying} className="text-sm font-bold text-[#C2185B] hover:text-[#a01049] disabled:opacity-40 flex-shrink-0">APPLY</button>
+                            {c.description && <p className={`mt-1 text-xs ${eligible ? 'text-gray-500' : 'text-gray-400'}`}>{c.description}</p>}
+                            {!eligible && <p className="mt-1 text-xs font-medium text-red-500">Add {inr(need)} more to use this coupon</p>}
                           </div>
-                          {c.description && <p className="mt-1 text-xs text-gray-500">{c.description}</p>}
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>

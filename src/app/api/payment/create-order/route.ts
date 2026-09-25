@@ -3,8 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { rateLimit, clientIp, tooMany } from '@/lib/rate-limit'
 import { evaluateCoupon } from '@/lib/coupon'
+import { cfCreateOrder } from '@/lib/cashfree'
 
-// Creates a Razorpay order. The amount is computed SERVER-SIDE from the real
+// Creates a Cashfree order. The amount is computed SERVER-SIDE from the real
 // product prices in the database — never trusted from the client — so a buyer
 // cannot tamper with what they're charged.
 export async function POST(req: NextRequest) {
@@ -48,20 +49,29 @@ export async function POST(req: NextRequest) {
   const amount = Math.max(0, subtotal - discount) + shipping
   if (amount <= 0) return NextResponse.json({ error: 'Invalid order amount' }, { status: 400 })
 
+  // Cashfree needs a 10-digit Indian customer phone. Take the last 10 digits of
+  // whatever the client sent (numbers arrive as +91XXXXXXXXXX).
+  const phoneDigits = String(body.customer_phone || '').replace(/\D/g, '')
+  const customerPhone = phoneDigits.slice(-10)
+  if (customerPhone.length !== 10) {
+    return NextResponse.json({ error: 'A valid mobile number is required for payment' }, { status: 400 })
+  }
+
   try {
-    // Dynamically import Razorpay to avoid build errors if key not set
-    const Razorpay = (await import('razorpay')).default
-    const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID!,
-      key_secret: process.env.RAZORPAY_KEY_SECRET!,
+    const order = await cfCreateOrder({
+      amount,
+      customerId: user.id,
+      customerPhone,
+      customerEmail: user.email || undefined,
     })
-    const order = await razorpay.orders.create({
-      amount: Math.round(amount * 100),
-      currency: 'INR',
-      receipt: `receipt_${Date.now()}`,
+    return NextResponse.json({
+      paymentSessionId: order.payment_session_id,
+      orderId: order.order_id,
+      amount,
+      discount,
     })
-    return NextResponse.json({ orderId: order.id, key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, amount, discount })
-  } catch {
+  } catch (err) {
+    console.error('[create-order] Cashfree error:', (err as Error)?.message)
     return NextResponse.json({ error: 'Payment gateway error' }, { status: 500 })
   }
 }
